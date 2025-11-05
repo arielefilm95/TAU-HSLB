@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAU - Tamizaje Auditivo Universal | Dashboard</title>
+    <meta name="description" content="Panel principal del Sistema de Tamizaje Auditivo Universal del Hospital San Luis de Buin">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="TAU">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>TAU</h1>
+                    <p class="subtitle">Tamizaje Auditivo Universal</p>
+                </div>
+                <div class="user-info">
+                    <span id="userName">Usuario</span>
+                    <button id="logoutBtn" class="btn btn-secondary btn-sm">Cerrar Sesión</button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="app-main">
+            <div class="dashboard-header">
+                <h2>Hospital San Luis de Buin</h2>
+                <p class="dashboard-subtitle">Sistema de Registro de Exámenes EOA</p>
+            </div>
+            
+            <!-- Action Cards -->
+            <div class="action-cards">
+                <div class="card">
+                    <div class="card-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                    </div>
+                    <h3>Registrar Madre</h3>
+                    <p>Agregar nueva madre con su información de hospitalización</p>
+                    <button id="registrarMadreBtn" class="btn btn-primary">Registrar</button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <h3>Ver Madres Registradas</h3>
+                    <p>Lista de todas las madres y sus exámenes EOA</p>
+                    <button id="verMadresBtn" class="btn btn-primary">Ver Lista</button>
+                </div>
+            </div>
+            
+            <!-- Recent Mothers List -->
+            <div class="recent-section">
+                <h3>Registros Recientes</h3>
+                <div id="recentMothers" class="recent-list">
+                    <p class="no-data">No hay registros recientes</p>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Modal for Register Mother -->
+        <div id="modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Registrar Nueva Madre</h3>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="madreForm">
+                        <div class="form-group">
+                            <label for="rut">RUT de la Madre</label>
+                            <input type="text" id="rut" name="rut" required placeholder="12.345.678-9">
+                            <span class="error-message" id="rutError"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="numeroFicha">Número de Ficha</label>
+                            <input type="text" id="numeroFicha" name="numeroFicha" required placeholder="Número de ficha">
+                            <span class="error-message" id="numeroFichaError"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sala">Sala</label>
+                            <input type="text" id="sala" name="sala" required placeholder="Ej: A101">
+                            <span class="error-message" id="salaError"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cama">Cama</label>
+                            <input type="text" id="cama" name="cama" required placeholder="Ej: 15">
+                            <span class="error-message" id="camaError"></span>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="guardarMadreBtn">
+                                <span class="btn-text">Guardar</span>
+                                <span class="btn-loader" style="display: none;">Guardando...</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mothers List Modal -->
+        <div id="madresModal" class="modal" style="display: none;">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3>Madres Registradas</h3>
+                    <button class="modal-close" onclick="closeMadresModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="search-box">
+                        <input type="text" id="searchMadres" placeholder="Buscar por RUT o ficha...">
+                    </div>
+                    <div id="madresList" class="madres-list">
+                        <p class="loading">Cargando...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- EOA Form Modal -->
+        <div id="eoaModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Examen EOA</h3>
+                    <button class="modal-close" onclick="closeEoaModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="madre-info">
+                        <h4 id="madreInfo">Información de la madre</h4>
+                    </div>
+                    
+                    <form id="eoaForm">
+                        <div class="form-group">
+                            <label>Oído Derecho (OD)</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="od" value="PASA" required>
+                                    <span class="radio-custom"></span>
+                                    PASA
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="od" value="REFIERE" required>
+                                    <span class="radio-custom"></span>
+                                    REFIERE
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Oído Izquierdo (OI)</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="oi" value="PASA" required>
+                                    <span class="radio-custom"></span>
+                                    PASA
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="oi" value="REFIERE" required>
+                                    <span class="radio-custom"></span>
+                                    REFIERE
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="observaciones">Observaciones</label>
+                            <textarea id="observaciones" name="observaciones" rows="3" placeholder="Observaciones adicionales..."></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeEoaModal()">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="guardarEoaBtn">
+                                <span class="btn-text">Guardar Examen</span>
+                                <span class="btn-loader" style="display: none;">Guardando...</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification -->
+        <div id="notification" class="notification" style="display: none;">
+            <span id="notificationMessage"></span>
+            <button class="notification-close" onclick="hideNotification()">&times;</button>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/madres.js"></script>
+    <script src="js/eoa.js"></script>
+    <script src="js/utils.js"></script>
+</body>
+</html>
