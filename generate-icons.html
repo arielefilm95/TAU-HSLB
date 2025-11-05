@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Iconos TAU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .icon-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .icon-item {
+            text-align: center;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .icon-item canvas {
+            display: block;
+            margin: 0 auto 5px;
+        }
+        button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #34495e;
+        }
+        .instructions {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generador de Iconos para TAU</h1>
+        
+        <div class="instructions">
+            <h3>Instrucciones:</h3>
+            <ol>
+                <li>Haz clic en "Generar Iconos" para crear todos los iconos necesarios</li>
+                <li>Descarga cada icono haciendo clic derecho sobre él y seleccionando "Guardar imagen como..."</li>
+                <li>Guarda los iconos en la carpeta <code>assets/icons/</code> con los nombres correctos</li>
+            </ol>
+        </div>
+        
+        <button onclick="generateIcons()">Generar Iconos</button>
+        
+        <div id="iconContainer" class="icon-preview"></div>
+    </div>
+
+    <script>
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Fondo azul oscuro
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Texto "TAU" en blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${size * 0.4}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TAU', size / 2, size / 2);
+            
+            return canvas;
+        }
+        
+        function generateIcons() {
+            const container = document.getElementById('iconContainer');
+            container.innerHTML = '';
+            
+            const iconSizes = [
+                { size: 16, name: 'favicon-16x16.png' },
+                { size: 32, name: 'favicon-32x32.png' },
+                { size: 72, name: 'icon-72x72.png' },
+                { size: 96, name: 'icon-96x96.png' },
+                { size: 128, name: 'icon-128x128.png' },
+                { size: 144, name: 'icon-144x144.png' },
+                { size: 152, name: 'icon-152x152.png' },
+                { size: 192, name: 'icon-192x192.png' },
+                { size: 384, name: 'icon-384x384.png' },
+                { size: 512, name: 'icon-512x512.png' },
+                { size: 180, name: 'apple-touch-icon.png' }
+            ];
+            
+            iconSizes.forEach(icon => {
+                const canvas = createIcon(icon.size);
+                
+                const iconItem = document.createElement('div');
+                iconItem.className = 'icon-item';
+                
+                const label = document.createElement('div');
+                label.textContent = `${icon.name} (${icon.size}x${icon.size})`;
+                
+                iconItem.appendChild(canvas);
+                iconItem.appendChild(label);
+                container.appendChild(iconItem);
+                
+                // Hacer el canvas descargable
+                canvas.style.cursor = 'pointer';
+                canvas.title = `Clic derecho para guardar: ${icon.name}`;
+                
+                canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    downloadIcon(canvas, icon.name);
+                });
+            });
+        }
+        
+        function downloadIcon(canvas, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -163,41 +163,173 @@
                     </div>
                     
                     <form id="eoaForm">
-                        <div class="form-group">
-                            <label>Oído Derecho (OD)</label>
-                            <div class="radio-group">
-                                <label class="radio-label">
-                                    <input type="radio" name="od" value="PASA" required>
-                                    <span class="radio-custom"></span>
-                                    PASA
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio" name="od" value="REFIERE" required>
-                                    <span class="radio-custom"></span>
-                                    REFIERE
-                                </label>
+                        <div class="form-section">
+                            <h4>Resultados del Examen</h4>
+                            <div class="form-group">
+                                <label>Oído Derecho (OD)</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="od" value="PASA" required>
+                                        <span class="radio-custom"></span>
+                                        PASA
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="od" value="REFIERE" required>
+                                        <span class="radio-custom"></span>
+                                        REFIERE
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Oído Izquierdo (OI)</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="oi" value="PASA" required>
+                                        <span class="radio-custom"></span>
+                                        PASA
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="oi" value="REFIERE" required>
+                                        <span class="radio-custom"></span>
+                                        REFIERE
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="form-group">
-                            <label>Oído Izquierdo (OI)</label>
-                            <div class="radio-group">
-                                <label class="radio-label">
-                                    <input type="radio" name="oi" value="PASA" required>
-                                    <span class="radio-custom"></span>
-                                    PASA
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio" name="oi" value="REFIERE" required>
-                                    <span class="radio-custom"></span>
-                                    REFIERE
-                                </label>
+                        <div class="form-section">
+                            <h4>Información del Bebé</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="fechaNacimiento">Fecha de Nacimiento</label>
+                                    <input type="date" id="fechaNacimiento" name="fechaNacimiento" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Sexo del Bebé</label>
+                                    <div class="radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="sexoBebe" value="MASCULINO" required>
+                                            <span class="radio-custom"></span>
+                                            Masculino
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="sexoBebe" value="FEMENINO" required>
+                                            <span class="radio-custom"></span>
+                                            Femenino
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Tipo de Parto</label>
+                                    <div class="radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="tipoParto" value="NORMAL" required>
+                                            <span class="radio-custom"></span>
+                                            Normal
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="tipoParto" value="CESAREA" required>
+                                            <span class="radio-custom"></span>
+                                            Cesárea
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="semanasGestacion">Semanas de Gestación</label>
+                                    <input type="number" id="semanasGestacion" name="semanasGestacion" min="20" max="42" required placeholder="Ej: 38">
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="observaciones">Observaciones</label>
-                            <textarea id="observaciones" name="observaciones" rows="3" placeholder="Observaciones adicionales..."></textarea>
+                        <div class="form-section">
+                            <h4>Antecedentes y Factores de Riesgo</h4>
+                            <div class="form-group">
+                                <label for="complicacionesEmbarazo">Complicaciones en el Embarazo</label>
+                                <textarea id="complicacionesEmbarazo" name="complicacionesEmbarazo" rows="2" placeholder="Describa cualquier complicación durante el embarazo..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="complicacionesDesarrollo">Complicaciones en el Desarrollo</label>
+                                <textarea id="complicacionesDesarrollo" name="complicacionesDesarrollo" rows="2" placeholder="Describa cualquier complicación en el desarrollo del bebé..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Familiares con Pérdida Auditiva</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="familiaresPerdidaAuditiva" value="true" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="familiaresPerdidaAuditiva" value="false" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>¿La madre fumó durante el embarazo?</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreFumo" value="true" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreFumo" value="false" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>¿La madre consumió alcohol durante el embarazo?</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreAlcohol" value="true" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreAlcohol" value="false" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>¿La madre usó drogas durante el embarazo?</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreDrogas" value="true" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreDrogas" value="false" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h4>Observaciones</h4>
+                            <div class="form-group">
+                                <label for="observaciones">Observaciones Adicionales</label>
+                                <textarea id="observaciones" name="observaciones" rows="3" placeholder="Observaciones adicionales..."></textarea>
+                            </div>
                         </div>
                         
                         <div class="form-actions">
@@ -220,10 +352,39 @@
     </div>
     
     <!-- JavaScript -->
-    <script src="js/auth.js"></script>
-    <script src="js/dashboard.js"></script>
-    <script src="js/madres.js"></script>
-    <script src="js/eoa.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/utils.js"></script>
+    <script>
+        // Esperar a que Supabase esté disponible antes de cargar los scripts que lo usan
+        function loadScripts() {
+            if (typeof window.supabase !== 'undefined') {
+                const scripts = ['js/auth.js', 'js/dashboard.js', 'js/madres.js', 'js/eoa.js'];
+                scripts.forEach((src, index) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    
+                    // Para auth.js, inicializar Supabase después de cargar
+                    if (src === 'js/auth.js') {
+                        script.onload = function() {
+                            if (typeof window.auth !== 'undefined' && window.auth.initializeSupabase) {
+                                window.auth.initializeSupabase();
+                            }
+                        };
+                    }
+                    
+                    document.head.appendChild(script);
+                });
+            } else {
+                setTimeout(loadScripts, 100);
+            }
+        }
+        
+        // Iniciar la carga después de que el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadScripts);
+        } else {
+            loadScripts();
+        }
+    </script>
 </body>
 </html>

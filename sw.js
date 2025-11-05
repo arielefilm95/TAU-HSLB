@@ -1,28 +1,30 @@
 // Service Worker para TAU - Tamizaje Auditivo Universal
 
-const CACHE_NAME = 'tau-v1';
+const CACHE_NAME = 'tau-v1.0.0';
+
+// URLs relativas para funcionar en cualquier dominio o subdirectorio
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/signup.html',
-    '/dashboard.html',
-    '/css/styles.css',
-    '/css/auth.css',
-    '/css/dashboard.css',
-    '/js/utils.js',
-    '/js/auth.js',
-    '/js/dashboard.js',
-    '/js/madres.js',
-    '/js/eoa.js',
-    '/manifest.json',
-    '/assets/icons/icon-72x72.png',
-    '/assets/icons/icon-96x96.png',
-    '/assets/icons/icon-128x128.png',
-    '/assets/icons/icon-144x144.png',
-    '/assets/icons/icon-152x152.png',
-    '/assets/icons/icon-192x192.png',
-    '/assets/icons/icon-384x384.png',
-    '/assets/icons/icon-512x512.png'
+    './',
+    './index.html',
+    './signup.html',
+    './dashboard.html',
+    './css/styles.css',
+    './css/auth.css',
+    './css/dashboard.css',
+    './js/utils.js',
+    './js/auth.js',
+    './js/dashboard.js',
+    './js/madres.js',
+    './js/eoa.js',
+    './manifest.json',
+    './assets/icons/icon-72x72.png',
+    './assets/icons/icon-96x96.png',
+    './assets/icons/icon-128x128.png',
+    './assets/icons/icon-144x144.png',
+    './assets/icons/icon-152x152.png',
+    './assets/icons/icon-192x192.png',
+    './assets/icons/icon-384x384.png',
+    './assets/icons/icon-512x512.png'
 ];
 
 // Instalación del Service Worker
@@ -132,7 +134,7 @@ self.addEventListener('fetch', function(event) {
                             
                             // Para páginas HTML, devolver página offline
                             if (event.request.destination === 'document') {
-                                return caches.match('/index.html');
+                                return caches.match('./index.html');
                             }
                             
                             // Para otros recursos, devolver error
@@ -258,8 +260,8 @@ self.addEventListener('push', function(event) {
     
     const options = {
         body: event.data ? event.data.text() : 'Nueva notificación de TAU',
-        icon: '/assets/icons/icon-192x192.png',
-        badge: '/assets/icons/icon-72x72.png',
+        icon: './assets/icons/icon-192x192.png',
+        badge: './assets/icons/icon-72x72.png',
         vibrate: [100, 50, 100],
         data: {
             dateOfArrival: Date.now(),
@@ -269,12 +271,12 @@ self.addEventListener('push', function(event) {
             {
                 action: 'explore',
                 title: 'Abrir TAU',
-                icon: '/assets/icons/icon-96x96.png'
+                icon: './assets/icons/icon-96x96.png'
             },
             {
                 action: 'close',
                 title: 'Cerrar',
-                icon: '/assets/icons/icon-96x96.png'
+                icon: './assets/icons/icon-96x96.png'
             }
         ]
     };
@@ -293,7 +295,7 @@ self.addEventListener('notificationclick', function(event) {
     if (event.action === 'explore') {
         // Abrir la aplicación
         event.waitUntil(
-            clients.openWindow('/')
+            clients.openWindow('./')
         );
     } else if (event.action === 'close') {
         // Cerrar notificación (ya se cerró arriba)
@@ -301,7 +303,7 @@ self.addEventListener('notificationclick', function(event) {
     } else {
         // Acción por defecto: abrir la aplicación
         event.waitUntil(
-            clients.openWindow('/')
+            clients.openWindow('./')
         );
     }
 });

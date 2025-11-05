@@ -61,6 +61,15 @@ async function loadUserInfo() {
 // Función para cargar registros recientes
 async function loadRecentMothers() {
     try {
+        if (!auth.supabase) {
+            console.error('Supabase no está inicializado');
+            const recentMothersElement = document.getElementById('recentMothers');
+            if (recentMothersElement) {
+                recentMothersElement.innerHTML = '<p class="no-data">Error de conexión</p>';
+            }
+            return;
+        }
+        
         const { data, error } = await auth.supabase
             .from('madres')
             .select('*')
@@ -209,6 +218,15 @@ async function openMadresModal() {
 // Función para cargar lista de madres
 async function loadMadresList(searchTerm = '') {
     try {
+        if (!auth.supabase) {
+            console.error('Supabase no está inicializado');
+            const madresListElement = document.getElementById('madresList');
+            if (madresListElement) {
+                madresListElement.innerHTML = '<p class="loading">Error de conexión</p>';
+            }
+            return;
+        }
+        
         let query = auth.supabase
             .from('madres')
             .select('*')
@@ -278,6 +296,12 @@ function displayMadresList(madres) {
 // Función para seleccionar una madre
 async function selectMadre(madreId) {
     try {
+        if (!auth.supabase) {
+            console.error('Supabase no está inicializado');
+            utils.showNotification('Error de conexión con la base de datos', 'error');
+            return;
+        }
+        
         // Cargar datos de la madre
         const { data, error } = await auth.supabase
             .from('madres')
@@ -323,6 +347,12 @@ async function handleMadreFormSubmit(e) {
     utils.toggleButtonLoader('guardarMadreBtn', true);
     
     try {
+        if (!auth.supabase) {
+            console.error('Supabase no está inicializado');
+            utils.showNotification('Error de conexión con la base de datos', 'error');
+            return;
+        }
+        
         // Insertar en Supabase
         const { data, error } = await auth.supabase
             .from('madres')
@@ -379,7 +409,7 @@ function closeMadresModal() {
 function setupPWA() {
     // Registrar service worker si está disponible
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('./sw.js')
             .then(registration => {
                 console.log('Service Worker registrado:', registration);
             })

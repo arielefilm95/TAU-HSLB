@@ -52,6 +52,11 @@ function closeEoaModal() {
 // Función para cargar exámenes anteriores de una madre
 async function cargarExamenesAnteriores(madreId) {
     try {
+        if (!auth.supabase) {
+            console.error('Supabase no está inicializado');
+            return;
+        }
+        
         const { data, error } = await auth.supabase
             .from('examenes_eoa')
             .select('*')
@@ -128,6 +133,21 @@ async function registrarExamenEOA(examenData) {
             throw new Error('Resultado de OI inválido');
         }
         
+        // Validar valores permitidos para sexo
+        if (!['MASCULINO', 'FEMENINO'].includes(examenData.sexo_bebe)) {
+            throw new Error('Sexo del bebé inválido');
+        }
+        
+        // Validar valores permitidos para tipo de parto
+        if (!['NORMAL', 'CESAREA'].includes(examenData.tipo_parto)) {
+            throw new Error('Tipo de parto inválido');
+        }
+        
+        // Validar semanas de gestación
+        if (examenData.semanas_gestacion < 20 || examenData.semanas_gestacion > 42) {
+            throw new Error('Semanas de gestación fuera de rango válido (20-42)');
+        }
+        
         // Obtener usuario actual
         const currentUser = auth.getCurrentUser();
         if (!currentUser) {
@@ -139,10 +159,24 @@ async function registrarExamenEOA(examenData) {
             madre_id: examenData.madre_id,
             od_resultado: examenData.od_resultado,
             oi_resultado: examenData.oi_resultado,
-            observaciones: examenData.observaciones ? examenData.observaciones.trim() : null,
+            fecha_nacimiento: examenData.fecha_nacimiento,
+            sexo_bebe: examenData.sexo_bebe,
+            tipo_parto: examenData.tipo_parto,
+            semanas_gestacion: examenData.semanas_gestacion,
+            complicaciones_embarazo: examenData.complicaciones_embarazo,
+            complicaciones_desarrollo: examenData.complicaciones_desarrollo,
+            familiares_perdida_auditiva: examenData.familiares_perdida_auditiva,
+            madre_fumo: examenData.madre_fumo,
+            madre_alcohol: examenData.madre_alcohol,
+            madre_drogas: examenData.madre_drogas,
+            observaciones: examenData.observaciones,
             usuario_id: currentUser.id,
             fecha_examen: new Date().toISOString()
         };
+        
+        if (!auth.supabase) {
+            throw new Error('Supabase no está inicializado');
+        }
         
         // Insertar en Supabase
         const { data, error } = await auth.supabase
@@ -168,6 +202,10 @@ async function registrarExamenEOA(examenData) {
 // Función para obtener exámenes de una madre
 async function obtenerExamenesMadre(madreId, limit = 10) {
     try {
+        if (!auth.supabase) {
+            throw new Error('Supabase no está inicializado');
+        }
+        
         const { data, error } = await auth.supabase
             .from('examenes_eoa')
             .select('*')
@@ -193,6 +231,10 @@ async function obtenerExamenesMadre(madreId, limit = 10) {
 // Función para obtener todos los exámenes
 async function obtenerTodosExamenes(limit = 50) {
     try {
+        if (!auth.supabase) {
+            throw new Error('Supabase no está inicializado');
+        }
+        
         const { data, error } = await auth.supabase
             .from('examenes_eoa')
             .select(`
@@ -252,6 +294,10 @@ async function actualizarExamenEOA(examenId, updates) {
             dataToUpdate.observaciones = updates.observaciones.trim() || null;
         }
         
+        if (!auth.supabase) {
+            throw new Error('Supabase no está inicializado');
+        }
+        
         // Actualizar en Supabase
         const { data, error } = await auth.supabase
             .from('examenes_eoa')
@@ -278,6 +324,10 @@ async function actualizarExamenEOA(examenId, updates) {
 // Función para eliminar un examen EOA
 async function eliminarExamenEOA(examenId) {
     try {
+        if (!auth.supabase) {
+            throw new Error('Supabase no está inicializado');
+        }
+        
         const { error } = await auth.supabase
             .from('examenes_eoa')
             .delete()
@@ -301,6 +351,10 @@ async function eliminarExamenEOA(examenId) {
 // Función para obtener estadísticas de exámenes EOA
 async function obtenerEstadisticasEOA() {
     try {
+        if (!auth.supabase) {
+            throw new Error('Supabase no está inicializado');
+        }
+        
         const { data, error } = await auth.supabase
             .from('examenes_eoa')
             .select('od_resultado, oi_resultado, fecha_examen');
@@ -399,6 +453,14 @@ async function exportarExamenesCSV() {
 function validarFormularioEOA() {
     const odResultado = document.querySelector('input[name="od"]:checked');
     const oiResultado = document.querySelector('input[name="oi"]:checked');
+    const fechaNacimiento = document.getElementById('fechaNacimiento').value;
+    const sexoBebe = document.querySelector('input[name="sexoBebe"]:checked');
+    const tipoParto = document.querySelector('input[name="tipoParto"]:checked');
+    const semanasGestacion = document.getElementById('semanasGestacion').value;
+    const familiaresPerdidaAuditiva = document.querySelector('input[name="familiaresPerdidaAuditiva"]:checked');
+    const madreFumo = document.querySelector('input[name="madreFumo"]:checked');
+    const madreAlcohol = document.querySelector('input[name="madreAlcohol"]:checked');
+    const madreDrogas = document.querySelector('input[name="madreDrogas"]:checked');
     
     let isValid = true;
     
@@ -414,6 +476,51 @@ function validarFormularioEOA() {
         isValid = false;
     }
     
+    // Validar fecha de nacimiento
+    if (!fechaNacimiento) {
+        utils.showNotification('Debe ingresar la fecha de nacimiento del bebé', 'error');
+        isValid = false;
+    }
+    
+    // Validar sexo del bebé
+    if (!sexoBebe) {
+        utils.showNotification('Debe seleccionar el sexo del bebé', 'error');
+        isValid = false;
+    }
+    
+    // Validar tipo de parto
+    if (!tipoParto) {
+        utils.showNotification('Debe seleccionar el tipo de parto', 'error');
+        isValid = false;
+    }
+    
+    // Validar semanas de gestación
+    if (!semanasGestacion || semanasGestacion < 20 || semanasGestacion > 42) {
+        utils.showNotification('Debe ingresar las semanas de gestación (entre 20 y 42)', 'error');
+        isValid = false;
+    }
+    
+    // Validar factores de riesgo
+    if (!familiaresPerdidaAuditiva) {
+        utils.showNotification('Debe indicar si hay familiares con pérdida auditiva', 'error');
+        isValid = false;
+    }
+    
+    if (!madreFumo) {
+        utils.showNotification('Debe indicar si la madre fumó durante el embarazo', 'error');
+        isValid = false;
+    }
+    
+    if (!madreAlcohol) {
+        utils.showNotification('Debe indicar si la madre consumió alcohol durante el embarazo', 'error');
+        isValid = false;
+    }
+    
+    if (!madreDrogas) {
+        utils.showNotification('Debe indicar si la madre usó drogas durante el embarazo', 'error');
+        isValid = false;
+    }
+    
     return isValid;
 }
 
@@ -421,13 +528,22 @@ function validarFormularioEOA() {
 function limpiarFormularioEOA() {
     // Limpiar radio buttons
     const radioButtons = document.querySelectorAll('#eoaForm input[type="radio"]');
-    radioButtons.forEach(radio => radio.checked = false);
+    radioButtons.forEach(radio => {
+        radio.checked = false;
+        // Remover clase selected de los labels
+        const label = radio.closest('.radio-label');
+        if (label) {
+            label.classList.remove('selected');
+        }
+    });
     
-    // Limpiar textarea
-    const observaciones = document.getElementById('observaciones');
-    if (observaciones) {
-        observaciones.value = '';
-    }
+    // Limpiar inputs de texto y números
+    const textInputs = document.querySelectorAll('#eoaForm input[type="text"], #eoaForm input[type="date"], #eoaForm input[type="number"]');
+    textInputs.forEach(input => input.value = '');
+    
+    // Limpiar textareas
+    const textareas = document.querySelectorAll('#eoaForm textarea');
+    textareas.forEach(textarea => textarea.value = '');
     
     // Eliminar sección de exámenes anteriores si existe
     const examenesSection = document.getElementById('examenesAnteriores');
@@ -457,6 +573,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Obtener datos del formulario
             const odResultado = document.querySelector('input[name="od"]:checked').value;
             const oiResultado = document.querySelector('input[name="oi"]:checked').value;
+            const fechaNacimiento = document.getElementById('fechaNacimiento').value;
+            const sexoBebe = document.querySelector('input[name="sexoBebe"]:checked').value;
+            const tipoParto = document.querySelector('input[name="tipoParto"]:checked').value;
+            const semanasGestacion = parseInt(document.getElementById('semanasGestacion').value);
+            const complicacionesEmbarazo = document.getElementById('complicacionesEmbarazo').value.trim();
+            const complicacionesDesarrollo = document.getElementById('complicacionesDesarrollo').value.trim();
+            const familiaresPerdidaAuditiva = document.querySelector('input[name="familiaresPerdidaAuditiva"]:checked').value === 'true';
+            const madreFumo = document.querySelector('input[name="madreFumo"]:checked').value === 'true';
+            const madreAlcohol = document.querySelector('input[name="madreAlcohol"]:checked').value === 'true';
+            const madreDrogas = document.querySelector('input[name="madreDrogas"]:checked').value === 'true';
             const observaciones = document.getElementById('observaciones').value.trim();
             
             // Mostrar loader
@@ -467,7 +593,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     madre_id: currentMadreEOA.id,
                     od_resultado: odResultado,
                     oi_resultado: oiResultado,
-                    observaciones: observaciones
+                    fecha_nacimiento: fechaNacimiento,
+                    sexo_bebe: sexoBebe,
+                    tipo_parto: tipoParto,
+                    semanas_gestacion: semanasGestacion,
+                    complicaciones_embarazo: complicacionesEmbarazo || null,
+                    complicaciones_desarrollo: complicacionesDesarrollo || null,
+                    familiares_perdida_auditiva: familiaresPerdidaAuditiva,
+                    madre_fumo: madreFumo,
+                    madre_alcohol: madreAlcohol,
+                    madre_drogas: madreDrogas,
+                    observaciones: observaciones || null
                 });
                 
                 if (result.success) {

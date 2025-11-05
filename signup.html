@@ -82,6 +82,31 @@
     </div>
     
     <!-- JavaScript -->
-    <script src="js/auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Esperar a que Supabase esté disponible antes de cargar auth.js
+        function loadAuthScript() {
+            if (typeof window.supabase !== 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'js/auth.js';
+                script.onload = function() {
+                    // Inicializar Supabase después de cargar el script
+                    if (typeof window.auth !== 'undefined' && window.auth.initializeSupabase) {
+                        window.auth.initializeSupabase();
+                    }
+                };
+                document.head.appendChild(script);
+            } else {
+                setTimeout(loadAuthScript, 100);
+            }
+        }
+        
+        // Iniciar la carga después de que el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadAuthScript);
+        } else {
+            loadAuthScript();
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Icono Inmediatamente</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .icon-preview {
+            margin: 20px auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            display: inline-block;
+        }
+        button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #34495e;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Creación Automática de Iconos TAU</h1>
+        <p>Esta página creará automáticamente todos los iconos necesarios para la PWA</p>
+        
+        <div class="icon-preview">
+            <canvas id="iconCanvas" width="144" height="144"></canvas>
+        </div>
+        
+        <div id="status">Preparando para crear iconos...</div>
+        
+        <button onclick="createAllIconsNow()" id="createBtn">Crear Todos los Iconos Ahora</button>
+        
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const iconSizes = [
+            { size: 16, name: 'favicon-16x16.png' },
+            { size: 32, name: 'favicon-32x32.png' },
+            { size: 72, name: 'icon-72x72.png' },
+            { size: 96, name: 'icon-96x96.png' },
+            { size: 128, name: 'icon-128x128.png' },
+            { size: 144, name: 'icon-144x144.png' },
+            { size: 152, name: 'icon-152x152.png' },
+            { size: 192, name: 'icon-192x192.png' },
+            { size: 384, name: 'icon-384x384.png' },
+            { size: 512, name: 'icon-512x512.png' },
+            { size: 180, name: 'apple-touch-icon.png' }
+        ];
+        
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Fondo azul oscuro
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Texto "TAU" en blanco
+            ctx.fillStyle = '#ffffff';
+            const fontSize = Math.max(8, size * 0.3);
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TAU', size / 2, size / 2);
+            
+            return canvas;
+        }
+        
+        function downloadIcon(canvas, filename) {
+            return new Promise((resolve) => {
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = url;
+                    link.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                    resolve();
+                }, 'image/png');
+            });
+        }
+        
+        async function createAllIconsNow() {
+            const statusDiv = document.getElementById('status');
+            const messageDiv = document.getElementById('message');
+            const createBtn = document.getElementById('createBtn');
+            
+            createBtn.disabled = true;
+            createBtn.textContent = 'Creando iconos...';
+            statusDiv.innerHTML = '<div class="success">Iniciando creación de iconos...</div>';
+            
+            try {
+                for (let i = 0; i < iconSizes.length; i++) {
+                    const icon = iconSizes[i];
+                    statusDiv.innerHTML = `<div class="success">Creando ${icon.name} (${icon.size}x${icon.size})...</div>`;
+                    
+                    const canvas = createIcon(icon.size);
+                    await downloadIcon(canvas, icon.name);
+                    
+                    // Pequeña pausa entre descargas
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+                
+                statusDiv.innerHTML = '<div class="success">¡Todos los iconos han sido creados y descargados!</div>';
+                messageDiv.innerHTML = '<div class="success">Guarda los archivos en la carpeta assets/icons/ y recarga la aplicación.</div>';
+                
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="error">Error al crear los iconos</div>';
+                messageDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                console.error('Error creating icons:', error);
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Crear Todos los Iconos Ahora';
+            }
+        }
+        
+        // Crear el icono de vista previa automáticamente
+        window.onload = function() {
+            const previewCanvas = document.getElementById('iconCanvas');
+            const ctx = previewCanvas.getContext('2d');
+            
+            // Fondo azul oscuro
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, 144, 144);
+            
+            // Texto "TAU" en blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TAU', 72, 72);
+            
+            document.getElementById('status').innerHTML = '<div class="success">Listo para crear iconos. Haz clic en el botón.</div>';
+        };
+    </script>
+</body>
+</html>

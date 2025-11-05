@@ -2,14 +2,45 @@
 const SUPABASE_URL = 'https://tu-proyecto.supabase.co';
 const SUPABASE_ANON_KEY = 'tu-anon-key';
 
-// Inicializar Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Inicializar Supabase - esperar a que la librería esté disponible
+let supabase;
+
+function initializeSupabase() {
+    if (typeof window.supabase !== 'undefined') {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('Supabase inicializado correctamente');
+        
+        // Escuchar cambios en la autenticación
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+                currentUser = session.user;
+                console.log('Usuario inició sesión:', currentUser);
+            } else if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                console.log('Usuario cerró sesión');
+            } else if (event === 'TOKEN_REFRESHED') {
+                console.log('Token refrescado');
+            }
+        });
+    } else {
+        console.error('La librería de Supabase no está cargada');
+        // Reintentar después de un breve retraso
+        setTimeout(initializeSupabase, 100);
+    }
+}
+
+// La inicialización se manejará desde los archivos HTML
 
 // Variables globales
 let currentUser = null;
 
 // Función para verificar si el usuario está autenticado
 async function checkAuth() {
+    if (!supabase) {
+        console.error('Supabase no está inicializado');
+        return null;
+    }
+    
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error) {
@@ -52,6 +83,11 @@ async function redirectIfAuthenticated() {
 
 // Función de login
 async function login(email, password) {
+    if (!supabase) {
+        console.error('Supabase no está inicializado');
+        return { success: false, error: 'Error de conexión con la base de datos' };
+    }
+    
     try {
         const { data, error } = await supabase.auth.signInWithPassword({
             email: email,
@@ -76,6 +112,11 @@ async function login(email, password) {
 
 // Función de registro
 async function signup(nombre, email, password) {
+    if (!supabase) {
+        console.error('Supabase no está inicializado');
+        return { success: false, error: 'Error de conexión con la base de datos' };
+    }
+    
     try {
         // Primero registrar el usuario en Supabase Auth
         const { data, error } = await supabase.auth.signUp({
@@ -126,6 +167,11 @@ async function signup(nombre, email, password) {
 
 // Función de logout
 async function logout() {
+    if (!supabase) {
+        console.error('Supabase no está inicializado');
+        return;
+    }
+    
     try {
         const { error } = await supabase.auth.signOut();
         
@@ -144,6 +190,11 @@ async function logout() {
 
 // Función para obtener el perfil del usuario
 async function getUserProfile(userId) {
+    if (!supabase) {
+        console.error('Supabase no está inicializado');
+        return null;
+    }
+    
     try {
         const { data, error } = await supabase
             .from('perfiles')
@@ -165,6 +216,11 @@ async function getUserProfile(userId) {
 
 // Función para actualizar el perfil del usuario
 async function updateUserProfile(userId, updates) {
+    if (!supabase) {
+        console.error('Supabase no está inicializado');
+        return null;
+    }
+    
     try {
         const { data, error } = await supabase
             .from('perfiles')
@@ -187,6 +243,11 @@ async function updateUserProfile(userId, updates) {
 
 // Función para resetear contraseña
 async function resetPassword(email) {
+    if (!supabase) {
+        console.error('Supabase no está inicializado');
+        return { success: false, error: 'Error de conexión con la base de datos' };
+    }
+    
     try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: `${window.location.origin}/reset-password.html`
@@ -206,19 +267,6 @@ async function resetPassword(email) {
         };
     }
 }
-
-// Escuchar cambios en la autenticación
-supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN') {
-        currentUser = session.user;
-        console.log('Usuario inició sesión:', currentUser);
-    } else if (event === 'SIGNED_OUT') {
-        currentUser = null;
-        console.log('Usuario cerró sesión');
-    } else if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refrescado');
-    }
-});
 
 // Funciones para el DOM
 document.addEventListener('DOMContentLoaded', function() {
@@ -323,6 +371,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Exportar funciones para uso en otros módulos
 window.auth = {
+    initializeSupabase,
     checkAuth,
     requireAuth,
     redirectIfAuthenticated,
