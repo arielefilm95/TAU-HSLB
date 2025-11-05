@@ -10,23 +10,27 @@ Este documento contiene las instrucciones para desplegar la aplicación TAU en d
 
 1. **Subir a GitHub**
    ```bash
-   git remote add origin https://github.com/tu-usuario/tau-tamizaje-auditivo.git
+   git remote add origin https://github.com/arielefilm95/TAU-HSLB.git
    git push -u origin master
    ```
 
 2. **Configurar GitHub Pages**
-   - Ve a tu repositorio en GitHub
+   - Ve a tu repositorio: https://github.com/arielefilm95/TAU-HSLB
    - Ve a Settings > Pages
    - En "Source", selecciona "Deploy from a branch"
    - Selecciona la rama `master` y la carpeta `/root`
    - Haz clic en "Save"
 
-3. **Actualizar URLs en Supabase**
+3. **URL esperada de GitHub Pages**
+   - Tu aplicación estaría en: `https://arielefilm95.github.io/TAU-HSLB`
+   - Si no funciona, usa Vercel (recomendado)
+
+4. **Actualizar URLs en Supabase**
    - Ve a tu proyecto Supabase > Authentication > Settings
-   - Actualiza "Site URL" a: `https://tu-usuario.github.io/tau-tamizaje-auditivo`
+   - Actualiza "Site URL" a: `https://arielefilm95.github.io/TAU-HSLB`
    - Añade esta URL a "Redirect URLs"
 
-4. **Actualizar Service Worker**
+5. **Actualizar Service Worker**
    - Modifica `sw.js` para que las URLs sean relativas al dominio correcto
 
 #### Ventajas:
@@ -43,22 +47,27 @@ Este documento contiene las instrucciones para desplegar la aplicación TAU en d
 
 #### Pasos:
 
-1. **Instalar Vercel CLI**
-   ```bash
-   npm i -g vercel
-   ```
+1. **Ve a [Vercel](https://vercel.com)**
+   - Haz clic en "Sign up" o "Login with GitHub"
+   - Conecta tu cuenta de GitHub
 
-2. **Desplegar**
-   ```bash
-   vercel --prod
-   ```
+2. **Importa tu repositorio**
+   - Haz clic en "Add New..." → "Project"
+   - Busca y selecciona `TAU-HSLB`
+   - Haz clic en "Import"
 
-3. **Configurar dominio personalizado** (opcional)
-   ```bash
-   vercel domains add tudominio.com
-   ```
+3. **Configura el despliegue**
+   - Framework Preset: "Other"
+   - Root Directory: "."
+   - Build Command: (dejar vacío)
+   - Output Directory: "."
+   - Haz clic en "Deploy"
 
-4. **Configurar variables de entorno**
+4. **URL obtenida**
+   - Tu aplicación estará en: `https://tau-hslb.vercel.app`
+   - Vercel asigna automáticamente este dominio
+
+5. **Configurar variables de entorno** (opcional)
    - Ve al dashboard de Vercel
    - Configura `SUPABASE_URL` y `SUPABASE_ANON_KEY`
 
@@ -114,6 +123,16 @@ Este documento contiene las instrucciones para desplegar la aplicación TAU en d
 const SUPABASE_URL = 'https://tu-proyecto.supabase.co';
 const SUPABASE_ANON_KEY = 'tu-production-key';
 ```
+
+### 2. Configurar URLs en Supabase Authentication
+
+**Si usas GitHub Pages:**
+- Site URL: `https://arielefilm95.github.io/TAU-HSLB`
+- Redirect URLs: `https://arielefilm95.github.io/TAU-HSLB`
+
+**Si usas Vercel (recomendado):**
+- Site URL: `https://tau-hslb.vercel.app`
+- Redirect URLs: `https://tau-hslb.vercel.app`
 
 ### 2. Configurar PWA para producción
 
