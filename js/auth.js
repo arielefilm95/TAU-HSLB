@@ -15,27 +15,33 @@ function initializeSupabase() {
         
         // Escuchar cambios en la autenticación
         supabase.auth.onAuthStateChange((event, session) => {
+            console.log('🔄 Cambio en estado de autenticación:', event);
+            
             if (event === 'SIGNED_IN') {
                 currentUser = session.user;
                 console.log('Usuario inició sesión:', currentUser);
                 
-                // Redirigir con un pequeño retraso para asegurar que la página esté lista
-                console.log('🔍 Verificando pathname:', window.location.pathname);
-                console.log('🔍 Incluye signup.html:', window.location.pathname.includes('signup.html'));
-                console.log('🔍 Incluye index.html:', window.location.pathname.includes('index.html'));
+                // Solo redirigir si estamos en login/signup y el usuario no estaba ya autenticado
+                // Evitar bucles de redirección
+                const pathname = window.location.pathname;
+                const isAuthPage = pathname.includes('signup.html') || pathname.includes('index.html');
                 
-                if (window.location.pathname.includes('signup.html') ||
-                    window.location.pathname.includes('index.html')) {
+                if (isAuthPage && !window.authRedirecting) {
                     console.log('🔄 Redirigiendo a dashboard desde onAuthStateChange...');
+                    window.authRedirecting = true; // Marcar que estamos redirigiendo
                     setTimeout(() => {
                         console.log('🚀 Ejecutando redirección a dashboard...');
                         window.location.href = 'dashboard.html';
                     }, 500);
                 } else {
-                    console.log('❌ No se redirige porque no está en signup ni index');
+                    // Solo mostrar log si estamos en dashboard para evitar spam en consola
+                    if (pathname.includes('dashboard.html')) {
+                        console.log('✅ Usuario ya está en dashboard, no se redirige');
+                    }
                 }
             } else if (event === 'SIGNED_OUT') {
                 currentUser = null;
+                window.authRedirecting = false; // Resetear flag al cerrar sesión
                 console.log('Usuario cerró sesión');
             } else if (event === 'TOKEN_REFRESHED') {
                 console.log('Token refrescado');
@@ -89,11 +95,18 @@ async function requireAuth() {
 
 // Función para redirigir si ya está autenticado
 async function redirectIfAuthenticated() {
+    // Evitar bucle de redirección
+    if (window.authRedirecting) {
+        console.log('🔄 Ya se está redirigiendo, evitando bucle...');
+        return false;
+    }
+    
     const user = await checkAuth();
     
     if (user) {
         currentUser = user;
         console.log('🔄 Usuario ya autenticado, redirigiendo a dashboard...');
+        window.authRedirecting = true; // Marcar que estamos redirigiendo
         window.location.href = 'dashboard.html';
         return true;
     }
@@ -170,6 +183,9 @@ async function signup(nombre, email, password) {
         if (data.user) {
             console.log('Intentando crear perfil en tabla perfiles...');
             
+            // Esperar un momento antes de crear el perfil
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             const { data: profileData, error: profileError } = await supabase
                 .from('perfiles')
                 .insert([
@@ -177,31 +193,43 @@ async function signup(nombre, email, password) {
                         id: data.user.id,
                         nombre_usuario: nombre
                     }
-                ]);
+                ])
+                .select(); // Agregar .select() para obtener datos de respuesta
             
             console.log('Respuesta de inserción de perfil:', { profileData, profileError });
             
             if (profileError) {
                 console.error('Error al crear perfil:', profileError);
+                // No retornar error aquí, ya que el usuario ya fue creado en Auth
+                // Solo registrar el problema
                 return {
                     success: true,
                     user: data.user,
-                    message: 'Usuario registrado, pero hubo un error al crear el perfil: ' + profileError.message
+                    message: 'Usuario registrado correctamente. Hubo un problema al crear el perfil, pero puedes continuar.',
+                    profileError: profileError.message
                 };
             }
             
             console.log('Perfil creado exitosamente');
             
             // Iniciar sesión automáticamente después del registro
-            const { error: signInError } = await supabase.auth.signInWithPassword({
+            console.log('Iniciando sesión automáticamente...');
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password
             });
             
             if (signInError) {
                 console.error('Error al iniciar sesión automáticamente:', signInError);
+                return {
+                    success: true,
+                    user: data.user,
+                    message: 'Usuario registrado correctamente. Por favor inicia sesión manualmente.',
+                    requiresManualLogin: true
+                };
             } else {
-                console.log('Sesión iniciada automáticamente');
+                console.log('Sesión iniciada automáticamente:', signInData.user);
+                currentUser = signInData.user;
             }
         }
         
@@ -228,6 +256,13 @@ async function logout() {
     }
     
     try {
+        console.log('🔄 Iniciando proceso de cierre de sesión...');
+        
+        // Mostrar notificación de cierre de sesión
+        if (typeof utils !== 'undefined' && utils.showNotification) {
+            utils.showNotification('Cerrando sesión...', 'info');
+        }
+        
         const { error } = await supabase.auth.signOut();
         
         if (error) {
@@ -235,11 +270,22 @@ async function logout() {
         }
         
         currentUser = null;
+        window.authRedirecting = false; // Resetear flag al cerrar sesión
+        console.log('✅ Sesión cerrada exitosamente, redirigiendo a index.html...');
+        
+        // Forzar redirección inmediata después del logout
         window.location.href = 'index.html';
         
     } catch (error) {
         console.error('Error en logout:', error);
-        utils.showNotification('Error al cerrar sesión', 'error');
+        if (typeof utils !== 'undefined' && utils.showNotification) {
+            utils.showNotification('Error al cerrar sesión', 'error');
+        }
+        
+        // Forzar redirección incluso si hay error
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1000);
     }
 }
 
@@ -438,11 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('❌ No se encontró el formulario de registro signupForm');
     }
     
-    // Logout button
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-    }
+    // Logout button - se configurará en dashboard.js para asegurar que el DOM esté listo
     
     // Verificar autenticación en páginas protegidas
     if (window.location.pathname.includes('dashboard.html')) {

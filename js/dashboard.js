@@ -1,7 +1,6 @@
 // Funcionalidad del Dashboard
 
 // Variables globales
-let currentUser = null;
 let recentMothers = [];
 
 // Función para inicializar el dashboard
@@ -12,7 +11,7 @@ async function initDashboard() {
         if (!isAuth) return;
         
         // Obtener usuario actual
-        currentUser = auth.getCurrentUser();
+        const user = auth.getCurrentUser();
         
         // Cargar información del usuario
         await loadUserInfo();
@@ -35,10 +34,11 @@ async function initDashboard() {
 // Función para cargar información del usuario
 async function loadUserInfo() {
     try {
-        if (!currentUser) return;
+        const user = auth.getCurrentUser();
+        if (!user) return;
         
         // Obtener perfil del usuario
-        const profile = await auth.getUserProfile(currentUser.id);
+        const profile = await auth.getUserProfile(user.id);
         
         if (profile) {
             const userNameElement = document.getElementById('userName');
@@ -49,7 +49,7 @@ async function loadUserInfo() {
             // Si no hay perfil, usar el email
             const userNameElement = document.getElementById('userName');
             if (userNameElement) {
-                userNameElement.textContent = currentUser.email || 'Usuario';
+                userNameElement.textContent = user.email || 'Usuario';
             }
         }
         
@@ -134,6 +134,12 @@ function setupEventListeners() {
     const verMadresBtn = document.getElementById('verMadresBtn');
     if (verMadresBtn) {
         verMadresBtn.addEventListener('click', openMadresModal);
+    }
+    
+    // Botón cerrar sesión
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', auth.logout);
     }
     
     // Formulario de madre
@@ -340,7 +346,7 @@ async function handleMadreFormSubmit(e) {
         numero_ficha: document.getElementById('numeroFicha').value.trim(),
         sala: document.getElementById('sala').value.trim(),
         cama: document.getElementById('cama').value.trim(),
-        usuario_id: currentUser.id
+        usuario_id: auth.getCurrentUser().id
     };
     
     // Mostrar loader
@@ -406,16 +412,40 @@ function closeMadresModal() {
 }
 
 // Función para configurar PWA
-function setupPWA() {
+async function setupPWA() {
     // Registrar service worker si está disponible
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-            .then(registration => {
-                console.log('Service Worker registrado:', registration);
-            })
-            .catch(error => {
-                console.log('Error al registrar Service Worker:', error);
-            });
+        try {
+            const registration = await navigator.serviceWorker.register('./sw.js');
+            console.log('Service Worker registrado:', registration);
+            
+            // Inicializar comunicación mejorada
+            if (window.swComms) {
+                await window.swComms.init();
+                
+                // Escuchar mensajes del Service Worker a través del módulo
+                window.addEventListener('swMessage', event => {
+                    console.log('Mensaje recibido del Service Worker:', event.detail);
+                });
+                
+                // Enviar mensaje de inicialización usando el módulo
+                await window.swComms.init();
+            } else {
+                // Fallback si el módulo no está disponible
+                navigator.serviceWorker.addEventListener('message', event => {
+                    console.log('Mensaje recibido del Service Worker:', event.data);
+                });
+                
+                if (registration.active) {
+                    registration.active.postMessage({
+                        type: 'INIT',
+                        timestamp: Date.now()
+                    });
+                }
+            }
+        } catch (error) {
+            console.log('Error al registrar Service Worker:', error);
+        }
     }
     
     // Detectar si es PWA instalada
@@ -431,11 +461,6 @@ const searchMadres = utils.debounce(async function(searchTerm) {
 
 // Event listeners globales
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar dashboard si estamos en la página correcta
-    if (window.location.pathname.includes('dashboard.html')) {
-        initDashboard();
-    }
-    
     // Configurar búsqueda de madres
     const searchMadresInput = document.getElementById('searchMadres');
     if (searchMadresInput) {

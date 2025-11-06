@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test de Flujo de Autenticación</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test de Flujo de Autenticación TAU</h1>
+    
+    <div class="container">
+        <h2>Estado de Autenticación</h2>
+        <div id="authStatus" class="status info">Verificando estado...</div>
+        <button id="checkAuthBtn" class="btn">Verificar Estado</button>
+        <button id="logoutBtn" class="btn btn-danger hidden">Cerrar Sesión</button>
+    </div>
+    
+    <div class="container">
+        <h2>Inicio de Sesión</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginEmail">Correo Electrónico</label>
+                <input type="email" id="loginEmail" required placeholder="correo@ejemplo.com">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Contraseña</label>
+                <input type="password" id="loginPassword" required placeholder="Tu contraseña">
+            </div>
+            <button type="submit" class="btn">Iniciar Sesión</button>
+        </form>
+    </div>
+    
+    <div class="container">
+        <h2>Registro de Nuevo Usuario</h2>
+        <form id="signupForm">
+            <div class="form-group">
+                <label for="signupNombre">Nombre Completo</label>
+                <input type="text" id="signupNombre" required placeholder="Tu nombre completo">
+            </div>
+            <div class="form-group">
+                <label for="signupEmail">Correo Electrónico</label>
+                <input type="email" id="signupEmail" required placeholder="correo@ejemplo.com">
+            </div>
+            <div class="form-group">
+                <label for="signupPassword">Contraseña</label>
+                <input type="password" id="signupPassword" required placeholder="Mínimo 6 caracteres">
+            </div>
+            <div class="form-group">
+                <label for="signupConfirmPassword">Confirmar Contraseña</label>
+                <input type="password" id="signupConfirmPassword" required placeholder="Repite tu contraseña">
+            </div>
+            <button type="submit" class="btn">Crear Cuenta</button>
+        </form>
+    </div>
+    
+    <div class="container">
+        <h2>Consola de Logs</h2>
+        <div id="logContainer" style="background: #f8f9fa; padding: 10px; border-radius: 4px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+        <button id="clearLogsBtn" class="btn">Limpiar Logs</button>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        // Configuración de logs
+        const logContainer = document.getElementById('logContainer');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addLog(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.color = type === 'error' ? 'red' : 'black';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog(args.join(' '), 'error');
+        };
+        
+        // Variables globales
+        let supabase;
+        let currentUser = null;
+        
+        // Inicializar Supabase
+        function initializeSupabase() {
+            if (typeof window.supabase !== 'undefined') {
+                const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
+                const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
+                
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('Supabase inicializado correctamente');
+                
+                // Escuchar cambios en la autenticación
+                supabase.auth.onAuthStateChange((event, session) => {
+                    console.log('🔄 Cambio en estado de autenticación:', event);
+                    
+                    if (event === 'SIGNED_IN') {
+                        currentUser = session.user;
+                        console.log('Usuario inició sesión:', currentUser);
+                        updateAuthStatus();
+                    } else if (event === 'SIGNED_OUT') {
+                        currentUser = null;
+                        console.log('Usuario cerró sesión');
+                        updateAuthStatus();
+                    }
+                });
+                
+                // Verificar estado inicial
+                checkAuthStatus();
+                
+            } else {
+                console.error('La librería de Supabase no está cargada');
+                setTimeout(initializeSupabase, 100);
+            }
+        }
+        
+        // Verificar estado de autenticación
+        async function checkAuthStatus() {
+            const authStatus = document.getElementById('authStatus');
+            
+            if (!supabase) {
+                authStatus.textContent = 'Error: Supabase no está inicializado';
+                authStatus.className = 'status error';
+                return;
+            }
+            
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                currentUser = user;
+                updateAuthStatus();
+                
+            } catch (error) {
+                console.error('Error al verificar autenticación:', error);
+                authStatus.textContent = 'Error al verificar estado: ' + error.message;
+                authStatus.className = 'status error';
+            }
+        }
+        
+        // Actualizar UI según estado de autenticación
+        function updateAuthStatus() {
+            const authStatus = document.getElementById('authStatus');
+            const logoutBtn = document.getElementById('logoutBtn');
+            
+            if (currentUser) {
+                authStatus.textContent = `Usuario autenticado: ${currentUser.email}`;
+                authStatus.className = 'status success';
+                logoutBtn.classList.remove('hidden');
+            } else {
+                authStatus.textContent = 'No hay usuario autenticado';
+                authStatus.className = 'status info';
+                logoutBtn.classList.add('hidden');
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar Supabase
+            initializeSupabase();
+            
+            // Botón verificar estado
+            document.getElementById('checkAuthBtn').addEventListener('click', checkAuthStatus);
+            
+            // Botón cerrar sesión
+            document.getElementById('logoutBtn').addEventListener('click', async function() {
+                if (!supabase) return;
+                
+                try {
+                    console.log('🔄 Iniciando proceso de cierre de sesión...');
+                    const { error } = await supabase.auth.signOut();
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    console.log('✅ Sesión cerrada exitosamente');
+                    
+                } catch (error) {
+                    console.error('Error en logout:', error);
+                }
+            });
+            
+            // Formulario de login
+            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
+                
+                if (!supabase) {
+                    console.error('Supabase no está inicializado');
+                    return;
+                }
+                
+                try {
+                    console.log('🔄 Iniciando sesión con:', email);
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    console.log('✅ Inicio de sesión exitoso:', data.user);
+                    
+                } catch (error) {
+                    console.error('Error en login:', error);
+                }
+            });
+            
+            // Formulario de registro
+            document.getElementById('signupForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const nombre = document.getElementById('signupNombre').value.trim();
+                const email = document.getElementById('signupEmail').value.trim();
+                const password = document.getElementById('signupPassword').value;
+                const confirmPassword = document.getElementById('signupConfirmPassword').value;
+                
+                // Validar contraseñas
+                if (password.length < 6) {
+                    console.error('La contraseña debe tener al menos 6 caracteres');
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    console.error('Las contraseñas no coinciden');
+                    return;
+                }
+                
+                if (!supabase) {
+                    console.error('Supabase no está inicializado');
+                    return;
+                }
+                
+                try {
+                    console.log('🔄 Registrando usuario:', email);
+                    
+                    // Registrar usuario en Supabase Auth
+                    const { data, error } = await supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                nombre: nombre
+                            }
+                        }
+                    });
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    console.log('✅ Usuario creado en Auth:', data.user);
+                    
+                    // Crear perfil en tabla perfiles
+                    if (data.user) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        const { data: profileData, error: profileError } = await supabase
+                            .from('perfiles')
+                            .insert([
+                                {
+                                    id: data.user.id,
+                                    nombre_usuario: nombre
+                                }
+                            ])
+                            .select();
+                        
+                        if (profileError) {
+                            console.error('Error al crear perfil:', profileError);
+                        } else {
+                            console.log('✅ Perfil creado exitosamente');
+                        }
+                        
+                        // Iniciar sesión automáticamente
+                        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                            email: email,
+                            password: password
+                        });
+                        
+                        if (signInError) {
+                            console.error('Error al iniciar sesión automáticamente:', signInError);
+                        } else {
+                            console.log('✅ Sesión iniciada automáticamente:', signInData.user);
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('Error en registro:', error);
+                }
+            });
+            
+            // Botón limpiar logs
+            document.getElementById('clearLogsBtn').addEventListener('click', function() {
+                logContainer.innerHTML = '';
+            });
+        });
+    </script>
+</body>
+</html>
