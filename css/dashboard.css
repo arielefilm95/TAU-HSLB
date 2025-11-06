@@ -200,6 +200,15 @@
     color: #999;
 }
 
+.recent-item-actions {
+    margin-left: 15px;
+}
+
+.recent-item-actions .btn-sm {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+}
+
 .no-data {
     text-align: center;
     color: var(--dark-color);

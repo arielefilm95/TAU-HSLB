@@ -68,7 +68,7 @@ function displayRecentMothers() {
     }
     
     const html = recentMothers.map(madre => `
-        <div class="recent-item">
+        <div class="recent-item" data-madre-id="${madre.id}">
             <div class="recent-item-info">
                 <div class="recent-item-rut">${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
                 <div class="recent-item-details">
@@ -81,10 +81,42 @@ function displayRecentMothers() {
             <div class="recent-item-date">
                 ${utils.formatearFecha(madre.created_at)}
             </div>
+            <div class="recent-item-actions">
+                <button class="btn btn-secondary btn-sm" data-action="abrir-eoa" data-madre-id="${madre.id}">
+                    Ver plantilla EOA
+                </button>
+            </div>
         </div>
     `).join('');
     
     recentMothersElement.innerHTML = html;
+    
+    // Agregar listeners para abrir la plantilla EOA
+    const recentItems = recentMothersElement.querySelectorAll('.recent-item');
+    recentItems.forEach(item => {
+        const madreId = item.getAttribute('data-madre-id');
+        if (!madreId) return;
+        
+        const openMadre = async (event) => {
+            if (event) {
+                event.preventDefault();
+            }
+            if (window.dashboard && typeof window.dashboard.selectMadre === 'function') {
+                await window.dashboard.selectMadre(madreId);
+            }
+        };
+        
+        item.addEventListener('click', openMadre);
+        
+        const actionButton = item.querySelector('button[data-action="abrir-eoa"]');
+        if (actionButton) {
+            actionButton.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                await openMadre(e);
+            });
+        }
+    });
 }
 
 // Función para configurar event listeners

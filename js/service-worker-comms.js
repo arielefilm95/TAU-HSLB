@@ -48,13 +48,18 @@ class ServiceWorkerComms {
         }
 
         try {
+            // Verificar que el service worker esté activo
+            if (!this.registration.active) {
+                throw new Error('Service Worker no está activo');
+            }
+
             // Crear canal de mensaje para respuesta
             this.messageChannel = new MessageChannel();
             
             const promise = new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('Timeout esperando respuesta del Service Worker'));
-                }, 5000);
+                }, 3000); // Reducido a 3 segundos
 
                 this.messageChannel.port1.onmessage = (event) => {
                     clearTimeout(timeout);
@@ -64,6 +69,13 @@ class ServiceWorkerComms {
                 this.messageChannel.port1.onmessageerror = (error) => {
                     clearTimeout(timeout);
                     reject(error);
+                };
+
+                // Manejar cierre del canal
+                this.messageChannel.port1.onclose = () => {
+                    clearTimeout(timeout);
+                    console.warn('Service Worker Communication: Canal cerrado antes de recibir respuesta');
+                    resolve({ status: 'channel_closed', fallback: true });
                 };
             });
 
@@ -79,8 +91,12 @@ class ServiceWorkerComms {
             
             // Intentar enviar sin canal de respuesta como fallback
             try {
-                this.registration.active.postMessage(message);
-                return { success: true, fallback: true };
+                if (this.registration && this.registration.active) {
+                    this.registration.active.postMessage(message);
+                    return { success: true, fallback: true, message: 'Enviado sin canal de respuesta' };
+                } else {
+                    throw new Error('Service Worker no disponible para fallback');
+                }
             } catch (fallbackError) {
                 console.error('Service Worker Communication: Error en fallback:', fallbackError);
                 return { success: false, error: fallbackError.message };
