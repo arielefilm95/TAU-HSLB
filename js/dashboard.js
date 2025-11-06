@@ -370,6 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
 window.dashboard = {
     initDashboard,
     loadRecentMothers,
+    loadMadresList,
     openMadreModal,
     openMadresModal,
     selectMadre,
