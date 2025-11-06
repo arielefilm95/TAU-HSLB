@@ -16,27 +16,20 @@ async function registrarMadre(madreData) {
             throw new Error('RUT inválido');
         }
         
-        // Obtener usuario actual
-        const currentUser = auth.getCurrentUser();
-        if (!currentUser) {
-            throw new Error('Usuario no autenticado');
-        }
-        
         // Preparar datos para inserción
         const dataToInsert = {
             rut: madreData.rut.replace(/\./g, '').replace('-', ''),
             numero_ficha: madreData.numero_ficha.trim(),
             sala: madreData.sala.trim(),
-            cama: madreData.cama.trim(),
-            usuario_id: currentUser.id
+            cama: madreData.cama.trim()
         };
         
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
         // Insertar en Supabase
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('madres')
             .insert([dataToInsert])
             .select();
@@ -59,11 +52,11 @@ async function registrarMadre(madreData) {
 // Función para obtener todas las madres
 async function obtenerMadres(searchTerm = '') {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
-        let query = auth.supabase
+        let query = window.supabaseClient
             .from('madres')
             .select('*')
             .order('created_at', { ascending: false });
@@ -93,11 +86,11 @@ async function obtenerMadres(searchTerm = '') {
 // Función para obtener una madre por ID
 async function obtenerMadrePorId(madreId) {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('madres')
             .select('*')
             .eq('id', madreId)
@@ -123,11 +116,11 @@ async function obtenerMadrePorRUT(rut) {
     try {
         const rutLimpio = rut.replace(/\./g, '').replace('-', '');
         
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('madres')
             .select('*')
             .eq('rut', rutLimpio)
@@ -179,12 +172,12 @@ async function actualizarMadre(madreId, updates) {
         
         dataToUpdate.updated_at = new Date().toISOString();
         
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
         // Actualizar en Supabase
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('madres')
             .update(dataToUpdate)
             .eq('id', madreId)
@@ -209,12 +202,12 @@ async function actualizarMadre(madreId, updates) {
 // Función para eliminar una madre
 async function eliminarMadre(madreId) {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
         // Primero verificar si tiene exámenes asociados
-        const { data: examenes, error: examenesError } = await auth.supabase
+        const { data: examenes, error: examenesError } = await window.supabaseClient
             .from('examenes_eoa')
             .select('id')
             .eq('madre_id', madreId);
@@ -229,7 +222,7 @@ async function eliminarMadre(madreId) {
         }
         
         // Eliminar madre
-        const { error } = await auth.supabase
+        const { error } = await window.supabaseClient
             .from('madres')
             .delete()
             .eq('id', madreId);
@@ -252,11 +245,11 @@ async function eliminarMadre(madreId) {
 // Función para obtener estadísticas de madres
 async function obtenerEstadisticasMadres() {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('madres')
             .select('id, created_at');
         

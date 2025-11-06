@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple Supabase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Simple de Supabase</h1>
+    
+    <div class="test-section">
+        <h3>1. Probar Conexión Básica</h3>
+        <button onclick="testConnection()">Test Conexión</button>
+        <div id="connectionResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Verificar Usuarios Existentes</h3>
+        <button onclick="checkUsers()">Ver Usuarios</button>
+        <div id="usersResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Registrar Usuario de Prueba</h3>
+        <div style="margin: 10px 0;">
+            <label>Email: <input type="email" id="testEmail" value="test@gmail.com" style="width: 200px; padding: 5px;"></label><br><br>
+            <label>Contraseña: <input type="password" id="testPassword" value="123456" style="width: 200px; padding: 5px;"></label><br><br>
+            <label>Nombre: <input type="text" id="testNombre" value="Usuario Test" style="width: 200px; padding: 5px;"></label>
+        </div>
+        <button onclick="registerTestUser()">Registrar Usuario Test</button>
+        <div id="registerResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. Verificar Perfiles</h3>
+        <button onclick="checkProfiles()">Ver Perfiles</button>
+        <div id="profilesResult" class="result"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Configuración de Supabase
+        const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
+        
+        let supabase;
+        
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+        
+        function initSupabase() {
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                showResult('connectionResult', '✅ Supabase inicializado correctamente', 'success');
+                return true;
+            } catch (error) {
+                showResult('connectionResult', `❌ Error al inicializar Supabase: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function testConnection() {
+            if (!initSupabase()) return;
+            
+            try {
+                // Intentar obtener la sesión actual
+                const { data, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    showResult('connectionResult', `❌ Error de conexión: ${error.message}`, 'error');
+                } else {
+                    showResult('connectionResult', '✅ Conexión exitosa con Supabase', 'success');
+                }
+            } catch (error) {
+                showResult('connectionResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkUsers() {
+            if (!supabase) initSupabase();
+            
+            try {
+                // Nota: No podemos acceder directamente a auth.users desde el cliente
+                // Pero podemos verificar si hay usuarios intentando obtener la sesión
+                const { data, error } = await supabase.auth.getSession();
+                
+                showResult('usersResult', 
+                    `Sesión actual: ${data.session ? 'Activa' : 'Inactiva'}\n` +
+                    `Usuario: ${data.session ? data.session.user.email : 'Ninguno'}\n\n` +
+                    'Nota: No se pueden listar todos los usuarios desde el cliente\n' +
+                    'Ve a Supabase > Authentication > Users para ver todos los usuarios', 
+                    'info'
+                );
+            } catch (error) {
+                showResult('usersResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function registerTestUser() {
+            if (!supabase) initSupabase();
+            
+            const testEmail = document.getElementById('testEmail').value.trim();
+            const testPassword = document.getElementById('testPassword').value;
+            const testNombre = document.getElementById('testNombre').value.trim();
+            
+            if (!testEmail || !testPassword || !testNombre) {
+                showResult('registerResult', '❌ Por favor completa todos los campos', 'error');
+                return;
+            }
+            
+            showResult('registerResult', 'Iniciando registro...', 'info');
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: testEmail,
+                    password: testPassword,
+                    options: {
+                        data: {
+                            nombre: testNombre
+                        }
+                    }
+                });
+                
+                if (error) {
+                    showResult('registerResult', 
+                        `❌ Error en registro:\n${error.message}\n\n` +
+                        `Detalles: ${JSON.stringify(error, null, 2)}`, 
+                        'error'
+                    );
+                } else {
+                    showResult('registerResult', 
+                        `✅ Registro exitoso:\n` +
+                        `Email: ${data.user.email}\n` +
+                        `ID: ${data.user.id}\n` +
+                        `Confirmado: ${data.user.email_confirmed_at ? 'Sí' : 'No (revisa tu email)'}\n\n` +
+                        `Usuario creado en Auth. Ahora verifica si se creó el perfil.`, 
+                        'success'
+                    );
+                    
+                    // Esperar un momento y verificar perfiles
+                    setTimeout(checkProfiles, 2000);
+                }
+            } catch (error) {
+                showResult('registerResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkProfiles() {
+            if (!supabase) initSupabase();
+            
+            try {
+                const { data, error } = await supabase
+                    .from('perfiles')
+                    .select('*');
+                
+                if (error) {
+                    showResult('profilesResult', 
+                        `❌ Error al consultar perfiles:\n${error.message}\n\n` +
+                        `Detalles: ${JSON.stringify(error, null, 2)}`, 
+                        'error'
+                    );
+                } else {
+                    showResult('profilesResult', 
+                        `✅ Perfiles encontrados: ${data.length}\n\n` +
+                        data.map(p => `ID: ${p.id}\nNombre: ${p.nombre_usuario}\n`).join('\n') || 'No hay perfiles', 
+                        'success'
+                    );
+                }
+            } catch (error) {
+                showResult('profilesResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Inicializar al cargar la página
+        window.addEventListener('load', initSupabase);
+    </script>
+</body>
+</html>

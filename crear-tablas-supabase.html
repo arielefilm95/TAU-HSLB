@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Tablas Supabase - TAU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .code {
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Configurar Tablas de Supabase para TAU</h1>
+        <p>Esta página te ayudará a crear las tablas necesarias en tu proyecto Supabase para que el registro de usuarios funcione correctamente.</p>
+
+        <div class="step">
+            <h3>📋 Paso 1: Verificar Conexión con Supabase</h3>
+            <p>Primero vamos a verificar que podemos conectar con tu proyecto Supabase.</p>
+            <button onclick="testConnection()">Probar Conexión</button>
+            <div id="connectionResult" class="result"></div>
+        </div>
+
+        <div class="step">
+            <h3>🗃️ Paso 2: Crear Tabla de Perfiles</h3>
+            <p>Si la conexión es exitosa, crearemos la tabla 'perfiles' necesaria para el registro de usuarios.</p>
+            <button onclick="createProfilesTable()">Crear Tabla Perfiles</button>
+            <div id="profilesResult" class="result"></div>
+        </div>
+
+        <div class="step">
+            <h3>🔐 Paso 3: Configurar Políticas de Seguridad</h3>
+            <p>Configuraremos las políticas RLS (Row Level Security) para que los usuarios puedan gestionar sus propios perfiles.</p>
+            <button onclick="setupRLSPolicies()">Configurar Políticas RLS</button>
+            <div id="rlsResult" class="result"></div>
+        </div>
+
+        <div class="step">
+            <h3>⚡ Paso 4: Crear Trigger Automático</h3>
+            <p>Crearemos un trigger que automáticamente cree un perfil cuando un usuario se registre en Supabase Auth.</p>
+            <button onclick="createTrigger()">Crear Trigger Automático</button>
+            <div id="triggerResult" class="result"></div>
+        </div>
+
+        <div class="step">
+            <h3>✅ Paso 5: Verificar Configuración</h3>
+            <p>Finalmente, verificaremos que todo esté configurado correctamente.</p>
+            <button onclick="verifySetup()">Verificar Todo</button>
+            <div id="verifyResult" class="result"></div>
+        </div>
+
+        <div class="step">
+            <h3>🧪 Paso 6: Probar Registro</h3>
+            <p>Una vez configurado todo, podremos probar el registro de usuarios.</p>
+            <button onclick="testRegistration()">Probar Registro de Usuario</button>
+            <div id="registrationResult" class="result"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Configuración de Supabase
+        const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
+        
+        let supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function showResult(elementId, message, type = 'success') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+            element.style.display = 'block';
+        }
+
+        async function testConnection() {
+            try {
+                showResult('connectionResult', 'Probando conexión...', 'warning');
+                
+                // Intentar acceder a la tabla auth.users para verificar conexión
+                const { data, error } = await supabase.rpc('get_table_info', { table_name: 'perfiles' });
+                
+                if (error && error.message.includes('function get_table_info does not exist')) {
+                    // La función no existe, pero eso significa que la conexión funciona
+                    showResult('connectionResult', '✅ Conexión exitosa con Supabase', 'success');
+                } else if (error) {
+                    showResult('connectionResult', `❌ Error de conexión: ${error.message}`, 'error');
+                } else {
+                    showResult('connectionResult', '✅ Conexión exitosa con Supabase', 'success');
+                }
+            } catch (error) {
+                showResult('connectionResult', `❌ Error de conexión: ${error.message}`, 'error');
+            }
+        }
+
+        async function createProfilesTable() {
+            try {
+                showResult('profilesResult', 'Creando tabla perfiles...', 'warning');
+                
+                // SQL para crear la tabla
+                const createTableSQL = `
+                    CREATE TABLE IF NOT EXISTS perfiles (
+                        id UUID REFERENCES auth.users(id) PRIMARY KEY,
+                        nombre_usuario VARCHAR(50) NOT NULL,
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                    );
+                `;
+                
+                // Usar RPC para ejecutar SQL (necesitarás crear esta función en Supabase primero)
+                // Por ahora, mostraremos el SQL para que lo ejecutes manualmente
+                showResult('profilesResult', 
+                    '⚠️ Necesitas ejecutar este SQL manualmente en Supabase:\n\n' + createTableSQL + 
+                    '\n\nVe a tu dashboard de Supabase > SQL Editor > pega este código > ejecuta', 
+                    'warning'
+                );
+                
+            } catch (error) {
+                showResult('profilesResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function setupRLSPolicies() {
+            const rlsSQL = `
+                -- Habilitar RLS
+                ALTER TABLE perfiles ENABLE ROW LEVEL SECURITY;
+                
+                -- Eliminar políticas existentes
+                DROP POLICY IF EXISTS "Usuarios pueden ver su propio perfil" ON perfiles;
+                DROP POLICY IF EXISTS "Usuarios pueden insertar su perfil" ON perfiles;
+                DROP POLICY IF EXISTS "Usuarios pueden actualizar su perfil" ON perfiles;
+                
+                -- Crear políticas
+                CREATE POLICY "Usuarios pueden ver su propio perfil" ON perfiles
+                  FOR SELECT USING (auth.uid() = id);
+                
+                CREATE POLICY "Usuarios pueden insertar su perfil" ON perfiles
+                  FOR INSERT WITH CHECK (auth.uid() = id);
+                
+                CREATE POLICY "Usuarios pueden actualizar su perfil" ON perfiles
+                  FOR UPDATE USING (auth.uid() = id);
+            `;
+            
+            showResult('rlsResult', 
+                '⚠️ Ejecuta este SQL en Supabase SQL Editor:\n\n' + rlsSQL, 
+                'warning'
+            );
+        }
+
+        function createTrigger() {
+            const triggerSQL = `
+                -- Crear función para el trigger
+                CREATE OR REPLACE FUNCTION public.handle_new_user()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                  INSERT INTO public.perfiles (id, nombre_usuario)
+                  VALUES (new.id, new.raw_user_meta_data->>'nombre');
+                  RETURN new;
+                END;
+                $$ LANGUAGE plpgsql SECURITY DEFINER;
+                
+                -- Crear trigger
+                DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+                CREATE TRIGGER on_auth_user_created
+                  AFTER INSERT ON auth.users
+                  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+            `;
+            
+            showResult('triggerResult', 
+                '⚠️ Ejecuta este SQL en Supabase SQL Editor:\n\n' + triggerSQL, 
+                'warning'
+            );
+        }
+
+        function verifySetup() {
+            const verifySQL = `
+                -- Verificar tabla
+                SELECT table_name FROM information_schema.tables 
+                WHERE table_schema = 'public' AND table_name = 'perfiles';
+                
+                -- Verificar políticas
+                SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual 
+                FROM pg_policies 
+                WHERE tablename = 'perfiles';
+                
+                -- Verificar trigger
+                SELECT trigger_name, event_manipulation, event_object_table 
+                FROM information_schema.triggers 
+                WHERE trigger_name = 'on_auth_user_created';
+            `;
+            
+            showResult('verifyResult', 
+                '⚠️ Ejecuta este SQL en Supabase SQL Editor para verificar:\n\n' + verifySQL, 
+                'warning'
+            );
+        }
+
+        async function testRegistration() {
+            try {
+                showResult('registrationResult', 'Probando registro de usuario...', 'warning');
+                
+                const testEmail = `test${Date.now()}@example.com`;
+                const testPassword = '123456';
+                const testNombre = 'Usuario Test';
+                
+                const { data, error } = await supabase.auth.signUp({
+                    email: testEmail,
+                    password: testPassword,
+                    options: {
+                        data: {
+                            nombre: testNombre
+                        }
+                    }
+                });
+                
+                if (error) {
+                    showResult('registrationResult', 
+                        `❌ Error en registro: ${error.message}\n\n` +
+                        'Esto probablemente significa que las tablas no están configuradas correctamente. ' +
+                        'Ejecuta los SQL proporcionados en los pasos anteriores.', 
+                        'error'
+                    );
+                } else {
+                    showResult('registrationResult', 
+                        `✅ Registro exitoso!\n\n` +
+                        `Usuario ID: ${data.user.id}\n` +
+                        `Email: ${data.user.email}\n\n` +
+                        'Ahora puedes usar signup.html para registrar usuarios reales.', 
+                        'success'
+                    );
+                }
+            } catch (error) {
+                showResult('registrationResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -6,16 +6,6 @@ let recentMothers = [];
 // Función para inicializar el dashboard
 async function initDashboard() {
     try {
-        // Verificar autenticación
-        const isAuth = await auth.requireAuth();
-        if (!isAuth) return;
-        
-        // Obtener usuario actual
-        const user = auth.getCurrentUser();
-        
-        // Cargar información del usuario
-        await loadUserInfo();
-        
         // Cargar registros recientes
         await loadRecentMothers();
         
@@ -31,37 +21,11 @@ async function initDashboard() {
     }
 }
 
-// Función para cargar información del usuario
-async function loadUserInfo() {
-    try {
-        const user = auth.getCurrentUser();
-        if (!user) return;
-        
-        // Obtener perfil del usuario
-        const profile = await auth.getUserProfile(user.id);
-        
-        if (profile) {
-            const userNameElement = document.getElementById('userName');
-            if (userNameElement) {
-                userNameElement.textContent = profile.nombre_usuario || 'Usuario';
-            }
-        } else {
-            // Si no hay perfil, usar el email
-            const userNameElement = document.getElementById('userName');
-            if (userNameElement) {
-                userNameElement.textContent = user.email || 'Usuario';
-            }
-        }
-        
-    } catch (error) {
-        console.error('Error al cargar información del usuario:', error);
-    }
-}
 
 // Función para cargar registros recientes
 async function loadRecentMothers() {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
             const recentMothersElement = document.getElementById('recentMothers');
             if (recentMothersElement) {
@@ -70,7 +34,7 @@ async function loadRecentMothers() {
             return;
         }
         
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('madres')
             .select('*')
             .order('created_at', { ascending: false })
@@ -136,11 +100,6 @@ function setupEventListeners() {
         verMadresBtn.addEventListener('click', openMadresModal);
     }
     
-    // Botón cerrar sesión
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', auth.logout);
-    }
     
     // Formulario de madre
     const madreForm = document.getElementById('madreForm');
@@ -224,7 +183,7 @@ async function openMadresModal() {
 // Función para cargar lista de madres
 async function loadMadresList(searchTerm = '') {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
             const madresListElement = document.getElementById('madresList');
             if (madresListElement) {
@@ -233,7 +192,7 @@ async function loadMadresList(searchTerm = '') {
             return;
         }
         
-        let query = auth.supabase
+        let query = window.supabaseClient
             .from('madres')
             .select('*')
             .order('created_at', { ascending: false });
@@ -302,14 +261,14 @@ function displayMadresList(madres) {
 // Función para seleccionar una madre
 async function selectMadre(madreId) {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
             utils.showNotification('Error de conexión con la base de datos', 'error');
             return;
         }
         
         // Cargar datos de la madre
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('madres')
             .select('*')
             .eq('id', madreId)
@@ -345,22 +304,21 @@ async function handleMadreFormSubmit(e) {
         rut: document.getElementById('rut').value.replace(/\./g, '').replace('-', ''),
         numero_ficha: document.getElementById('numeroFicha').value.trim(),
         sala: document.getElementById('sala').value.trim(),
-        cama: document.getElementById('cama').value.trim(),
-        usuario_id: auth.getCurrentUser().id
+        cama: document.getElementById('cama').value.trim()
     };
     
     // Mostrar loader
     utils.toggleButtonLoader('guardarMadreBtn', true);
     
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
             utils.showNotification('Error de conexión con la base de datos', 'error');
             return;
         }
         
         // Insertar en Supabase
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('madres')
             .insert([formData])
             .select();

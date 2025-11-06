@@ -8,6 +8,7 @@
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#2c3e50">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="TAU">
@@ -32,10 +33,6 @@
                 <div class="logo">
                     <h1>TAU</h1>
                     <p class="subtitle">Tamizaje Auditivo Universal</p>
-                </div>
-                <div class="user-info">
-                    <span id="userName">Usuario</span>
-                    <button id="logoutBtn" class="btn btn-secondary btn-sm">Cerrar Sesión</button>
                 </div>
             </div>
         </header>
@@ -353,37 +350,88 @@
     
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/utils.js"></script>
+    <script src="js/utils.js?v=202511061517"></script>
+    <script src="js/service-worker-comms.js?v=202511061517"></script>
     <script>
-        // Esperar a que Supabase esté disponible antes de cargar los scripts que lo usan
-        function loadScripts() {
+        // Configuración directa de Supabase
+        const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
+        
+        // Inicializar Supabase directamente
+        let supabase;
+        
+        function initializeSupabase() {
             if (typeof window.supabase !== 'undefined') {
-                const scripts = ['js/auth.js', 'js/dashboard.js', 'js/madres.js', 'js/eoa.js'];
-                scripts.forEach((src, index) => {
-                    const script = document.createElement('script');
-                    script.src = src;
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('✅ Supabase inicializado correctamente');
+                
+                // Hacer supabase disponible globalmente para otros scripts
+                window.supabaseClient = supabase;
+                
+                // Cargar scripts del dashboard
+                loadDashboardScripts();
+            } else {
+                console.log('⏳ Esperando a Supabase...');
+                setTimeout(initializeSupabase, 100);
+            }
+        }
+        
+        function loadDashboardScripts() {
+            console.log('🚀 Iniciando carga de scripts del dashboard...');
+            
+            // Cargar scripts en orden específico con versión para evitar caché
+            const version = new Date().getTime();
+            const scripts = [
+                `js/dashboard.js?v=${version}`,
+                `js/madres.js?v=${version}`,
+                `js/eoa.js?v=${version}`
+            ];
+            
+            // Cargar scripts secuencialmente para asegurar orden
+            function loadScriptSequentially(index) {
+                if (index >= scripts.length) {
+                    console.log('✅ Todos los scripts cargados');
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = scripts[index];
+                
+                script.onload = function() {
+                    console.log(`✅ Script cargado: ${scripts[index]}`);
                     
-                    // Para auth.js, inicializar Supabase después de cargar
-                    if (src === 'js/auth.js') {
-                        script.onload = function() {
-                            if (typeof window.auth !== 'undefined' && window.auth.initializeSupabase) {
-                                window.auth.initializeSupabase();
-                            }
-                        };
+                    // Para dashboard.js, inicializar después de cargar
+                    if (scripts[index] === 'js/dashboard.js') {
+                        if (typeof window.dashboard !== 'undefined' && window.dashboard.initDashboard) {
+                            console.log('🔧 Inicializando dashboard...');
+                            setTimeout(() => {
+                                window.dashboard.initDashboard();
+                            }, 100); // Pequeño retraso para asegurar que todo esté listo
+                        }
                     }
                     
-                    document.head.appendChild(script);
-                });
-            } else {
-                setTimeout(loadScripts, 100);
+                    // Cargar siguiente script
+                    loadScriptSequentially(index + 1);
+                };
+                
+                script.onerror = function() {
+                    console.error(`❌ Error al cargar script: ${scripts[index]}`);
+                    // Continuar con el siguiente script incluso si hay error
+                    loadScriptSequentially(index + 1);
+                };
+                
+                document.head.appendChild(script);
             }
+            
+            // Iniciar carga secuencial
+            loadScriptSequentially(0);
         }
         
         // Iniciar la carga después de que el DOM esté listo
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadScripts);
+            document.addEventListener('DOMContentLoaded', initializeSupabase);
         } else {
-            loadScripts();
+            initializeSupabase();
         }
     </script>
 </body>

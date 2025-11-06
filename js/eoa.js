@@ -52,12 +52,12 @@ function closeEoaModal() {
 // Función para cargar exámenes anteriores de una madre
 async function cargarExamenesAnteriores(madreId) {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
             return;
         }
         
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('examenes_eoa')
             .select('*')
             .eq('madre_id', madreId)
@@ -148,12 +148,6 @@ async function registrarExamenEOA(examenData) {
             throw new Error('Semanas de gestación fuera de rango válido (20-42)');
         }
         
-        // Obtener usuario actual
-        const currentUser = auth.getCurrentUser();
-        if (!currentUser) {
-            throw new Error('Usuario no autenticado');
-        }
-        
         // Preparar datos para inserción
         const dataToInsert = {
             madre_id: examenData.madre_id,
@@ -170,16 +164,15 @@ async function registrarExamenEOA(examenData) {
             madre_alcohol: examenData.madre_alcohol,
             madre_drogas: examenData.madre_drogas,
             observaciones: examenData.observaciones,
-            usuario_id: currentUser.id,
             fecha_examen: new Date().toISOString()
         };
         
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
         // Insertar en Supabase
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('examenes_eoa')
             .insert([dataToInsert])
             .select();
@@ -202,11 +195,11 @@ async function registrarExamenEOA(examenData) {
 // Función para obtener exámenes de una madre
 async function obtenerExamenesMadre(madreId, limit = 10) {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('examenes_eoa')
             .select('*')
             .eq('madre_id', madreId)
@@ -231,11 +224,11 @@ async function obtenerExamenesMadre(madreId, limit = 10) {
 // Función para obtener todos los exámenes
 async function obtenerTodosExamenes(limit = 50) {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('examenes_eoa')
             .select(`
                 *,
@@ -294,12 +287,12 @@ async function actualizarExamenEOA(examenId, updates) {
             dataToUpdate.observaciones = updates.observaciones.trim() || null;
         }
         
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
         // Actualizar en Supabase
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('examenes_eoa')
             .update(dataToUpdate)
             .eq('id', examenId)
@@ -324,11 +317,11 @@ async function actualizarExamenEOA(examenId, updates) {
 // Función para eliminar un examen EOA
 async function eliminarExamenEOA(examenId) {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
-        const { error } = await auth.supabase
+        const { error } = await window.supabaseClient
             .from('examenes_eoa')
             .delete()
             .eq('id', examenId);
@@ -351,11 +344,11 @@ async function eliminarExamenEOA(examenId) {
 // Función para obtener estadísticas de exámenes EOA
 async function obtenerEstadisticasEOA() {
     try {
-        if (!auth.supabase) {
+        if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
         
-        const { data, error } = await auth.supabase
+        const { data, error } = await window.supabaseClient
             .from('examenes_eoa')
             .select('od_resultado, oi_resultado, fecha_examen');
         
@@ -634,7 +627,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Remover selección previa en el mismo grupo
                 const name = radio.name;
                 document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
-                    r.closest('.radio-label').classList.remove('selected');
+                    const label = r.closest('.radio-label');
+                    if (label) {
+                        label.classList.remove('selected');
+                    }
                 });
                 
                 // Agregar selección actual

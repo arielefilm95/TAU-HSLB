@@ -1,10 +1,10 @@
 # TAU - Tamizaje Auditivo Universal
 
-Aplicación PWA para el registro y seguimiento de exámenes de Emisiones Otoacústicas (EOA) en recién nacidos del Hospital San Luis de Buin.
+Aplicación PWA para el seguimiento de exámenes de Emisiones Otoacústicas (EOA) en recién nacidos del Hospital San Luis de Buin.
 
 ## Descripción del Proyecto
 
-TAU (Tamizaje Auditivo Universal) es una aplicación web progresiva (PWA) diseñada para facilitar el registro y seguimiento de exámenes auditivos en recién nacidos. La aplicación permite:
+TAU (Tamizaje Auditivo Universal) es una aplicación web progresiva (PWA) diseñada para facilitar el seguimiento de exámenes auditivos en recién nacidos. La aplicación permite:
 
 - Registrar datos de las madres (RUT, ficha, sala, cama)
 - Realizar exámenes EOA con resultados de oído derecho e izquierdo
@@ -23,9 +23,8 @@ TAU (Tamizaje Auditivo Universal) es una aplicación web progresiva (PWA) diseñ
 
 ```
 app-tau/
-├── index.html              # Página principal (login)
-├── signup.html             # Registro de usuarios
-├── dashboard.html          # Panel principal después del login
+├── index.html              # Página principal (redirección al dashboard)
+├── dashboard.html          # Panel principal de la aplicación
 ├── css/
 │   ├── styles.css          # Estilos generales
 │   ├── auth.css            # Estilos de autenticación
@@ -118,14 +117,11 @@ graph TD
 - [ ] Configurar autenticación de Supabase (Auth)
 
 ### Fase 2: Autenticación
-- [ ] Diseñar e implementar pantalla de login
-- [ ] Diseñar e implementar pantalla de registro (signup)
-- [ ] Implementar validación de formularios de autenticación
 - [ ] Configurar protección de rutas y sesión de usuario
 
 ### Fase 3: Funcionalidad Principal
-- [ ] Diseñar interfaz principal de registro de madres
-- [ ] Implementar formulario de registro de madre (RUT, ficha, sala, cama)
+- [ ] Diseñar interfaz principal para gestión de madres
+- [ ] Implementar formulario de madre (RUT, ficha, sala, cama)
 - [ ] Crear lista de madres registradas con navegación a EOA
 - [ ] Diseñar e implementar formulario EOA (OD, OI, observaciones)
 - [ ] Configurar sincronización en tiempo real con Supabase
@@ -160,15 +156,15 @@ graph TD
 ## Políticas de Seguridad (RLS)
 
 ```sql
--- Solo usuarios autenticados pueden ver/crear registros
-CREATE POLICY "Usuarios autenticados pueden ver madres" ON madres
+-- Acceso libre para ver/crear registros
+CREATE POLICY "Acceso libre para ver madres" ON madres
   FOR SELECT USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Usuarios autenticados pueden insertar madres" ON madres
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuarios solo pueden ver sus propios registros" ON madres
-  FOR ALL USING (auth.uid() = usuario_id);
+CREATE POLICY "Acceso libre para todos los registros" ON madres
+  FOR ALL USING (true);
 
 -- Similar para examenes_eoa
 ```
@@ -189,12 +185,10 @@ CREATE POLICY "Usuarios solo pueden ver sus propios registros" ON madres
 - [ ] Inicializar repositorio Git y conectar con GitHub
 - [ ] Configurar Supabase: crear proyecto y definir esquema de base de datos
 - [x] Configurar autenticación de Supabase (Auth)
-- [x] Diseñar e implementar pantalla de login
-- [x] Diseñar e implementar pantalla de registro (signup)
-- [x] Implementar validación de formularios de autenticación
-- [x] Configurar protección de rutas y sesión de usuario
-- [x] Diseñar interfaz principal de registro de madres
-- [x] Implementar formulario de registro de madre (RUT, ficha, sala, cama)
+- [x] Eliminar sistema de autenticación
+- [x] Implementar acceso libre a la aplicación
+- [x] Diseñar interfaz principal para gestión de madres
+- [x] Implementar formulario de madre (RUT, ficha, sala, cama)
 - [x] Crear lista de madres registradas con navegación a EOA
 - [x] Diseñar e implementar formulario EOA (OD, OI, observaciones)
 - [x] Configurar sincronización en tiempo real con Supabase

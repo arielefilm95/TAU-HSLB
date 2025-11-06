@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Registro TAU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .success {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test de Registro de Usuarios TAU</h1>
+    
+    <form id="testForm">
+        <div class="form-group">
+            <label for="nombre">Nombre:</label>
+            <input type="text" id="nombre" required value="Usuario Test">
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" required value="test@example.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Contraseña:</label>
+            <input type="password" id="password" required value="123456">
+        </div>
+        
+        <button type="submit">Probar Registro</button>
+    </form>
+    
+    <div id="log" class="log">Los logs aparecerán aquí...</div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Configuración de Supabase
+        const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
+        
+        let supabase;
+        let logElement = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            logElement.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        // Inicializar Supabase
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            log('✓ Supabase inicializado correctamente', 'success');
+        } catch (error) {
+            log(`✗ Error al inicializar Supabase: ${error.message}`, 'error');
+        }
+        
+        // Probar conexión
+        async function testConnection() {
+            try {
+                const { data, error } = await supabase.from('perfiles').select('count');
+                if (error) {
+                    log(`✗ Error al conectar con tabla perfiles: ${error.message}`, 'error');
+                    log(`Detalles: ${JSON.stringify(error, null, 2)}`, 'error');
+                } else {
+                    log('✓ Conexión con tabla perfiles exitosa', 'success');
+                }
+            } catch (error) {
+                log(`✗ Error de conexión: ${error.message}`, 'error');
+            }
+        }
+        
+        // Probar registro
+        async function testSignup(nombre, email, password) {
+            log('\n=== INICIANDO PRUEBA DE REGISTRO ===');
+            log(`Nombre: ${nombre}`);
+            log(`Email: ${email}`);
+            log(`Contraseña: ${'*'.repeat(password.length)}`);
+            
+            try {
+                // Paso 1: Registrar en Auth
+                log('\n--- Paso 1: Registrando en Supabase Auth ---');
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            nombre: nombre
+                        }
+                    }
+                });
+                
+                if (error) {
+                    log(`✗ Error en Auth: ${error.message}`, 'error');
+                    log(`Detalles: ${JSON.stringify(error, null, 2)}`, 'error');
+                    return;
+                }
+                
+                log(`✓ Usuario creado en Auth: ${data.user.id}`, 'success');
+                log(`Email confirmado: ${data.user.email_confirmed_at ? 'Sí' : 'No'}`);
+                
+                // Paso 2: Crear perfil
+                if (data.user) {
+                    log('\n--- Paso 2: Creando perfil en tabla perfiles ---');
+                    
+                    const { data: profileData, error: profileError } = await supabase
+                        .from('perfiles')
+                        .insert([
+                            {
+                                id: data.user.id,
+                                nombre_usuario: nombre
+                            }
+                        ]);
+                    
+                    if (profileError) {
+                        log(`✗ Error al crear perfil: ${profileError.message}`, 'error');
+                        log(`Detalles: ${JSON.stringify(profileError, null, 2)}`, 'error');
+                    } else {
+                        log(`✓ Perfil creado exitosamente`, 'success');
+                    }
+                }
+                
+                log('\n=== REGISTRO COMPLETADO ===');
+                
+            } catch (error) {
+                log(`✗ Error general: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('nombre').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            await testSignup(nombre, email, password);
+        });
+        
+        // Probar conexión al cargar la página
+        window.addEventListener('load', testConnection);
+    </script>
+</body>
+</html>
