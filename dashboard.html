@@ -350,8 +350,16 @@
     
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/utils.js?v=202511061517"></script>
-    <script src="js/service-worker-comms.js?v=202511061517"></script>
+    <script src="js/utils.js?v=202511061729"></script>
+    <script>
+        // Cargar service-worker-comms.js como script regular (no como módulo)
+        const script = document.createElement('script');
+        script.src = 'js/service-worker-comms.js?v=202511061729';
+        script.onerror = function() {
+            console.warn('⚠️ No se pudo cargar service-worker-comms.js, continuando sin él');
+        };
+        document.head.appendChild(script);
+    </script>
     <script>
         // Configuración directa de Supabase
         const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
@@ -391,6 +399,51 @@
             function loadScriptSequentially(index) {
                 if (index >= scripts.length) {
                     console.log('✅ Todos los scripts cargados');
+                    // Inicializar dashboard después de cargar todos los scripts
+                    setTimeout(() => {
+                        console.log('🔧 Verificando si dashboard está disponible...');
+                        console.log('window.dashboard:', typeof window.dashboard);
+                        console.log('window.dashboard object:', window.dashboard);
+                        
+                        if (typeof window.dashboard !== 'undefined') {
+                            console.log('🔧 Dashboard encontrado, inicializando...');
+                            console.log('initDashboard function:', typeof window.dashboard.initDashboard);
+                            
+                            if (typeof window.dashboard.initDashboard === 'function') {
+                                console.log('🔧 Inicializando dashboard...');
+                                window.dashboard.initDashboard()
+                                    .then(() => {
+                                            console.log('✅ Dashboard inicializado correctamente');
+                                            
+                                            // Forzar registro de event listeners después de la inicialización
+                                            setTimeout(() => {
+                                                console.log('🔧 Verificando event listeners...');
+                                                setupEventListenersManually();
+                                            }, 100);
+                                        })
+                                        .catch(error => {
+                                            console.error('❌ Error al inicializar dashboard:', error);
+                                            // Intentar configurar event listeners manualmente de todas formas
+                                            setupEventListenersManually();
+                                        });
+                            } else {
+                                console.error('❌ initDashboard no es una función');
+                                console.log('Propiedades de dashboard:', Object.keys(window.dashboard));
+                                // Intentar configurar event listeners manualmente de todas formas
+                                setupEventListenersManually();
+                            }
+                        } else {
+                            console.error('❌ Dashboard no disponible después de cargar scripts');
+                            console.log('Objetos disponibles:', Object.keys(window).filter(key => key.includes('dashboard')));
+                            console.log('Todas las propiedades de window:', Object.keys(window));
+                            
+                            // Forzar configuración manual de todas formas
+                            setTimeout(() => {
+                                console.log('🔧 Forzando configuración manual de event listeners...');
+                                setupEventListenersManually();
+                            }, 500);
+                        }
+                    }, 200);
                     return;
                 }
                 
@@ -399,17 +452,6 @@
                 
                 script.onload = function() {
                     console.log(`✅ Script cargado: ${scripts[index]}`);
-                    
-                    // Para dashboard.js, inicializar después de cargar
-                    if (scripts[index] === 'js/dashboard.js') {
-                        if (typeof window.dashboard !== 'undefined' && window.dashboard.initDashboard) {
-                            console.log('🔧 Inicializando dashboard...');
-                            setTimeout(() => {
-                                window.dashboard.initDashboard();
-                            }, 100); // Pequeño retraso para asegurar que todo esté listo
-                        }
-                    }
-                    
                     // Cargar siguiente script
                     loadScriptSequentially(index + 1);
                 };
@@ -426,6 +468,190 @@
             // Iniciar carga secuencial
             loadScriptSequentially(0);
         }
+        
+        // Función para configurar event listeners manualmente
+        function setupEventListenersManually() {
+            console.log('🔧 Configurando event listeners manualmente...');
+            
+            // Botón registrar madre
+            const registrarMadreBtn = document.getElementById('registrarMadreBtn');
+            if (registrarMadreBtn) {
+                // Remover listeners anteriores para evitar duplicados
+                registrarMadreBtn.replaceWith(registrarMadreBtn.cloneNode(true));
+                const newBtn = document.getElementById('registrarMadreBtn');
+                
+                newBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('🖱️ Botón registrar madre clickeado');
+                    
+                    // Abrir modal directamente
+                    const modal = document.getElementById('modal');
+                    if (modal) {
+                        modal.style.display = 'flex';
+                        setTimeout(() => {
+                            modal.classList.add('show');
+                        }, 10);
+                        
+                        // Limpiar formulario
+                        if (typeof utils !== 'undefined' && utils.limpiarFormulario) {
+                            utils.limpiarFormulario('madreForm');
+                        }
+                        
+                        // Enfocar primer campo
+                        setTimeout(() => {
+                            const rutInput = document.getElementById('rut');
+                            if (rutInput) {
+                                rutInput.focus();
+                            }
+                        }, 100);
+                    }
+                });
+                
+                console.log('✅ Event listener para botón registrar madre configurado');
+            } else {
+                console.error('❌ No se encontró el botón registrarMadreBtn');
+            }
+            
+            // Botón ver madres
+            const verMadresBtn = document.getElementById('verMadresBtn');
+            if (verMadresBtn) {
+                // Remover listeners anteriores
+                verMadresBtn.replaceWith(verMadresBtn.cloneNode(true));
+                const newVerBtn = document.getElementById('verMadresBtn');
+                
+                newVerBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('🖱️ Botón ver madres clickeado');
+                    
+                    // Abrir modal de madres directamente
+                    const modal = document.getElementById('madresModal');
+                    if (modal) {
+                        modal.style.display = 'flex';
+                        setTimeout(() => {
+                            modal.classList.add('show');
+                        }, 10);
+                        
+                        // Cargar lista de madres
+                        if (typeof dashboard !== 'undefined' && dashboard.loadMadresList) {
+                            dashboard.loadMadresList();
+                        }
+                    }
+                });
+                
+                console.log('✅ Event listener para botón ver madres configurado');
+            } else {
+                console.error('❌ No se encontró el botón verMadresBtn');
+            }
+            
+            // Formulario de madre
+            const madreForm = document.getElementById('madreForm');
+            if (madreForm) {
+                madreForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    console.log('📝 Formulario madre enviado');
+                    
+                    // Validar formulario
+                    if (typeof utils !== 'undefined' && utils.validarFormulario) {
+                        if (!utils.validarFormulario('madreForm')) {
+                            return;
+                        }
+                    }
+                    
+                    // Obtener datos del formulario
+                    const formData = {
+                        rut: document.getElementById('rut').value.replace(/\./g, '').replace('-', ''),
+                        numero_ficha: document.getElementById('numeroFicha').value.trim(),
+                        sala: document.getElementById('sala').value.trim(),
+                        cama: document.getElementById('cama').value.trim()
+                    };
+                    
+                    // Mostrar loader
+                    if (typeof utils !== 'undefined' && utils.toggleButtonLoader) {
+                        utils.toggleButtonLoader('guardarMadreBtn', true);
+                    }
+                    
+                    // Guardar en Supabase
+                    if (window.supabaseClient) {
+                        window.supabaseClient
+                            .from('madres')
+                            .insert([formData])
+                            .select()
+                            .then(({ data, error }) => {
+                                if (error) {
+                                    throw error;
+                                }
+                                
+                                // Éxito
+                                if (typeof utils !== 'undefined' && utils.showNotification) {
+                                    utils.showNotification('Madre registrada exitosamente', 'success');
+                                }
+                                
+                                // Cerrar modal
+                                const modal = document.getElementById('modal');
+                                if (modal) {
+                                    modal.classList.remove('show');
+                                    setTimeout(() => {
+                                        modal.style.display = 'none';
+                                    }, 300);
+                                }
+                                
+                                // Recargar registros recientes
+                                if (typeof dashboard !== 'undefined' && dashboard.loadRecentMothers) {
+                                    dashboard.loadRecentMothers();
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error al registrar madre:', error);
+                                if (typeof utils !== 'undefined' && utils.showNotification) {
+                                    if (error.code === '23505') {
+                                        utils.showNotification('El RUT ya está registrado', 'error');
+                                    } else {
+                                        utils.showNotification('Error al registrar madre', 'error');
+                                    }
+                                }
+                            })
+                            .finally(() => {
+                                if (typeof utils !== 'undefined' && utils.toggleButtonLoader) {
+                                    utils.toggleButtonLoader('guardarMadreBtn', false);
+                                }
+                            });
+                    }
+                });
+                
+                console.log('✅ Event listener para formulario madre configurado');
+            }
+        }
+        
+        // Funciones globales para cerrar modales (accesibles desde onclick)
+        window.closeModal = function() {
+            const modal = document.getElementById('modal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+        };
+        
+        window.closeMadresModal = function() {
+            const modal = document.getElementById('madresModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+        };
+        
+        window.closeEoaModal = function() {
+            const modal = document.getElementById('eoaModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+        };
         
         // Iniciar la carga después de que el DOM esté listo
         if (document.readyState === 'loading') {

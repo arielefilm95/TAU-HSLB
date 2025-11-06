@@ -105,7 +105,7 @@ class ServiceWorkerComms {
         return await this.sendMessage('CACHE_URLS', { urls });
     }
 
-    async init() {
+    async reinit() {
         return await this.sendMessage('INIT');
     }
 
@@ -123,5 +123,4 @@ class ServiceWorkerComms {
 // Crear instancia global
 window.swComms = new ServiceWorkerComms();
 
-// Exportar para uso en otros módulos
-export default window.swComms;
+// La instancia ya está disponible globalmente a través de window.swComms
