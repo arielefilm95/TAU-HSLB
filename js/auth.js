@@ -1,6 +1,9 @@
 // Configuración de Supabase (deberás reemplazar con tus datos reales)
-const SUPABASE_URL = 'https://tu-proyecto.supabase.co';
-const SUPABASE_ANON_KEY = 'tu-anon-key';
+const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
+
+// NOTA: Debes configurar tus credenciales reales de Supabase aquí
+// Ve a tu proyecto de Supabase > Settings > API para obtener estos datos
 
 // Inicializar Supabase - esperar a que la librería esté disponible
 let supabase;
