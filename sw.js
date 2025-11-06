@@ -1,6 +1,6 @@
 // Service Worker para TAU - Tamizaje Auditivo Universal
 
-const CACHE_NAME = 'tau-v1.0.0';
+const CACHE_NAME = 'tau-v1.0.1';
 
 // URLs relativas para funcionar en cualquier dominio o subdirectorio
 const urlsToCache = [
@@ -8,6 +8,7 @@ const urlsToCache = [
     './index.html',
     './signup.html',
     './dashboard.html',
+    './test-auth-flow.html',
     './css/styles.css',
     './css/auth.css',
     './css/dashboard.css',
@@ -16,6 +17,7 @@ const urlsToCache = [
     './js/dashboard.js',
     './js/madres.js',
     './js/eoa.js',
+    './js/service-worker-comms.js',
     './manifest.json',
     './assets/icons/icon-72x72.png',
     './assets/icons/icon-96x96.png',
@@ -312,8 +314,28 @@ self.addEventListener('notificationclick', function(event) {
 self.addEventListener('message', function(event) {
     console.log('Service Worker: Mensaje recibido:', event.data);
     
+    // Responder siempre para evitar el error de canal cerrado
+    if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ status: 'received' });
+    }
+    
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
+        // Responder si hay canal de mensaje
+        if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage({ status: 'skipped' });
+        }
+    }
+    
+    if (event.data && event.data.type === 'INIT') {
+        console.log('Service Worker: Inicialización recibida');
+        // Responder confirmación de inicialización
+        if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage({
+                status: 'initialized',
+                timestamp: Date.now()
+            });
+        }
     }
     
     if (event.data && event.data.type === 'CACHE_URLS') {
@@ -321,6 +343,20 @@ self.addEventListener('message', function(event) {
             caches.open(CACHE_NAME)
                 .then(function(cache) {
                     return cache.addAll(event.data.urls);
+                })
+                .then(function() {
+                    console.log('Service Worker: URLs cacheadas exitosamente');
+                    // Enviar respuesta de éxito si hay un canal de mensaje
+                    if (event.ports && event.ports[0]) {
+                        event.ports[0].postMessage({ status: 'cached' });
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Service Worker: Error al cachear URLs:', error);
+                    // Enviar respuesta de error si hay un canal de mensaje
+                    if (event.ports && event.ports[0]) {
+                        event.ports[0].postMessage({ status: 'error', error: error.message });
+                    }
                 })
         );
     }
