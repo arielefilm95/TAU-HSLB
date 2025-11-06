@@ -1,37 +1,8 @@
 // Utilidades generales de la aplicación
 
-// Validación de RUT chileno (formato xxxxxxxx-x)
+// Validación de RUT chileno (solo formato xxxxxxxx-x)
 function validarRUT(rut) {
-    // Verificar formato específico: 8 dígitos, guión, dígito verificador
-    if (!/^\d{8}-[0-9kK]{1}$/.test(rut)) {
-        return false;
-    }
-    
-    // Separar número y dígito verificador
-    const numero = rut.slice(0, 8);
-    const dv = rut.slice(9).toUpperCase();
-    
-    // Calcular dígito verificador
-    let suma = 0;
-    let multiplo = 2;
-    
-    for (let i = numero.length - 1; i >= 0; i--) {
-        suma += parseInt(numero.charAt(i)) * multiplo;
-        multiplo = multiplo === 7 ? 2 : multiplo + 1;
-    }
-    
-    const dvEsperado = 11 - (suma % 11);
-    let dvCalculado;
-    
-    if (dvEsperado === 11) {
-        dvCalculado = '0';
-    } else if (dvEsperado === 10) {
-        dvCalculado = 'K';
-    } else {
-        dvCalculado = dvEsperado.toString();
-    }
-    
-    return dv === dvCalculado;
+    return /^\d{8}-[0-9kK]{1}$/.test(rut);
 }
 
 // Formatear RUT chileno (formato xxxxxxxx-x)
