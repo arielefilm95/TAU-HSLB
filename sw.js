@@ -1,6 +1,6 @@
 // Service Worker para TAU - Tamizaje Auditivo Universal
 
-const CACHE_NAME = 'tau-v1.0.4';
+const CACHE_NAME = 'tau-v1.0.5';
 
 // URLs relativas para funcionar en cualquier dominio o subdirectorio
 const urlsToCache = [
@@ -85,6 +85,22 @@ self.addEventListener('fetch', function(event) {
     // Evitar cachear scripts para obtener siempre la versión más reciente
     if (event.request.destination === 'script') {
         event.respondWith(fetch(event.request));
+        return;
+    }
+
+    // Estrategia network-first para documentos (HTML) y navigation
+    if (event.request.destination === 'document' || event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseClone);
+                    });
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
         return;
     }
     
