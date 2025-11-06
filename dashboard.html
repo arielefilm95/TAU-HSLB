@@ -367,17 +367,48 @@
         
         function initializeSupabase() {
             if (typeof window.supabase !== 'undefined') {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log('✅ Supabase inicializado correctamente');
-                
-                // Hacer supabase disponible globalmente para otros scripts
-                window.supabaseClient = supabase;
-                
-                // Cargar scripts del dashboard
-                loadDashboardScripts();
+                try {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    console.log('✅ Supabase inicializado correctamente');
+                    
+                    // Hacer supabase disponible globalmente para otros scripts
+                    window.supabaseClient = supabase;
+                    
+                    // Verificar conexión con una prueba simple
+                    testSupabaseConnection().then(() => {
+                        // Cargar scripts del dashboard solo después de verificar conexión
+                        loadDashboardScripts();
+                    }).catch(error => {
+                        console.warn('⚠️ Error en conexión Supabase, continuando igualmente:', error);
+                        loadDashboardScripts();
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ Error al inicializar Supabase:', error);
+                    // Intentar cargar scripts aunque falle Supabase
+                    loadDashboardScripts();
+                }
             } else {
                 console.log('⏳ Esperando a Supabase...');
                 setTimeout(initializeSupabase, 100);
+            }
+        }
+        
+        // Función para probar la conexión con Supabase
+        async function testSupabaseConnection() {
+            try {
+                console.log('🔍 Probando conexión con Supabase...');
+                const { data, error } = await supabase.from('madres').select('count').limit(1);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                console.log('✅ Conexión con Supabase verificada');
+                return true;
+            } catch (error) {
+                console.error('❌ Error al verificar conexión Supabase:', error);
+                throw error;
             }
         }
         
@@ -408,6 +439,12 @@
             setTimeout(() => {
                 console.log('🔧 Configurando event listeners manualmente...');
                 setupEventListenersManually();
+                
+                // Cargar datos iniciales del dashboard
+                setTimeout(() => {
+                    console.log('📊 Cargando datos iniciales del dashboard...');
+                    loadInitialData();
+                }, 1000);
             }, 500);
         }
         
@@ -601,6 +638,148 @@
                 }
                 
                 console.log('✅ Event listener para formulario madre configurado');
+            }
+        }
+        
+        // Función para cargar datos iniciales del dashboard
+        async function loadInitialData() {
+            const recentMothersElement = document.getElementById('recentMothers');
+            
+            try {
+                console.log('📊 Iniciando carga de datos iniciales...');
+                
+                // Mostrar estado de carga
+                if (recentMothersElement) {
+                    recentMothersElement.innerHTML = '<p class="loading">Cargando registros...</p>';
+                }
+                
+                // Verificar que Supabase esté disponible
+                if (!window.supabaseClient) {
+                    console.error('❌ Supabase no está disponible');
+                    if (recentMothersElement) {
+                        recentMothersElement.innerHTML = `
+                            <p class="no-data">Error de conexión con la base de datos</p>
+                            <button class="btn btn-secondary btn-sm" onclick="loadInitialData()">Reintentar</button>
+                        `;
+                    }
+                    return;
+                }
+                
+                // Intentar cargar registros recientes con múltiples estrategias
+                let loaded = false;
+                
+                // Estrategia 1: Usar función del dashboard si está disponible
+                if (typeof dashboard !== 'undefined' && dashboard.loadRecentMothers) {
+                    try {
+                        await dashboard.loadRecentMothers();
+                        console.log('✅ Registros recientes cargados vía dashboard');
+                        loaded = true;
+                    } catch (error) {
+                        console.warn('⚠️ Error cargando vía dashboard:', error);
+                    }
+                }
+                
+                // Estrategia 2: Cargar directamente si la primera falló
+                if (!loaded) {
+                    console.warn('⚠️ Función loadRecentMothers no disponible o falló, intentando directamente');
+                    await loadRecentMothersDirectly();
+                    loaded = true;
+                }
+                
+                // Si todo falló, mostrar error con opción de reintentar
+                if (!loaded && recentMothersElement) {
+                    recentMothersElement.innerHTML = `
+                        <p class="no-data">No se pudieron cargar los registros</p>
+                        <button class="btn btn-secondary btn-sm" onclick="loadInitialData()">Reintentar</button>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error al cargar datos iniciales:', error);
+                if (recentMothersElement) {
+                    recentMothersElement.innerHTML = `
+                        <p class="no-data">Error al cargar los datos: ${error.message}</p>
+                        <button class="btn btn-secondary btn-sm" onclick="loadInitialData()">Reintentar</button>
+                    `;
+                }
+            }
+        }
+        
+        // Función de respaldo para cargar registros recientes directamente
+        async function loadRecentMothersDirectly() {
+            const recentMothersElement = document.getElementById('recentMothers');
+            
+            try {
+                console.log('🔄 Cargando registros recientes directamente...');
+                
+                // Mostrar estado de carga
+                if (recentMothersElement) {
+                    recentMothersElement.innerHTML = '<p class="loading">Cargando registros...</p>';
+                }
+                
+                const { data, error } = await window.supabaseClient
+                    .from('madres')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                if (!recentMothersElement) return;
+                
+                if (!data || data.length === 0) {
+                    recentMothersElement.innerHTML = '<p class="no-data">No hay registros recientes</p>';
+                    console.log('📭 No hay registros recientes para mostrar');
+                    return;
+                }
+                
+                const html = data.map(madre => `
+                    <div class="recent-item" data-madre-id="${madre.id}">
+                        <div class="recent-item-info">
+                            <div class="recent-item-rut">${window.utils ? window.utils.escapeHTML(window.utils.formatearRUT(madre.rut)) : madre.rut}</div>
+                            <div class="recent-item-details">
+                                Ficha: ${window.utils ? window.utils.escapeHTML(madre.numero_ficha) : madre.numero_ficha} |
+                                Sala: ${window.utils ? window.utils.escapeHTML(madre.sala) : madre.sala} |
+                                Cama: ${window.utils ? window.utils.escapeHTML(madre.cama) : madre.cama} |
+                                Hijos: ${madre.cantidad_hijos ?? 'N/A'}
+                            </div>
+                        </div>
+                        <div class="recent-item-date">
+                            ${window.utils ? window.utils.formatearFecha(madre.created_at) : new Date(madre.created_at).toLocaleDateString()}
+                        </div>
+                        <div class="recent-item-actions">
+                            <button class="btn btn-secondary btn-sm" data-action="abrir-eoa" data-madre-id="${madre.id}">
+                                Ver plantilla EOA
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                recentMothersElement.innerHTML = html;
+                console.log(`✅ ${data.length} registros recientes cargados directamente`);
+                
+                // Agregar event listeners a los botones recién creados
+                const actionButtons = recentMothersElement.querySelectorAll('button[data-action="abrir-eoa"]');
+                actionButtons.forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const madreId = this.getAttribute('data-madre-id');
+                        if (madreId && typeof selectMadre === 'function') {
+                            selectMadre(madreId);
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                console.error('❌ Error al cargar registros recientes directamente:', error);
+                if (recentMothersElement) {
+                    recentMothersElement.innerHTML = `
+                        <p class="no-data">Error al cargar registros: ${error.message}</p>
+                        <button class="btn btn-secondary btn-sm" onclick="loadInitialData()">Reintentar</button>
+                    `;
+                }
             }
         }
         
