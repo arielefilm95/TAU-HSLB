@@ -67,10 +67,16 @@ function displayRecentMothers() {
         return;
     }
     
-    const html = recentMothers.map(madre => `
+    const html = recentMothers.map(madre => {
+        const nombreCompleto = [madre.nombre, madre.apellido].filter(Boolean).join(' ');
+        const titulo = nombreCompleto ? nombreCompleto.toUpperCase() : utils.formatearRUT(madre.rut);
+        const subtitulo = nombreCompleto ? utils.formatearRUT(madre.rut) : '';
+        
+        return `
         <div class="recent-item" data-madre-id="${madre.id}">
             <div class="recent-item-info">
-                <div class="recent-item-rut">${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
+                <div class="recent-item-rut">${utils.escapeHTML(titulo)}</div>
+                ${subtitulo ? `<div class="recent-item-subtitle">${utils.escapeHTML(subtitulo)}</div>` : ''}
                 <div class="recent-item-details">
                     Ficha: ${utils.escapeHTML(madre.numero_ficha)} |
                     Sala: ${utils.escapeHTML(madre.sala)} |
@@ -87,7 +93,8 @@ function displayRecentMothers() {
                 </button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
     
     recentMothersElement.innerHTML = html;
     
@@ -215,7 +222,8 @@ function displayMadresList(madres) {
     const html = madres.map(madre => `
         <div class="madre-item" onclick="selectMadre('${madre.id}')">
             <div class="madre-item-header">
-                <div class="madre-item-rut">${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
+                <div class="madre-item-rut">${utils.escapeHTML([madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Nombre no registrado')}</div>
+                <div class="madre-item-identificacion">${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
                 <div class="madre-item-ficha">Ficha: ${utils.escapeHTML(madre.numero_ficha)}</div>
             </div>
             <div class="madre-item-details">

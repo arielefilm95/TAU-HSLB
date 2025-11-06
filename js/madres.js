@@ -7,7 +7,7 @@ let currentMadre = null;
 async function registrarMadre(madreData) {
     try {
         // Validar datos
-        if (!madreData.rut || !madreData.numero_ficha || !madreData.sala || !madreData.cama || !madreData.cantidad_hijos) {
+        if (!madreData.nombre || !madreData.apellido || !madreData.rut || !madreData.numero_ficha || !madreData.sala || !madreData.cama || !madreData.cantidad_hijos) {
             throw new Error('Todos los campos son obligatorios');
         }
         
@@ -23,6 +23,8 @@ async function registrarMadre(madreData) {
 
         // Preparar datos para inserción
         const dataToInsert = {
+            nombre: madreData.nombre.trim(),
+            apellido: madreData.apellido.trim(),
             rut: madreData.rut.replace(/\./g, '').replace('-', ''), // Eliminar puntos y guion
             numero_ficha: madreData.numero_ficha.trim(),
             sala: madreData.sala.trim(),
@@ -69,7 +71,7 @@ async function obtenerMadres(searchTerm = '') {
         
         // Aplicar filtro de búsqueda si existe
         if (searchTerm) {
-            query = query.or(`rut.ilike.%${searchTerm}%,numero_ficha.ilike.%${searchTerm}%`);
+            query = query.or(`rut.ilike.%${searchTerm}%,numero_ficha.ilike.%${searchTerm}%,nombre.ilike.%${searchTerm}%,apellido.ilike.%${searchTerm}%`);
         }
         
         const { data, error } = await query;
@@ -165,6 +167,12 @@ async function actualizarMadre(madreId, updates) {
         
         if (updates.rut) {
             dataToUpdate.rut = updates.rut.replace(/\./g, '').replace('-', ''); // Eliminar puntos y guion
+        }
+        if (updates.nombre) {
+            dataToUpdate.nombre = updates.nombre.trim();
+        }
+        if (updates.apellido) {
+            dataToUpdate.apellido = updates.apellido.trim();
         }
         if (updates.numero_ficha) {
             dataToUpdate.numero_ficha = updates.numero_ficha.trim();
@@ -313,10 +321,11 @@ async function exportarMadresCSV() {
         const madres = result.data;
         
         // Crear CSV
-        const headers = ['RUT', 'Número de Ficha', 'Sala', 'Cama', 'Cantidad de Hijos', 'Fecha de Registro'];
+        const headers = ['Nombre Completo', 'RUT', 'Numero de Ficha', 'Sala', 'Cama', 'Cantidad de Hijos', 'Fecha de Registro'];
         const csvContent = [
             headers.join(','),
             ...madres.map(madre => [
+                [madre.nombre, madre.apellido].filter(Boolean).join(' '),
                 utils.formatearRUT(madre.rut),
                 madre.numero_ficha,
                 madre.sala,
@@ -349,51 +358,62 @@ async function exportarMadresCSV() {
 
 // Función para validar formulario de madre
 function validarFormularioMadre() {
+    const nombre = document.getElementById('nombreMadre').value.trim();
+    const apellido = document.getElementById('apellidoMadre').value.trim();
     const rut = document.getElementById('rut').value.trim();
     const numeroFicha = document.getElementById('numeroFicha').value.trim();
     const sala = document.getElementById('sala').value.trim();
     const cama = document.getElementById('cama').value.trim();
     const cantidadHijos = document.getElementById('cantidadHijos').value;
     const cantidadHijosNumero = parseInt(cantidadHijos, 10);
-    
+
     let isValid = true;
-    
-    // Validar RUT
+
+    if (!nombre) {
+        document.getElementById('nombreMadreError').textContent = 'El nombre es obligatorio';
+        isValid = false;
+    } else {
+        document.getElementById('nombreMadreError').textContent = '';
+    }
+
+    if (!apellido) {
+        document.getElementById('apellidoMadreError').textContent = 'El apellido es obligatorio';
+        isValid = false;
+    } else {
+        document.getElementById('apellidoMadreError').textContent = '';
+    }
+
     if (!rut) {
         document.getElementById('rutError').textContent = 'El RUT es obligatorio';
         isValid = false;
     } else if (!utils.validarRUT(rut)) {
-        document.getElementById('rutError').textContent = 'RUT inválido';
+        document.getElementById('rutError').textContent = 'RUT invalido';
         isValid = false;
     } else {
         document.getElementById('rutError').textContent = '';
     }
-    
-    // Validar número de ficha
+
     if (!numeroFicha) {
-        document.getElementById('numeroFichaError').textContent = 'El número de ficha es obligatorio';
+        document.getElementById('numeroFichaError').textContent = 'El numero de ficha es obligatorio';
         isValid = false;
     } else {
         document.getElementById('numeroFichaError').textContent = '';
     }
-    
-    // Validar sala
+
     if (!sala) {
         document.getElementById('salaError').textContent = 'La sala es obligatoria';
         isValid = false;
     } else {
         document.getElementById('salaError').textContent = '';
     }
-    
-    // Validar cama
+
     if (!cama) {
         document.getElementById('camaError').textContent = 'La cama es obligatoria';
         isValid = false;
     } else {
         document.getElementById('camaError').textContent = '';
     }
-    
-    // Validar cantidad de hijos
+
     if (!cantidadHijos) {
         document.getElementById('cantidadHijosError').textContent = 'La cantidad de hijos es obligatoria';
         isValid = false;
@@ -403,15 +423,18 @@ function validarFormularioMadre() {
     } else {
         document.getElementById('cantidadHijosError').textContent = '';
     }
-    
+
     return isValid;
 }
+
 
 // Función para limpiar formulario de madre
 function limpiarFormularioMadre() {
     utils.limpiarFormulario('madreForm');
     
     // Limpiar errores específicos
+    document.getElementById('nombreMadreError').textContent = '';
+    document.getElementById('apellidoMadreError').textContent = '';
     document.getElementById('rutError').textContent = '';
     document.getElementById('numeroFichaError').textContent = '';
     document.getElementById('salaError').textContent = '';
@@ -441,7 +464,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Validación en tiempo real de campos obligatorios
-    const requiredInputs = ['numeroFicha', 'sala', 'cama', 'cantidadHijos'];
+    const requiredInputs = ['nombreMadre', 'apellidoMadre', 'numeroFicha', 'sala', 'cama', 'cantidadHijos'];
     requiredInputs.forEach(inputId => {
         const input = document.getElementById(inputId);
         if (input) {

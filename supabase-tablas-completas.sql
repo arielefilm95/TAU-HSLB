@@ -1,4 +1,4 @@
--- =====================================================
+﻿-- =====================================================
 -- CONFIGURACIÓN COMPLETA DE BASE DE DATOS PARA TAU
 -- =====================================================
 -- Ejecutar este script completo en el SQL Editor de Supabase
@@ -46,8 +46,9 @@ CREATE TRIGGER on_auth_user_created
 -- =====================================================
 
 -- Crear tabla de madres
-CREATE TABLE madres (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+CREATE TABLE madres (  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  apellido VARCHAR(100) NOT NULL,
   rut VARCHAR(12) NOT NULL UNIQUE,
   numero_ficha VARCHAR(20) NOT NULL,
   sala VARCHAR(10) NOT NULL,
@@ -84,6 +85,8 @@ CREATE INDEX idx_madres_created_at ON madres(created_at);
 -- Crear tabla de exámenes EOA
 CREATE TABLE examenes_eoa (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  apellido VARCHAR(100) NOT NULL,
   madre_id UUID REFERENCES madres(id) ON DELETE CASCADE,
   od_resultado VARCHAR(10) NOT NULL CHECK (od_resultado IN ('PASA', 'REFIERE')),
   oi_resultado VARCHAR(10) NOT NULL CHECK (oi_resultado IN ('PASA', 'REFIERE')),

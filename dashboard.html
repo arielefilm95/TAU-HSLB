@@ -94,6 +94,18 @@
                 <div class="modal-body">
                     <form id="madreForm">
                         <div class="form-group">
+                            <label for="nombreMadre">Nombre de la Madre</label>
+                            <input type="text" id="nombreMadre" name="nombreMadre" required placeholder="Nombre">
+                            <span class="error-message" id="nombreMadreError"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="apellidoMadre">Apellido de la Madre</label>
+                            <input type="text" id="apellidoMadre" name="apellidoMadre" required placeholder="Apellido">
+                            <span class="error-message" id="apellidoMadreError"></span>
+                        </div>
+
+                        <div class="form-group">
                             <label for="rut">RUT de la Madre</label>
                             <input type="text" id="rut" name="rut" required placeholder="12345678-9" maxlength="10" inputmode="tel" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
                             <span class="error-message" id="rutError"></span>
@@ -539,6 +551,8 @@
                     // Obtener datos del formulario
                     const rutInput = document.getElementById('rut');
                     const cantidadHijosInput = document.getElementById('cantidadHijos');
+                    const nombreMadre = document.getElementById('nombreMadre').value.trim();
+                    const apellidoMadre = document.getElementById('apellidoMadre').value.trim();
                     const rutFormateado = (typeof utils !== 'undefined' && utils.formatearRUT)
                         ? utils.formatearRUT(rutInput.value.trim())
                         : rutInput.value.trim().replace(/\./g, '').toUpperCase();
@@ -556,6 +570,8 @@
                     }
 
                     const formData = {
+                        nombre: nombreMadre,
+                        apellido: apellidoMadre,
                         rut: rutNormalizado,
                         numero_ficha: document.getElementById('numeroFicha').value.trim(),
                         sala: document.getElementById('sala').value.trim(),

@@ -14,6 +14,7 @@ function openEoaModal(madre) {
         const madreInfo = document.getElementById('madreInfo');
         if (madreInfo) {
             madreInfo.innerHTML = `
+                <strong>Madre:</strong> ${utils.escapeHTML([madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado')} | 
                 <strong>RUT:</strong> ${utils.escapeHTML(utils.formatearRUT(madre.rut))} | 
                 <strong>Ficha:</strong> ${utils.escapeHTML(madre.numero_ficha)} | 
                 <strong>Sala:</strong> ${utils.escapeHTML(madre.sala)} | 

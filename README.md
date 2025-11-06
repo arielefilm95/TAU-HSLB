@@ -64,6 +64,8 @@ CREATE TABLE perfiles (
 ```sql
 CREATE TABLE madres (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  apellido VARCHAR(100) NOT NULL,
   rut VARCHAR(12) NOT NULL UNIQUE,
   numero_ficha VARCHAR(20) NOT NULL,
   sala VARCHAR(10) NOT NULL,

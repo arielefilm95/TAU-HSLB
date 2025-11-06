@@ -187,6 +187,13 @@
 .recent-item-rut {
     font-weight: 600;
     color: var(--text-color);
+    text-transform: uppercase;
+}
+
+.recent-item-subtitle {
+    font-size: 0.85rem;
+    color: var(--dark-color);
+    margin-top: 2px;
 }
 
 .recent-item-details {
@@ -269,6 +276,11 @@
     font-weight: 600;
     font-size: 1.1rem;
     color: var(--text-color);
+}
+
+.madre-item-identificacion {
+    font-size: 0.85rem;
+    color: var(--dark-color);
 }
 
 .madre-item-ficha {
