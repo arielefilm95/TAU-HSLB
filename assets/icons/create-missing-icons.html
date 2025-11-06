@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Iconos Faltantes - TAU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #34495e;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .icon-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .icon-item {
+            text-align: center;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .icon-item img {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 5px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generar Iconos Faltantes - TAU PWA</h1>
+        
+        <div class="instructions">
+            <h3>Instrucciones:</h3>
+            <p>Esta página generará todos los iconos PNG que faltan para tu PWA. Haz clic en el botón para generar y descargar cada icono.</p>
+        </div>
+        
+        <button onclick="generateAllMissingIcons()">Generar Todos los Iconos</button>
+        <button onclick="downloadAllIcons()" id="downloadAllBtn" style="display: none;">Descargar Todos</button>
+        
+        <div id="status"></div>
+        <div id="iconPreview" class="icon-preview"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        // Iconos que faltan según el manifest.json
+        const missingIcons = [
+            { size: 72, name: 'icon-72x72.png' },
+            { size: 96, name: 'icon-96x96.png' },
+            { size: 128, name: 'icon-128x128.png' },
+            { size: 144, name: 'icon-144x144.png' },
+            { size: 152, name: 'icon-152x152.png' },
+            { size: 192, name: 'icon-192x192.png' },
+            { size: 384, name: 'icon-384x384.png' },
+            { size: 512, name: 'icon-512x512.png' }
+        ];
+        
+        let generatedIcons = [];
+        
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Fondo azul oscuro
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Texto "TAU" en blanco
+            ctx.fillStyle = '#ffffff';
+            const fontSize = Math.max(8, size * 0.3);
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TAU', size / 2, size / 2);
+            
+            return canvas;
+        }
+        
+        function generateAllMissingIcons() {
+            const statusDiv = document.getElementById('status');
+            const previewDiv = document.getElementById('iconPreview');
+            
+            statusDiv.innerHTML = '<div class="success">Generando iconos...</div>';
+            previewDiv.innerHTML = '';
+            generatedIcons = [];
+            
+            missingIcons.forEach(icon => {
+                const canvas = createIcon(icon.size);
+                const dataURL = canvas.toDataURL('image/png');
+                
+                generatedIcons.push({
+                    name: icon.name,
+                    dataURL: dataURL,
+                    size: icon.size
+                });
+                
+                // Crear vista previa
+                const iconItem = document.createElement('div');
+                iconItem.className = 'icon-item';
+                
+                const img = document.createElement('img');
+                img.src = dataURL;
+                img.alt = `${icon.name}`;
+                
+                const label = document.createElement('div');
+                label.innerHTML = `<strong>${icon.name}</strong><br>${icon.size}x${icon.size}px`;
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.textContent = 'Descargar';
+                downloadBtn.style.fontSize = '12px';
+                downloadBtn.style.padding = '5px 10px';
+                downloadBtn.onclick = () => downloadIcon(dataURL, icon.name);
+                
+                iconItem.appendChild(img);
+                iconItem.appendChild(label);
+                iconItem.appendChild(downloadBtn);
+                previewDiv.appendChild(iconItem);
+            });
+            
+            statusDiv.innerHTML = '<div class="success">✅ Todos los iconos han sido generados. Puedes descargarlos individualmente o todos juntos.</div>';
+            document.getElementById('downloadAllBtn').style.display = 'inline-block';
+        }
+        
+        function downloadIcon(dataURL, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = dataURL;
+            link.click();
+        }
+        
+        async function downloadAllIcons() {
+            const zip = new JSZip();
+            
+            generatedIcons.forEach(icon => {
+                // Convert dataURL to blob
+                const base64Data = icon.dataURL.replace(/^data:image\/png;base64,/, '');
+                zip.file(icon.name, base64Data, { base64: true });
+            });
+            
+            const content = await zip.generateAsync({ type: 'blob' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = 'tau-missing-icons.zip';
+            link.click();
+        }
+    </script>
+</body>
+</html>

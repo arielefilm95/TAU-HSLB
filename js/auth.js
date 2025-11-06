@@ -77,6 +77,7 @@ async function redirectIfAuthenticated() {
     
     if (user) {
         currentUser = user;
+        console.log('🔄 Usuario ya autenticado, redirigiendo a dashboard...');
         window.location.href = 'dashboard.html';
         return true;
     }
@@ -115,30 +116,45 @@ async function login(email, password) {
 
 // Función de registro
 async function signup(nombre, email, password) {
+    console.log('Iniciando proceso de registro...');
+    
     if (!supabase) {
         console.error('Supabase no está inicializado');
         return { success: false, error: 'Error de conexión con la base de datos' };
     }
     
     try {
-        // Primero registrar el usuario en Supabase Auth
+        console.log('Registrando usuario en Supabase Auth...');
+        console.log('Email:', email);
+        console.log('Nombre:', nombre);
+        
+        // Primero registrar el usuario en Supabase Auth con auto-confirmación
         const { data, error } = await supabase.auth.signUp({
             email: email,
             password: password,
             options: {
                 data: {
                     nombre: nombre
-                }
+                },
+                // Deshabilitar confirmación por email para pruebas
+                emailRedirectTo: undefined
             }
         });
         
+        console.log('Respuesta de Supabase Auth:', { data, error });
+        
         if (error) {
+            console.error('Error en Supabase Auth:', error);
             throw error;
         }
         
-        // Si el registro es exitoso, crear el perfil
+        console.log('Usuario creado en Auth:', data.user);
+        
+        // Si el registro es exitoso, crear el perfil manualmente
         if (data.user) {
-            const { error: profileError } = await supabase
+            console.log('Intentando crear perfil en tabla perfiles...');
+            
+            const { data: profileData, error: profileError } = await supabase
                 .from('perfiles')
                 .insert([
                     {
@@ -147,23 +163,43 @@ async function signup(nombre, email, password) {
                     }
                 ]);
             
+            console.log('Respuesta de inserción de perfil:', { profileData, profileError });
+            
             if (profileError) {
                 console.error('Error al crear perfil:', profileError);
-                // No lanzamos error aquí porque el usuario ya fue creado en Auth
+                return {
+                    success: true,
+                    user: data.user,
+                    message: 'Usuario registrado, pero hubo un error al crear el perfil: ' + profileError.message
+                };
+            }
+            
+            console.log('Perfil creado exitosamente');
+            
+            // Iniciar sesión automáticamente después del registro
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+            
+            if (signInError) {
+                console.error('Error al iniciar sesión automáticamente:', signInError);
+            } else {
+                console.log('Sesión iniciada automáticamente');
             }
         }
         
-        return { 
-            success: true, 
+        return {
+            success: true,
             user: data.user,
-            message: 'Registro exitoso. Revisa tu correo para confirmar la cuenta.'
+            message: '¡Registro exitoso! Usuario creado y sesión iniciada.'
         };
         
     } catch (error) {
         console.error('Error en registro:', error);
-        return { 
-            success: false, 
-            error: error.message || 'Error al registrar usuario' 
+        return {
+            success: false,
+            error: error.message || 'Error al registrar usuario'
         };
     }
 }
@@ -312,7 +348,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Signup form
     const signupForm = document.getElementById('signupForm');
     if (signupForm) {
+        console.log('📝 Formulario de registro encontrado, agregando event listener');
         signupForm.addEventListener('submit', async function(e) {
+            console.log('🚀 Formulario de registro enviado');
             e.preventDefault();
             
             const nombre = document.getElementById('nombre').value.trim();
@@ -320,38 +358,68 @@ document.addEventListener('DOMContentLoaded', function() {
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             
+            console.log('📊 Datos del formulario:', {
+                nombre: nombre,
+                email: email,
+                passwordLength: password.length,
+                confirmPasswordLength: confirmPassword.length
+            });
+            
             // Validar formulario
+            console.log('🔍 Validando formulario...');
             if (!utils.validarFormulario('signupForm')) {
+                console.log('❌ Validación de formulario falló');
                 return;
             }
+            console.log('✅ Validación de formulario exitosa');
             
             // Validar longitud de contraseña
             if (password.length < 6) {
+                console.log('❌ Contraseña demasiado corta');
                 document.getElementById('password').classList.add('error');
                 document.getElementById('passwordError').textContent = 'La contraseña debe tener al menos 6 caracteres';
                 return;
             }
             
+            // Validar que las contraseñas coincidan
+            if (password !== confirmPassword) {
+                console.log('❌ Las contraseñas no coinciden');
+                document.getElementById('confirmPassword').classList.add('error');
+                document.getElementById('confirmPasswordError').textContent = 'Las contraseñas no coinciden';
+                return;
+            }
+            
+            console.log('✅ Todas las validaciones pasaron, iniciando registro...');
+            
             // Mostrar loader
             utils.toggleButtonLoader('signupBtn', true);
             
             try {
+                console.log('📡 Llamando a función signup()...');
                 const result = await signup(nombre, email, password);
+                console.log('📥 Resultado del signup:', result);
                 
                 if (result.success) {
+                    console.log('✅ Registro exitoso:', result);
                     utils.showNotification(result.message, 'success');
                     setTimeout(() => {
-                        window.location.href = 'index.html';
+                        console.log('🔄 Redirigiendo a dashboard.html...');
+                        window.location.href = 'dashboard.html';
                     }, 2000);
                 } else {
+                    console.log('❌ Registro fallido:', result.error);
                     utils.showNotification(result.error, 'error');
                 }
             } catch (error) {
-                utils.showNotification('Error al registrar usuario', 'error');
+                console.error('💥 Error inesperado en registro:', error);
+                utils.showNotification('Error al registrar usuario: ' + error.message, 'error');
             } finally {
+                console.log('🔄 Ocultando loader...');
                 utils.toggleButtonLoader('signupBtn', false);
             }
         });
+    } else {
+        console.log('❌ No se encontró el formulario de registro signupForm');
     }
     
     // Logout button
@@ -365,8 +433,9 @@ document.addEventListener('DOMContentLoaded', function() {
         requireAuth();
     }
     
-    // Redirigir si ya está autenticado en página de login
-    if (window.location.pathname.includes('index.html') || 
+    // Redirigir si ya está autenticado en página de login y signup
+    if (window.location.pathname.includes('index.html') ||
+        window.location.pathname.includes('signup.html') ||
         window.location.pathname.endsWith('/')) {
         redirectIfAuthenticated();
     }

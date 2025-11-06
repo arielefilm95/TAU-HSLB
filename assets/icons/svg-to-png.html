@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertir SVG a PNG - TAU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #34495e;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .preview {
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .preview-item {
+            text-align: center;
+        }
+        .preview-item img, .preview-item svg {
+            width: 144px;
+            height: 144px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Convertir SVG a PNG - TAU</h1>
+        
+        <div class="instructions">
+            <p>Esta página convertirá el archivo SVG existente a PNG para solucionar el error 404.</p>
+        </div>
+        
+        <div class="preview">
+            <div class="preview-item">
+                <h3>SVG Original</h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+                  <rect width="144" height="144" fill="#2c3e50"/>
+                  <text x="72" y="72" font-family="Arial, sans-serif" font-size="36" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="white">TAU</text>
+                </svg>
+            </div>
+            <div class="preview-item">
+                <h3>PNG Generado</h3>
+                <canvas id="pngCanvas" width="144" height="144"></canvas>
+            </div>
+        </div>
+        
+        <button onclick="convertAndDownload()">Convertir y Descargar PNG</button>
+        <button onclick="convertAllSizes()">Convertir Todos los Tamaños</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+          <rect width="144" height="144" fill="#2c3e50"/>
+          <text x="72" y="72" font-family="Arial, sans-serif" font-size="36" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="white">TAU</text>
+        </svg>`;
+        
+        function svgToCanvas(svgString, size) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0, size, size);
+                    resolve(canvas);
+                };
+                
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                img.src = url;
+            });
+        }
+        
+        async function convertAndDownload() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<div class="success">Convirtiendo SVG a PNG...</div>';
+            
+            const canvas = await svgToCanvas(svgString, 144);
+            
+            // Mostrar vista previa
+            const previewCanvas = document.getElementById('pngCanvas');
+            const previewCtx = previewCanvas.getContext('2d');
+            previewCtx.clearRect(0, 0, 144, 144);
+            previewCtx.drawImage(canvas, 0, 0);
+            
+            // Descargar el PNG
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'icon-144x144.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                statusDiv.innerHTML = '<div class="success">✅ Icono icon-144x144.png descargado. Colócalo en la carpeta assets/icons/</div>';
+            }, 'image/png');
+        }
+        
+        async function convertAllSizes() {
+            const sizes = [
+                { size: 72, name: 'icon-72x72.png' },
+                { size: 96, name: 'icon-96x96.png' },
+                { size: 128, name: 'icon-128x128.png' },
+                { size: 144, name: 'icon-144x144.png' },
+                { size: 152, name: 'icon-152x152.png' },
+                { size: 192, name: 'icon-192x192.png' },
+                { size: 384, name: 'icon-384x384.png' },
+                { size: 512, name: 'icon-512x512.png' }
+            ];
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<div class="success">Convirtiendo todos los tamaños...</div>';
+            
+            for (let i = 0; i < sizes.length; i++) {
+                const { size, name } = sizes[i];
+                const canvas = await svgToCanvas(svgString, size);
+                
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    if (i === sizes.length - 1) {
+                        statusDiv.innerHTML = '<div class="success">✅ Todos los iconos han sido descargados. Colócalos en la carpeta assets/icons/</div>';
+                    }
+                }, 'image/png');
+                
+                // Pequeño retraso entre descargas
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+        
+        // Generar vista previa automáticamente al cargar la página
+        window.onload = function() {
+            svgToCanvas(svgString, 144).then(canvas => {
+                const previewCanvas = document.getElementById('pngCanvas');
+                const previewCtx = previewCanvas.getContext('2d');
+                previewCtx.drawImage(canvas, 0, 0);
+            });
+        };
+    </script>
+</body>
+</html>

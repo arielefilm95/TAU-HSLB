@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obtener Icono Base64 - TAU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .icon-preview {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .icon-preview img {
+            width: 144px;
+            height: 144px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        .base64-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #34495e;
+        }
+        .instructions {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Obtener Icono 144x144 - TAU</h1>
+        
+        <div class="instructions">
+            <h3>Instrucciones:</h3>
+            <ol>
+                <li>Haz clic en "Generar Icono" para crear el icono</li>
+                <li>Copia el código base64 que aparece</li>
+                <li>Usa el botón "Descargar Icono" para obtener el archivo directamente</li>
+                <li>Coloca el archivo icon-144x144.png en la carpeta assets/icons/</li>
+            </ol>
+        </div>
+        
+        <button onclick="generateIcon()">Generar Icono</button>
+        <button onclick="downloadIcon()" id="downloadBtn" style="display: none;">Descargar Icono</button>
+        <button onclick="copyBase64()" id="copyBtn" style="display: none;">Copiar Base64</button>
+        
+        <div class="icon-preview">
+            <h3>Vista previa:</h3>
+            <canvas id="iconCanvas" width="144" height="144" style="display: none;"></canvas>
+            <img id="iconPreview" style="display: none;">
+        </div>
+        
+        <div id="base64Container" style="display: none;">
+            <h3>Código Base64:</h3>
+            <div id="base64Output" class="base64-output"></div>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let iconDataURL = '';
+        
+        function generateIcon() {
+            const canvas = document.getElementById('iconCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Fondo azul oscuro
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, 144, 144);
+            
+            // Texto "TAU" en blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 43px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TAU', 72, 72);
+            
+            // Convertir a base64
+            iconDataURL = canvas.toDataURL('image/png');
+            
+            // Mostrar vista previa
+            const preview = document.getElementById('iconPreview');
+            preview.src = iconDataURL;
+            preview.style.display = 'block';
+            
+            // Mostrar base64
+            const base64Output = document.getElementById('base64Output');
+            const base64Data = iconDataURL.replace(/^data:image\/png;base64,/, '');
+            base64Output.textContent = base64Data;
+            document.getElementById('base64Container').style.display = 'block';
+            
+            // Mostrar botones
+            document.getElementById('downloadBtn').style.display = 'inline-block';
+            document.getElementById('copyBtn').style.display = 'inline-block';
+            
+            document.getElementById('status').innerHTML = '<div style="color: green;">✅ Icono generado correctamente</div>';
+        }
+        
+        function downloadIcon() {
+            const link = document.createElement('a');
+            link.download = 'icon-144x144.png';
+            link.href = iconDataURL;
+            link.click();
+        }
+        
+        function copyBase64() {
+            const base64Data = iconDataURL.replace(/^data:image\/png;base64,/, '');
+            navigator.clipboard.writeText(base64Data).then(() => {
+                document.getElementById('status').innerHTML = '<div style="color: green;">✅ Base64 copiado al portapapeles</div>';
+            }).catch(() => {
+                // Fallback para navegadores que no soportan clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = base64Data;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                document.getElementById('status').innerHTML = '<div style="color: green;">✅ Base64 copiado al portapapeles</div>';
+            });
+        }
+    </script>
+</body>
+</html>

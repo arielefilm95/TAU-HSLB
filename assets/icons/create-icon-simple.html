@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Icono Simple - TAU</title>
+</head>
+<body>
+    <script>
+        // Función para crear el icono y descargarlo
+        function createIcon() {
+            // Crear un elemento canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 144;
+            canvas.height = 144;
+            const ctx = canvas.getContext('2d');
+            
+            // Dibujar fondo azul oscuro
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, 144, 144);
+            
+            // Dibujar texto "TAU" en blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 43px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TAU', 72, 72);
+            
+            // Convertir a data URL
+            const dataURL = canvas.toDataURL('image/png');
+            
+            // Crear enlace de descarga
+            const link = document.createElement('a');
+            link.download = 'icon-144x144.png';
+            link.href = dataURL;
+            link.click();
+            
+            // Mostrar mensaje
+            document.body.innerHTML = `
+                <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+                    <h1>✅ Icono Creado</h1>
+                    <p>El archivo icon-144x144.png ha sido descargado.</p>
+                    <p>Colócalo en la carpeta assets/icons/ para solucionar el error 404.</p>
+                    <img src="${dataURL}" style="width: 144px; height: 144px; border: 2px solid #ddd; margin: 20px auto;">
+                </div>
+            `;
+        }
+        
+        // Ejecutar cuando la página cargue
+        window.onload = createIcon;
+    </script>
+</body>
+</html>

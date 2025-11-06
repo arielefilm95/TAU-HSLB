@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Icon 144x144 - TAU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #34495e;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .icon-preview {
+            margin: 20px 0;
+        }
+        .icon-preview img {
+            width: 144px;
+            height: 144px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Reparar Icono 144x144 - TAU PWA</h1>
+        
+        <div class="instructions">
+            <p>Esta página generará el icono <strong>icon-144x144.png</strong> que falta y está causando el error 404 en tu sitio.</p>
+            <p>El icono se descargará automáticamente cuando hagas clic en el botón.</p>
+        </div>
+        
+        <div class="icon-preview">
+            <h3>Vista previa del icono:</h3>
+            <canvas id="iconCanvas" width="144" height="144"></canvas>
+        </div>
+        
+        <button onclick="createAndDownloadIcon()">Crear y Descargar Icono</button>
+        <button onclick="createAllMissingIcons()">Crear Todos los Iconos Faltantes</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Fondo azul oscuro
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Texto "TAU" en blanco
+            ctx.fillStyle = '#ffffff';
+            const fontSize = Math.max(8, size * 0.3);
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TAU', size / 2, size / 2);
+            
+            return canvas;
+        }
+        
+        function createAndDownloadIcon() {
+            const canvas = createIcon(144);
+            const statusDiv = document.getElementById('status');
+            
+            // Mostrar vista previa
+            const previewCanvas = document.getElementById('iconCanvas');
+            const previewCtx = previewCanvas.getContext('2d');
+            previewCtx.drawImage(canvas, 0, 0);
+            
+            // Descargar el icono
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'icon-144x144.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                statusDiv.innerHTML = '<div class="success">✅ Icono icon-144x144.png descargado. Colócalo en la carpeta assets/icons/</div>';
+            }, 'image/png');
+        }
+        
+        function createAllMissingIcons() {
+            const missingIcons = [
+                { size: 72, name: 'icon-72x72.png' },
+                { size: 96, name: 'icon-96x96.png' },
+                { size: 128, name: 'icon-128x128.png' },
+                { size: 144, name: 'icon-144x144.png' },
+                { size: 152, name: 'icon-152x152.png' },
+                { size: 192, name: 'icon-192x192.png' },
+                { size: 384, name: 'icon-384x384.png' },
+                { size: 512, name: 'icon-512x512.png' }
+            ];
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<div class="success">Generando todos los iconos...</div>';
+            
+            missingIcons.forEach((icon, index) => {
+                setTimeout(() => {
+                    const canvas = createIcon(icon.size);
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = icon.name;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        if (index === missingIcons.length - 1) {
+                            statusDiv.innerHTML = '<div class="success">✅ Todos los iconos han sido descargados. Colócalos en la carpeta assets/icons/</div>';
+                        }
+                    }, 'image/png');
+                }, index * 200); // Pequeño retraso entre descargas
+            });
+        }
+        
+        // Generar vista previa automáticamente al cargar la página
+        window.onload = function() {
+            const canvas = createIcon(144);
+            const previewCanvas = document.getElementById('iconCanvas');
+            const previewCtx = previewCanvas.getContext('2d');
+            previewCtx.drawImage(canvas, 0, 0);
+        };
+    </script>
+</body>
+</html>
