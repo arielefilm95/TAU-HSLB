@@ -1,6 +1,6 @@
 // Service Worker para TAU - Tamizaje Auditivo Universal
 
-const CACHE_NAME = 'tau-v1.0.1';
+const CACHE_NAME = 'tau-v1.0.2';
 
 // URLs relativas para funcionar en cualquier dominio o subdirectorio
 const urlsToCache = [
@@ -72,101 +72,48 @@ self.addEventListener('activate', function(event) {
     );
 });
 
-// Estrategia de cache: Stale While Revalidate
+// Estrategia de cache simplificada para GitHub Pages
 self.addEventListener('fetch', function(event) {
     const requestUrl = new URL(event.request.url);
     
-    // Ignorar peticiones a Supabase (API)
+    // Ignorar peticiones a Supabase (API) - ir directamente a red
     if (requestUrl.hostname.includes('supabase.co')) {
-        event.respondWith(
-            fetch(event.request).catch(function(error) {
-                console.log('Service Worker: Error de red con Supabase:', error);
-                // Para peticiones críticas, podríamos devolver una respuesta offline
-                if (event.request.method === 'GET') {
-                    return new Response(
-                        JSON.stringify({ 
-                            error: 'Sin conexión a internet', 
-                            offline: true 
-                        }), 
-                        { 
-                            status: 503,
-                            headers: { 'Content-Type': 'application/json' }
-                        }
-                    );
-                }
-            })
-        );
+        event.respondWith(fetch(event.request));
         return;
     }
     
-    // Para peticiones GET, usar estrategia Stale While Revalidate
-    if (event.request.method === 'GET') {
+    // Solo cachear peticiones GET del mismo origen
+    if (event.request.method === 'GET' && requestUrl.origin === self.location.origin) {
         event.respondWith(
-            caches.open(CACHE_NAME).then(function(cache) {
-                return cache.match(event.request)
-                    .then(function(response) {
-                        // Si encontramos en cache, devolverlo
-                        if (response) {
-                            // Actualizar en background
-                            fetch(event.request).then(function(fetchResponse) {
-                                if (fetchResponse && fetchResponse.status === 200) {
-                                    cache.put(event.request, fetchResponse.clone());
-                                }
-                            }).catch(function(error) {
-                                console.log('Service Worker: Error actualizando cache:', error);
-                            });
-                            
-                            return response;
-                        }
-                        
-                        // Si no está en cache, hacer petición de red
-                        return fetch(event.request).then(function(response) {
-                            // Verificar si la respuesta es válida
-                            if (!response || response.status !== 200 || response.type !== 'basic') {
-                                return response;
-                            }
-                            
-                            // Clonar respuesta y guardar en cache
+            caches.match(event.request)
+                .then(function(response) {
+                    // Devolver de cache si existe
+                    if (response) {
+                        return response;
+                    }
+                    
+                    // Si no, hacer petición de red y cachear
+                    return fetch(event.request).then(function(response) {
+                        // Solo cachear respuestas exitosas
+                        if (response.status === 200) {
                             const responseToCache = response.clone();
-                            cache.put(event.request, responseToCache);
-                            
-                            return response;
-                        }).catch(function(error) {
-                            console.log('Service Worker: Error en petición de red:', error);
-                            
-                            // Para páginas HTML, devolver página offline
-                            if (event.request.destination === 'document') {
-                                return caches.match('./index.html');
-                            }
-                            
-                            // Para otros recursos, devolver error
-                            return new Response('Sin conexión a internet', {
-                                status: 503,
-                                statusText: 'Service Unavailable'
+                            caches.open(CACHE_NAME).then(function(cache) {
+                                cache.put(event.request, responseToCache);
                             });
-                        });
+                        }
+                        return response;
                     });
-            })
+                })
+                .catch(function() {
+                    // Si falla todo, devolver página principal para navegación
+                    if (event.request.destination === 'document') {
+                        return caches.match('./dashboard.html');
+                    }
+                })
         );
     } else {
-        // Para peticiones POST, PUT, DELETE, ir directamente a red
-        event.respondWith(
-            fetch(event.request).catch(function(error) {
-                console.log('Service Worker: Error en petición POST/PUT/DELETE:', error);
-                
-                // Devolver respuesta de error para peticiones que no son GET
-                return new Response(
-                    JSON.stringify({ 
-                        error: 'Sin conexión a internet. Los datos se guardarán cuando se restablezca la conexión.', 
-                        offline: true 
-                    }), 
-                    { 
-                        status: 503,
-                        headers: { 'Content-Type': 'application/json' }
-                    }
-                );
-            })
-        );
+        // Para todo lo demás, ir directamente a red
+        event.respondWith(fetch(event.request));
     }
 });
 
@@ -314,28 +261,36 @@ self.addEventListener('notificationclick', function(event) {
 self.addEventListener('message', function(event) {
     console.log('Service Worker: Mensaje recibido:', event.data);
     
-    // Responder siempre para evitar el error de canal cerrado
-    if (event.ports && event.ports[0]) {
-        event.ports[0].postMessage({ status: 'received' });
+    // Función para responder de forma segura
+    function safeResponse(response) {
+        try {
+            if (event.ports && event.ports[0]) {
+                event.ports[0].postMessage(response);
+            }
+        } catch (error) {
+            console.error('Service Worker: Error al enviar respuesta:', error);
+        }
     }
     
+    // Responder inmediatamente que se recibió el mensaje
+    safeResponse({ status: 'received', type: event.data?.type });
+    
     if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-        // Responder si hay canal de mensaje
-        if (event.ports && event.ports[0]) {
-            event.ports[0].postMessage({ status: 'skipped' });
-        }
+        event.waitUntil(
+            self.skipWaiting().then(() => {
+                safeResponse({ status: 'skipped' });
+            }).catch(error => {
+                safeResponse({ status: 'error', error: error.message });
+            })
+        );
     }
     
     if (event.data && event.data.type === 'INIT') {
         console.log('Service Worker: Inicialización recibida');
-        // Responder confirmación de inicialización
-        if (event.ports && event.ports[0]) {
-            event.ports[0].postMessage({
-                status: 'initialized',
-                timestamp: Date.now()
-            });
-        }
+        safeResponse({
+            status: 'initialized',
+            timestamp: Date.now()
+        });
     }
     
     if (event.data && event.data.type === 'CACHE_URLS') {
@@ -346,17 +301,11 @@ self.addEventListener('message', function(event) {
                 })
                 .then(function() {
                     console.log('Service Worker: URLs cacheadas exitosamente');
-                    // Enviar respuesta de éxito si hay un canal de mensaje
-                    if (event.ports && event.ports[0]) {
-                        event.ports[0].postMessage({ status: 'cached' });
-                    }
+                    safeResponse({ status: 'cached' });
                 })
                 .catch(function(error) {
                     console.error('Service Worker: Error al cachear URLs:', error);
-                    // Enviar respuesta de error si hay un canal de mensaje
-                    if (event.ports && event.ports[0]) {
-                        event.ports[0].postMessage({ status: 'error', error: error.message });
-                    }
+                    safeResponse({ status: 'error', error: error.message });
                 })
         );
     }

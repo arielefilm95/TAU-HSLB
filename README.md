@@ -6,16 +6,18 @@ Aplicación PWA para el seguimiento de exámenes de Emisiones Otoacústicas (EOA
 
 TAU (Tamizaje Auditivo Universal) es una aplicación web progresiva (PWA) diseñada para facilitar el seguimiento de exámenes auditivos en recién nacidos. La aplicación permite:
 
-- Registrar datos de las madres (RUT, ficha, sala, cama)
+- Registrar datos de las madres (RUT, ficha, sala, cama, cantidad de hijos)
 - Realizar exámenes EOA con resultados de oído derecho e izquierdo
 - Sincronización en tiempo real usando Supabase
 - Funcionamiento offline con sincronización posterior
 - Acceso desde dispositivos móviles y computadoras de escritorio
 
+> **Nota:** El módulo de login y registro fue retirado temporalmente; el acceso a la aplicación publicada en GitHub Pages (`https://arielefilm95.github.io/TAU-HSLB`) es completamente libre.
+
 ## Tecnologías Utilizadas
 
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **Backend**: Supabase (Base de datos + Autenticación)
+- **Backend**: Supabase (Base de datos; autenticación deshabilitada en esta versión)
 - **Arquitectura**: Progressive Web App (PWA)
 - **Sincronización**: Tiempo real con Supabase
 
@@ -66,6 +68,7 @@ CREATE TABLE madres (
   numero_ficha VARCHAR(20) NOT NULL,
   sala VARCHAR(10) NOT NULL,
   cama VARCHAR(10) NOT NULL,
+  cantidad_hijos INTEGER NOT NULL CHECK (cantidad_hijos >= 1),
   usuario_id UUID REFERENCES perfiles(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -90,21 +93,14 @@ CREATE TABLE examenes_eoa (
 
 ```mermaid
 graph TD
-    A[Pantalla de Login] --> B{¿Usuario válido?}
-    B -->|Sí| C[Dashboard Principal]
-    B -->|No| A
-    D[Pantalla de Signup] --> E{¿Registro exitoso?}
-    E -->|Sí| A
-    E -->|No| D
-    A --> F[¿No tienes cuenta?]
-    F --> D
-    C --> G[Registro de Madre]
-    C --> H[Lista de Madres]
-    G --> I[Guardar en Supabase]
-    H --> J[Seleccionar Madre]
-    J --> K[Formulario EOA]
-    K --> L[Guardar Examen]
-    L --> H
+    A[Dashboard Principal] --> B[Registrar Madre]
+    A --> C[Ver Madres Registradas]
+    B --> D[Guardar en Supabase]
+    D --> A
+    C --> E[Seleccionar Madre]
+    E --> F[Formulario EOA]
+    F --> G[Guardar Examen]
+    G --> C
 ```
 
 ## Plan de Desarrollo
@@ -116,8 +112,8 @@ graph TD
 - [ ] Configurar Supabase: crear proyecto y definir esquema de base de datos
 - [ ] Configurar autenticación de Supabase (Auth)
 
-### Fase 2: Autenticación
-- [ ] Configurar protección de rutas y sesión de usuario
+### Fase 2: Autenticación (suspendida temporalmente)
+- [x] Eliminar flujo de autenticación y habilitar acceso libre
 
 ### Fase 3: Funcionalidad Principal
 - [ ] Diseñar interfaz principal para gestión de madres
@@ -134,12 +130,9 @@ graph TD
 
 ## Características Técnicas
 
-### Autenticación
-- Registro de usuarios con nombre, correo y contraseña
-- Validación de correo electrónico
-- Confirmación de contraseña
-- Sesiones persistentes
-- Protección de rutas
+### Acceso
+- Autenticación deshabilitada temporalmente; no se requiere login ni registro.
+- Supabase se utiliza únicamente como base de datos con políticas abiertas (ver `configurar-acceso-libre.sql`).
 
 ### Validaciones
 - RUT chileno con formato y dígito verificador

@@ -7,7 +7,7 @@ let currentMadre = null;
 async function registrarMadre(madreData) {
     try {
         // Validar datos
-        if (!madreData.rut || !madreData.numero_ficha || !madreData.sala || !madreData.cama) {
+        if (!madreData.rut || !madreData.numero_ficha || !madreData.sala || !madreData.cama || !madreData.cantidad_hijos) {
             throw new Error('Todos los campos son obligatorios');
         }
         
@@ -16,12 +16,18 @@ async function registrarMadre(madreData) {
             throw new Error('RUT inválido');
         }
         
+        const cantidadHijosNumero = parseInt(madreData.cantidad_hijos, 10);
+        if (!Number.isInteger(cantidadHijosNumero) || cantidadHijosNumero < 1) {
+            throw new Error('Cantidad de hijos invalida');
+        }
+
         // Preparar datos para inserción
         const dataToInsert = {
-            rut: madreData.rut.replace(/\./g, '').replace('-', ''),
+            rut: madreData.rut.replace(/\./g, '').replace('-', ''), // Eliminar puntos y guion
             numero_ficha: madreData.numero_ficha.trim(),
             sala: madreData.sala.trim(),
-            cama: madreData.cama.trim()
+            cama: madreData.cama.trim(),
+            cantidad_hijos: cantidadHijosNumero
         };
         
         if (!window.supabaseClient) {
@@ -114,7 +120,7 @@ async function obtenerMadrePorId(madreId) {
 // Función para obtener una madre por RUT
 async function obtenerMadrePorRUT(rut) {
     try {
-        const rutLimpio = rut.replace(/\./g, '').replace('-', '');
+        const rutLimpio = rut.replace(/\./g, '').replace('-', ''); // Eliminar puntos y guion
         
         if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
@@ -158,7 +164,7 @@ async function actualizarMadre(madreId, updates) {
         const dataToUpdate = {};
         
         if (updates.rut) {
-            dataToUpdate.rut = updates.rut.replace(/\./g, '').replace('-', '');
+            dataToUpdate.rut = updates.rut.replace(/\./g, '').replace('-', ''); // Eliminar puntos y guion
         }
         if (updates.numero_ficha) {
             dataToUpdate.numero_ficha = updates.numero_ficha.trim();
@@ -168,6 +174,13 @@ async function actualizarMadre(madreId, updates) {
         }
         if (updates.cama) {
             dataToUpdate.cama = updates.cama.trim();
+        }
+        if (updates.cantidad_hijos !== undefined) {
+            const cantidadHijosNumero = parseInt(updates.cantidad_hijos, 10);
+            if (!Number.isInteger(cantidadHijosNumero) || cantidadHijosNumero < 1) {
+                throw new Error('Cantidad de hijos invalida');
+            }
+            dataToUpdate.cantidad_hijos = cantidadHijosNumero;
         }
         
         dataToUpdate.updated_at = new Date().toISOString();
@@ -300,7 +313,7 @@ async function exportarMadresCSV() {
         const madres = result.data;
         
         // Crear CSV
-        const headers = ['RUT', 'Número de Ficha', 'Sala', 'Cama', 'Fecha de Registro'];
+        const headers = ['RUT', 'Número de Ficha', 'Sala', 'Cama', 'Cantidad de Hijos', 'Fecha de Registro'];
         const csvContent = [
             headers.join(','),
             ...madres.map(madre => [
@@ -308,6 +321,7 @@ async function exportarMadresCSV() {
                 madre.numero_ficha,
                 madre.sala,
                 madre.cama,
+                madre.cantidad_hijos ?? 'N/A',
                 utils.formatearFecha(madre.created_at)
             ].join(','))
         ].join('\n');
@@ -339,6 +353,8 @@ function validarFormularioMadre() {
     const numeroFicha = document.getElementById('numeroFicha').value.trim();
     const sala = document.getElementById('sala').value.trim();
     const cama = document.getElementById('cama').value.trim();
+    const cantidadHijos = document.getElementById('cantidadHijos').value;
+    const cantidadHijosNumero = parseInt(cantidadHijos, 10);
     
     let isValid = true;
     
@@ -377,6 +393,17 @@ function validarFormularioMadre() {
         document.getElementById('camaError').textContent = '';
     }
     
+    // Validar cantidad de hijos
+    if (!cantidadHijos) {
+        document.getElementById('cantidadHijosError').textContent = 'La cantidad de hijos es obligatoria';
+        isValid = false;
+    } else if (!Number.isInteger(cantidadHijosNumero) || cantidadHijosNumero < 1) {
+        document.getElementById('cantidadHijosError').textContent = 'Ingrese un numero valido (1 o mas)';
+        isValid = false;
+    } else {
+        document.getElementById('cantidadHijosError').textContent = '';
+    }
+    
     return isValid;
 }
 
@@ -389,17 +416,22 @@ function limpiarFormularioMadre() {
     document.getElementById('numeroFichaError').textContent = '';
     document.getElementById('salaError').textContent = '';
     document.getElementById('camaError').textContent = '';
+    document.getElementById('cantidadHijosError').textContent = '';
 }
 
 // Event listeners específicos para madres
 document.addEventListener('DOMContentLoaded', function() {
-    // Validación en tiempo real del RUT
+    // Validación y formateo en tiempo real del RUT
     const rutInput = document.getElementById('rut');
     if (rutInput) {
+        rutInput.addEventListener('input', function() {
+            utils.formatearRUTInput(this);
+        });
+        
         rutInput.addEventListener('blur', function() {
             const value = this.value.trim();
             if (value && !utils.validarRUT(value)) {
-                document.getElementById('rutError').textContent = 'RUT inválido';
+                document.getElementById('rutError').textContent = 'RUT inválido. Use formato: 12345678-9';
                 this.classList.add('error');
             } else if (value) {
                 document.getElementById('rutError').textContent = '';
@@ -409,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Validación en tiempo real de campos obligatorios
-    const requiredInputs = ['numeroFicha', 'sala', 'cama'];
+    const requiredInputs = ['numeroFicha', 'sala', 'cama', 'cantidadHijos'];
     requiredInputs.forEach(inputId => {
         const input = document.getElementById(inputId);
         if (input) {
@@ -420,10 +452,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!value) {
                     errorElement.textContent = 'Este campo es obligatorio';
                     this.classList.add('error');
-                } else {
-                    errorElement.textContent = '';
-                    this.classList.remove('error');
+                    return;
                 }
+
+                if (inputId === 'cantidadHijos') {
+                    const numericValue = parseInt(value, 10);
+                    if (!Number.isInteger(numericValue) || numericValue < 1) {
+                        errorElement.textContent = 'Ingrese un numero valido (1 o mas)';
+                        this.classList.add('error');
+                        return;
+                    }
+                }
+
+                errorElement.textContent = '';
+                this.classList.remove('error');
             });
         }
     });

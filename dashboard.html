@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TAU - Tamizaje Auditivo Universal | Dashboard</title>
     <meta name="description" content="Panel principal del Sistema de Tamizaje Auditivo Universal del Hospital San Luis de Buin">
-    
+ 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#2c3e50">
     <meta name="mobile-web-app-capable" content="yes">
@@ -95,7 +95,7 @@
                     <form id="madreForm">
                         <div class="form-group">
                             <label for="rut">RUT de la Madre</label>
-                            <input type="text" id="rut" name="rut" required placeholder="12.345.678-9">
+                            <input type="text" id="rut" name="rut" required placeholder="12345678-9" maxlength="10" inputmode="tel" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
                             <span class="error-message" id="rutError"></span>
                         </div>
                         
@@ -107,7 +107,7 @@
                         
                         <div class="form-group">
                             <label for="sala">Sala</label>
-                            <input type="text" id="sala" name="sala" required placeholder="Ej: A101">
+                            <input type="text" id="sala" name="sala" required placeholder="Ej: Mater">
                             <span class="error-message" id="salaError"></span>
                         </div>
                         
@@ -115,6 +115,12 @@
                             <label for="cama">Cama</label>
                             <input type="text" id="cama" name="cama" required placeholder="Ej: 15">
                             <span class="error-message" id="camaError"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cantidadHijos">Cantidad de Hijos</label>
+                            <input type="number" id="cantidadHijos" name="cantidadHijos" required min="1" step="1" placeholder="Ingrese número de hijos">
+                            <span class="error-message" id="cantidadHijosError"></span>
                         </div>
                         
                         <div class="form-actions">
@@ -350,7 +356,7 @@
     
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/utils.js?v=202511061729"></script>
+    <script src="js/utils.js?v=202511061758"></script>
     <script>
         // Configuración directa de Supabase
         const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
@@ -378,46 +384,31 @@
         function loadDashboardScripts() {
             console.log('🚀 Iniciando carga de scripts del dashboard...');
             
-            // Cargar scripts en orden específico con versión para evitar caché
-            const version = new Date().getTime();
+            // Cargar scripts directamente sin service worker
             const scripts = [
-                `js/dashboard.js?v=${version}`,
-                `js/madres.js?v=${version}`,
-                `js/eoa.js?v=${version}`
+                'js/dashboard.js',
+                'js/madres.js',
+                'js/eoa.js'
             ];
             
-            // Cargar scripts secuencialmente para asegurar orden
-            function loadScriptSequentially(index) {
-                if (index >= scripts.length) {
-                    console.log('✅ Todos los scripts cargados');
-                    // Forzar configuración manual de event listeners directamente
-                    setTimeout(() => {
-                        console.log('🔧 Configurando event listeners manualmente...');
-                        setupEventListenersManually();
-                    }, 200);
-                    return;
-                }
-                
+            // Cargar scripts en paralelo para mayor velocidad
+            scripts.forEach(scriptSrc => {
                 const script = document.createElement('script');
-                script.src = scripts[index];
-                
+                script.src = scriptSrc;
                 script.onload = function() {
-                    console.log(`✅ Script cargado: ${scripts[index]}`);
-                    // Cargar siguiente script
-                    loadScriptSequentially(index + 1);
+                    console.log(`✅ Script cargado: ${scriptSrc}`);
                 };
-                
                 script.onerror = function() {
-                    console.error(`❌ Error al cargar script: ${scripts[index]}`);
-                    // Continuar con el siguiente script incluso si hay error
-                    loadScriptSequentially(index + 1);
+                    console.error(`❌ Error al cargar script: ${scriptSrc}`);
                 };
-                
                 document.head.appendChild(script);
-            }
+            });
             
-            // Iniciar carga secuencial
-            loadScriptSequentially(0);
+            // Configurar event listeners después de un breve retraso
+            setTimeout(() => {
+                console.log('🔧 Configurando event listeners manualmente...');
+                setupEventListenersManually();
+            }, 500);
         }
         
         // Función para configurar event listeners manualmente
@@ -509,11 +500,30 @@
                     }
                     
                     // Obtener datos del formulario
+                    const rutInput = document.getElementById('rut');
+                    const cantidadHijosInput = document.getElementById('cantidadHijos');
+                    const rutFormateado = (typeof utils !== 'undefined' && utils.formatearRUT)
+                        ? utils.formatearRUT(rutInput.value.trim())
+                        : rutInput.value.trim().replace(/\./g, '').toUpperCase();
+                    const cantidadHijosValor = cantidadHijosInput.value;
+                    const cantidadHijosNumero = cantidadHijosValor !== '' ? parseInt(cantidadHijosValor, 10) : null;
+                    const rutNormalizado = rutFormateado.replace('-', '');
+
+                    if (Number.isNaN(cantidadHijosNumero) || cantidadHijosNumero < 1) {
+                        const errorElement = document.getElementById('cantidadHijosError');
+                        if (errorElement) {
+                            errorElement.textContent = 'Ingrese un numero valido (1 o mas)';
+                        }
+                        cantidadHijosInput.classList.add('error');
+                        return;
+                    }
+
                     const formData = {
-                        rut: document.getElementById('rut').value.replace(/\./g, '').replace('-', ''),
+                        rut: rutNormalizado,
                         numero_ficha: document.getElementById('numeroFicha').value.trim(),
                         sala: document.getElementById('sala').value.trim(),
-                        cama: document.getElementById('cama').value.trim()
+                        cama: document.getElementById('cama').value.trim(),
+                        cantidad_hijos: cantidadHijosNumero
                     };
                     
                     // Mostrar loader
@@ -569,6 +579,27 @@
                     }
                 });
                 
+                // Agregar event listener para cantidad de hijos
+                const cantidadHijosInput = document.getElementById('cantidadHijos');
+                if (cantidadHijosInput) {
+                    cantidadHijosInput.addEventListener('input', function() {
+                        const value = this.value;
+                        const numericValue = value === '' ? NaN : parseInt(value, 10);
+                        const errorElement = document.getElementById('cantidadHijosError');
+                        
+                        if (!value) {
+                            errorElement.textContent = 'La cantidad de hijos es obligatoria';
+                            this.classList.add('error');
+                        } else if (Number.isNaN(numericValue) || numericValue < 1) {
+                            errorElement.textContent = 'Debe ingresar un número válido (1 o más)';
+                            this.classList.add('error');
+                        } else {
+                            errorElement.textContent = '';
+                            this.classList.remove('error');
+                        }
+                    });
+                }
+                
                 console.log('✅ Event listener para formulario madre configurado');
             }
         }
@@ -604,6 +635,37 @@
             }
         };
         
+        // Configurar service worker para GitHub Pages
+        if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+            navigator.serviceWorker.register('./sw.js')
+                .then(function(registration) {
+                    console.log('Service Worker registrado correctamente para GitHub Pages:', registration);
+                })
+                .catch(function(error) {
+                    console.warn('Service Worker: Error en registro (GitHub Pages):', error);
+                    // Continuar sin service worker si hay error
+                });
+        }
+
+        // Manejar errores no controlados del service worker
+        window.addEventListener('error', function(event) {
+            // Ignorar errores específicos del service worker que no afectan el funcionamiento
+            if (event.message && event.message.includes('message channel closed')) {
+                console.warn('Service Worker: Error de canal cerrado ignorado:', event.message);
+                event.preventDefault();
+                return true;
+            }
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            // Ignorar rechazos de promesas relacionados con el service worker
+            if (event.reason && event.reason.message && event.reason.message.includes('message channel closed')) {
+                console.warn('Service Worker: Rechazo de promesa ignorado:', event.reason.message);
+                event.preventDefault();
+                return true;
+            }
+        });
+
         // Iniciar la carga después de que el DOM esté listo
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeSupabase);

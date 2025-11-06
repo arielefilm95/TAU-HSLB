@@ -1,18 +1,15 @@
 // Utilidades generales de la aplicación
 
-// Validación de RUT chileno
+// Validación de RUT chileno (formato xxxxxxxx-x)
 function validarRUT(rut) {
-    // Eliminar puntos y guión
-    rut = rut.replace(/\./g, '').replace('-', '');
-    
-    // Verificar formato básico
-    if (!/^[0-9]+[0-9kK]{1}$/.test(rut)) {
+    // Verificar formato específico: 8 dígitos, guión, dígito verificador
+    if (!/^\d{8}-[0-9kK]{1}$/.test(rut)) {
         return false;
     }
     
     // Separar número y dígito verificador
-    const numero = rut.slice(0, -1);
-    const dv = rut.slice(-1).toUpperCase();
+    const numero = rut.slice(0, 8);
+    const dv = rut.slice(9).toUpperCase();
     
     // Calcular dígito verificador
     let suma = 0;
@@ -37,8 +34,9 @@ function validarRUT(rut) {
     return dv === dvCalculado;
 }
 
-// Formatear RUT chileno
+// Formatear RUT chileno (formato xxxxxxxx-x)
 function formatearRUT(rut) {
+    // Eliminar puntos y guión
     rut = rut.replace(/\./g, '').replace('-', '');
     
     if (rut.length < 2) return rut;
@@ -46,21 +44,30 @@ function formatearRUT(rut) {
     const numero = rut.slice(0, -1);
     const dv = rut.slice(-1).toUpperCase();
     
-    // Formatear número con puntos
-    let numeroFormateado = '';
-    let contador = 0;
+    // Asegurar que el número tenga 8 dígitos (rellenar con ceros si es necesario)
+    const numero8Digitos = numero.padStart(8, '0');
     
-    for (let i = numero.length - 1; i >= 0; i--) {
-        numeroFormateado = numero.charAt(i) + numeroFormateado;
-        contador++;
-        
-        if (contador === 3 && i !== 0) {
-            numeroFormateado = '.' + numeroFormateado;
-            contador = 0;
-        }
+    return numero8Digitos + '-' + dv;
+}
+
+// Formatear RUT mientras el usuario escribe (formato xxxxxxxx-x)
+function formatearRUTInput(input) {
+    let value = input.value.replace(/\./g, '').replace('-', '');
+    
+    // Limitar a 9 caracteres (8 dígitos + 1 dígito verificador)
+    if (value.length > 9) {
+        value = value.slice(0, 9);
     }
     
-    return numeroFormateado + '-' + dv;
+    // Si hay al menos 9 caracteres, formatear como xxxxxxxx-x
+    if (value.length >= 9) {
+        const numero = value.slice(0, 8);
+        const dv = value.slice(8, 9);
+        input.value = numero + '-' + dv.toUpperCase();
+    } else if (value.length > 0) {
+        // Si aún no está completo, mostrar lo que hay sin formato
+        input.value = value;
+    }
 }
 
 // Validar email
@@ -156,6 +163,18 @@ function validarFormulario(formId) {
             return;
         }
         
+        if (input.name === 'cantidadHijos') {
+            const numericValue = parseInt(value, 10);
+            if (!Number.isInteger(numericValue) || numericValue < 1) {
+                input.classList.add('error');
+                if (errorElement) {
+                    errorElement.textContent = 'Ingrese un numero valido (1 o mas)';
+                }
+                isValid = false;
+                return;
+            }
+        }
+        
         // Validaciones específicas
         if (input.type === 'email' && !validarEmail(value)) {
             input.classList.add('error');
@@ -169,7 +188,7 @@ function validarFormulario(formId) {
         if (input.name === 'rut' && !validarRUT(value)) {
             input.classList.add('error');
             if (errorElement) {
-                errorElement.textContent = 'RUT inválido';
+                errorElement.textContent = 'RUT inválido. Use formato: 12345678-9';
             }
             isValid = false;
             return;
@@ -300,6 +319,7 @@ function throttle(func, limit) {
 window.utils = {
     validarRUT,
     formatearRUT,
+    formatearRUTInput,
     validarEmail,
     showNotification,
     hideNotification,

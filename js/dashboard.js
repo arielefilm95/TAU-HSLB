@@ -72,9 +72,10 @@ function displayRecentMothers() {
             <div class="recent-item-info">
                 <div class="recent-item-rut">${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
                 <div class="recent-item-details">
-                    Ficha: ${utils.escapeHTML(madre.numero_ficha)} | 
-                    Sala: ${utils.escapeHTML(madre.sala)} | 
-                    Cama: ${utils.escapeHTML(madre.cama)}
+                    Ficha: ${utils.escapeHTML(madre.numero_ficha)} |
+                    Sala: ${utils.escapeHTML(madre.sala)} |
+                    Cama: ${utils.escapeHTML(madre.cama)} |
+                    Hijos: ${utils.escapeHTML((madre.cantidad_hijos ?? 'N/A').toString())}
                 </div>
             </div>
             <div class="recent-item-date">
@@ -88,60 +89,9 @@ function displayRecentMothers() {
 
 // Función para configurar event listeners
 function setupEventListeners() {
-    // Botón registrar madre
-    const registrarMadreBtn = document.getElementById('registrarMadreBtn');
-    if (registrarMadreBtn) {
-        registrarMadreBtn.addEventListener('click', openMadreModal);
-    }
-    
-    // Botón ver madres
-    const verMadresBtn = document.getElementById('verMadresBtn');
-    if (verMadresBtn) {
-        verMadresBtn.addEventListener('click', openMadresModal);
-    }
-    
-    
-    // Formulario de madre
-    const madreForm = document.getElementById('madreForm');
-    if (madreForm) {
-        madreForm.addEventListener('submit', handleMadreFormSubmit);
-    }
-    
-    // Formatear RUT en tiempo real
-    const rutInput = document.getElementById('rut');
-    if (rutInput) {
-        rutInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\./g, '').replace('-', '');
-            
-            // Limitar longitud
-            if (value.length > 9) {
-                value = value.slice(0, 9);
-            }
-            
-            // Formatear mientras escribe
-            if (value.length > 1) {
-                const numero = value.slice(0, -1);
-                const dv = value.slice(-1);
-                
-                let numeroFormateado = '';
-                let contador = 0;
-                
-                for (let i = numero.length - 1; i >= 0; i--) {
-                    numeroFormateado = numero.charAt(i) + numeroFormateado;
-                    contador++;
-                    
-                    if (contador === 3 && i !== 0) {
-                        numeroFormateado = '.' + numeroFormateado;
-                        contador = 0;
-                    }
-                }
-                
-                e.target.value = numeroFormateado + '-' + dv.toUpperCase();
-            } else {
-                e.target.value = value.toUpperCase();
-            }
-        });
-    }
+    // Event listeners configurados manualmente en dashboard.html
+    // Esta función se mantiene por compatibilidad pero está vacía
+    console.log('Event listeners configurados manualmente en dashboard.html');
 }
 
 // Función para abrir modal de registrar madre
@@ -244,6 +194,9 @@ function displayMadresList(madres) {
                     <strong>Cama:</strong> ${utils.escapeHTML(madre.cama)}
                 </div>
                 <div class="madre-item-detail">
+                    <strong>Hijos:</strong> ${utils.escapeHTML((madre.cantidad_hijos ?? 'N/A').toString())}
+                </div>
+                <div class="madre-item-detail">
                     <strong>Registro:</strong> ${utils.formatearFecha(madre.created_at)}
                 </div>
             </div>
@@ -294,57 +247,8 @@ async function selectMadre(madreId) {
 async function handleMadreFormSubmit(e) {
     e.preventDefault();
     
-    // Validar formulario
-    if (!utils.validarFormulario('madreForm')) {
-        return;
-    }
-    
-    // Obtener datos del formulario
-    const formData = {
-        rut: document.getElementById('rut').value.replace(/\./g, '').replace('-', ''),
-        numero_ficha: document.getElementById('numeroFicha').value.trim(),
-        sala: document.getElementById('sala').value.trim(),
-        cama: document.getElementById('cama').value.trim()
-    };
-    
-    // Mostrar loader
-    utils.toggleButtonLoader('guardarMadreBtn', true);
-    
-    try {
-        if (!window.supabaseClient) {
-            console.error('Supabase no está inicializado');
-            utils.showNotification('Error de conexión con la base de datos', 'error');
-            return;
-        }
-        
-        // Insertar en Supabase
-        const { data, error } = await window.supabaseClient
-            .from('madres')
-            .insert([formData])
-            .select();
-        
-        if (error) {
-            throw error;
-        }
-        
-        // Éxito
-        utils.showNotification('Madre registrada exitosamente', 'success');
-        closeModal();
-        
-        // Recargar registros recientes
-        await loadRecentMothers();
-        
-    } catch (error) {
-        console.error('Error al registrar madre:', error);
-        
-        if (error.code === '23505') {
-            utils.showNotification('El RUT ya está registrado', 'error');
-        } else {
-            utils.showNotification('Error al registrar madre', 'error');
-        }
-    } finally {
-        utils.toggleButtonLoader('guardarMadreBtn', false);
-    }
+    // Esta función está manejada por el código en dashboard.html
+    console.log('Formulario manejado por dashboard.html');
 }
 
 // Función para cerrar modal
@@ -371,38 +275,19 @@ function closeMadresModal() {
 
 // Función para configurar PWA
 async function setupPWA() {
-    // Registrar service worker si está disponible
-    if ('serviceWorker' in navigator) {
+    // Configurar service worker para GitHub Pages
+    if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
         try {
-            const registration = await navigator.serviceWorker.register('./sw.js');
-            console.log('Service Worker registrado:', registration);
+            const registration = await navigator.serviceWorker.register('./sw.js', {
+                scope: './'
+            });
+            console.log('Service Worker registrado para GitHub Pages:', registration);
             
-            // Inicializar comunicación mejorada
-            if (window.swComms) {
-                await window.swComms.init();
-                
-                // Escuchar mensajes del Service Worker a través del módulo
-                window.addEventListener('swMessage', event => {
-                    console.log('Mensaje recibido del Service Worker:', event.detail);
-                });
-                
-                // Enviar mensaje de inicialización usando el módulo
-                await window.swComms.init();
-            } else {
-                // Fallback si el módulo no está disponible
-                navigator.serviceWorker.addEventListener('message', event => {
-                    console.log('Mensaje recibido del Service Worker:', event.data);
-                });
-                
-                if (registration.active) {
-                    registration.active.postMessage({
-                        type: 'INIT',
-                        timestamp: Date.now()
-                    });
-                }
-            }
+            // No inicializar comunicación para evitar errores en GitHub Pages
+            console.log('Comunicación con Service Worker deshabilitada para GitHub Pages');
+            
         } catch (error) {
-            console.log('Error al registrar Service Worker:', error);
+            console.warn('Error al registrar Service Worker en GitHub Pages:', error);
         }
     }
     
