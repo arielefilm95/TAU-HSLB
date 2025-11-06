@@ -352,15 +352,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/utils.js?v=202511061729"></script>
     <script>
-        // Cargar service-worker-comms.js como script regular (no como módulo)
-        const script = document.createElement('script');
-        script.src = 'js/service-worker-comms.js?v=202511061729';
-        script.onerror = function() {
-            console.warn('⚠️ No se pudo cargar service-worker-comms.js, continuando sin él');
-        };
-        document.head.appendChild(script);
-    </script>
-    <script>
         // Configuración directa de Supabase
         const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
@@ -399,50 +390,10 @@
             function loadScriptSequentially(index) {
                 if (index >= scripts.length) {
                     console.log('✅ Todos los scripts cargados');
-                    // Inicializar dashboard después de cargar todos los scripts
+                    // Forzar configuración manual de event listeners directamente
                     setTimeout(() => {
-                        console.log('🔧 Verificando si dashboard está disponible...');
-                        console.log('window.dashboard:', typeof window.dashboard);
-                        console.log('window.dashboard object:', window.dashboard);
-                        
-                        if (typeof window.dashboard !== 'undefined') {
-                            console.log('🔧 Dashboard encontrado, inicializando...');
-                            console.log('initDashboard function:', typeof window.dashboard.initDashboard);
-                            
-                            if (typeof window.dashboard.initDashboard === 'function') {
-                                console.log('🔧 Inicializando dashboard...');
-                                window.dashboard.initDashboard()
-                                    .then(() => {
-                                            console.log('✅ Dashboard inicializado correctamente');
-                                            
-                                            // Forzar registro de event listeners después de la inicialización
-                                            setTimeout(() => {
-                                                console.log('🔧 Verificando event listeners...');
-                                                setupEventListenersManually();
-                                            }, 100);
-                                        })
-                                        .catch(error => {
-                                            console.error('❌ Error al inicializar dashboard:', error);
-                                            // Intentar configurar event listeners manualmente de todas formas
-                                            setupEventListenersManually();
-                                        });
-                            } else {
-                                console.error('❌ initDashboard no es una función');
-                                console.log('Propiedades de dashboard:', Object.keys(window.dashboard));
-                                // Intentar configurar event listeners manualmente de todas formas
-                                setupEventListenersManually();
-                            }
-                        } else {
-                            console.error('❌ Dashboard no disponible después de cargar scripts');
-                            console.log('Objetos disponibles:', Object.keys(window).filter(key => key.includes('dashboard')));
-                            console.log('Todas las propiedades de window:', Object.keys(window));
-                            
-                            // Forzar configuración manual de todas formas
-                            setTimeout(() => {
-                                console.log('🔧 Forzando configuración manual de event listeners...');
-                                setupEventListenersManually();
-                            }, 500);
-                        }
+                        console.log('🔧 Configurando event listeners manualmente...');
+                        setupEventListenersManually();
                     }, 200);
                     return;
                 }
