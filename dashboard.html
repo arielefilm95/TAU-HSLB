@@ -356,7 +356,7 @@
     
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/utils.js?v=202511061758"></script>
+    <script src="js/utils.js?v=202511071200"></script>
     <script>
         // Configuración directa de Supabase
         const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
@@ -415,11 +415,11 @@
         function loadDashboardScripts() {
             console.log('🚀 Iniciando carga de scripts del dashboard...');
             
-            // Cargar scripts directamente sin service worker
+            const version = '202511071215';
             const scripts = [
-                'js/dashboard.js',
-                'js/madres.js',
-                'js/eoa.js'
+                `js/dashboard.js?v=${version}`,
+                `js/madres.js?v=${version}`,
+                `js/eoa.js?v=${version}`
             ];
             
             // Cargar scripts en paralelo para mayor velocidad
