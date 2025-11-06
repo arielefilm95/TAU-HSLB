@@ -19,11 +19,13 @@ function initializeSupabase() {
                 currentUser = session.user;
                 console.log('Usuario inició sesión:', currentUser);
                 
-                // Redirigir inmediatamente si estamos en signup o index
+                // Redirigir con un pequeño retraso para asegurar que la página esté lista
                 if (window.location.pathname.includes('signup.html') ||
                     window.location.pathname.includes('index.html')) {
                     console.log('🔄 Redirigiendo a dashboard desde onAuthStateChange...');
-                    window.location.href = 'dashboard.html';
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 500);
                 }
             } else if (event === 'SIGNED_OUT') {
                 currentUser = null;
