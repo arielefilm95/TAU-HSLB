@@ -271,6 +271,21 @@ function setupEventListeners() {
     console.log('Event listeners configurados manualmente en dashboard.html');
 }
 
+function bindReportesButton() {
+    const btn = document.getElementById('reportesBtn');
+    if (!btn) {
+        setTimeout(bindReportesButton, 200);
+        return;
+    }
+    if (!btn.dataset.bound) {
+        btn.dataset.bound = 'true';
+        btn.addEventListener('click', function(event) {
+            event.preventDefault();
+            window.location.href = 'reportes.html';
+        });
+    }
+}
+
 // Función para abrir modal de registrar madre
 function openMadreModal() {
     const modal = document.getElementById('modal');
@@ -628,14 +643,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const reportesBtn = document.getElementById('reportesBtn');
-    if (reportesBtn) {
-        reportesBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            window.location.href = 'reportes.html';
-        });
-    }
-    
     // Cerrar modales con Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
@@ -657,6 +664,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+bindReportesButton();
 
 // Exportar funciones para uso en otros módulos
 window.dashboard = {
