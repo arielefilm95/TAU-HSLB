@@ -1,6 +1,6 @@
 // Service Worker para TAU - Tamizaje Auditivo Universal
 
-const CACHE_NAME = 'tau-v1.0.7';
+const CACHE_NAME = 'tau-v1.0.8';
 
 // URLs relativas para funcionar en cualquier dominio o subdirectorio
 const urlsToCache = [
