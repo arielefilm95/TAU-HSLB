@@ -73,15 +73,36 @@
                     <p>Lista de todas las madres y sus exámenes EOA</p>
                     <button id="verMadresBtn" class="btn btn-primary">Ver Lista</button>
                 </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10,9 9,9 8,9"></polyline>
+                        </svg>
+                    </div>
+                    <h3>Importar Partos</h3>
+                    <p>Subir archivo Excel con datos de partos del mes</p>
+                    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
+                    <button id="importarPartosBtn" class="btn btn-secondary">Importar Excel</button>
+                </div>
             </div>
             
             <!-- Recent Mothers List -->
             <div class="recent-section">
                 <div class="recent-section-header">
                     <h3>Registros Recientes</h3>
-                    <button class="btn btn-secondary btn-sm" id="reportesBtn">
-                        Ver Reportes
-                    </button>
+                    <div class="header-buttons">
+                        <button class="btn btn-secondary btn-sm" id="verImportadosBtn">
+                            Ver Importados
+                        </button>
+                        <button class="btn btn-secondary btn-sm" id="reportesBtn">
+                            Ver Reportes
+                        </button>
+                    </div>
                 </div>
                 <div id="recentMothers" class="recent-list">
                     <p class="no-data">No hay registros recientes</p>
@@ -439,7 +460,8 @@
             const scripts = [
                 `js/dashboard.js?v=${version}`,
                 `js/madres.js?v=${version}`,
-                `js/eoa.js?v=${version}`
+                `js/eoa.js?v=${version}`,
+                `js/importador.js?v=${version}`
             ];
             
             // Cargar scripts en paralelo para mayor velocidad
@@ -560,6 +582,68 @@
                 console.log('✅ Event listener para botón ver reportes configurado');
             } else {
                 console.error('❌ No se encontró el botón reportesBtn');
+            }
+            
+            // Botón ver importados
+            const verImportadosBtn = document.getElementById('verImportadosBtn');
+            if (verImportadosBtn) {
+                // Remover listeners anteriores
+                verImportadosBtn.replaceWith(verImportadosBtn.cloneNode(true));
+                const newVerImportadosBtn = document.getElementById('verImportadosBtn');
+                
+                newVerImportadosBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('🖱️ Botón ver importados clickeado');
+                    
+                    // Redirigir a la página de importados
+                    window.location.href = 'importados.html';
+                });
+                
+                console.log('✅ Event listener para botón ver importados configurado');
+            } else {
+                console.error('❌ No se encontró el botón verImportadosBtn');
+            }
+            
+            // Botón importar partos
+            const importarPartosBtn = document.getElementById('importarPartosBtn');
+            const excelFileInput = document.getElementById('excelFileInput');
+            if (importarPartosBtn && excelFileInput) {
+                // Remover listeners anteriores
+                importarPartosBtn.replaceWith(importarPartosBtn.cloneNode(true));
+                const newImportBtn = document.getElementById('importarPartosBtn');
+                
+                newImportBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('🖱️ Botón importar partos clickeado');
+                    
+                    // Abrir selector de archivos
+                    excelFileInput.click();
+                });
+                
+                // Event listener para cuando se selecciona un archivo
+                excelFileInput.addEventListener('change', async function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    console.log('📁 Archivo seleccionado:', file.name);
+                    
+                    // Importar archivo
+                    if (window.importador && window.importador.importarArchivoPartos) {
+                        await window.importador.importarArchivoPartos(file);
+                    } else {
+                        console.error('❌ Módulo importador no disponible');
+                        if (window.utils && window.utils.showNotification) {
+                            window.utils.showNotification('Error: módulo de importación no disponible', 'error');
+                        }
+                    }
+                    
+                    // Limpiar input para permitir seleccionar el mismo archivo nuevamente
+                    excelFileInput.value = '';
+                });
+                
+                console.log('✅ Event listener para botón importar partos configurado');
+            } else {
+                console.error('❌ No se encontró el botón importarPartosBtn o el input excelFileInput');
             }
             
             // Formulario de madre

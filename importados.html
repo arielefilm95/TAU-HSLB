@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAU - Datos Importados | Dashboard</title>
+    <meta name="description" content="Vista de datos importados vs registros manuales del Sistema de Tamizaje Auditivo Universal del Hospital San Luis de Buin">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="TAU">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>TAU</h1>
+                    <p class="subtitle">Tamizaje Auditivo Universal</p>
+                </div>
+                <div class="header-actions">
+                    <button id="backToDashboardBtn" class="btn btn-secondary">
+                        ← Volver al Dashboard
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="app-main">
+            <div class="dashboard-header">
+                <h2>Datos Importados vs Registros Manuales</h2>
+                <p class="dashboard-subtitle">Comparación entre partos importados y madres registradas manualmente</p>
+            </div>
+            
+            <!-- Estadísticas -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalImportados">0</div>
+                    <div class="stat-label">Total Importados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCoincidencias">0</div>
+                    <div class="stat-label">Con Registro Manual</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalSinCoincidencia">0</div>
+                    <div class="stat-label">Sin Registro Manual</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalConEOA">0</div>
+                    <div class="stat-label">Con EOA Realizado</div>
+                </div>
+            </div>
+            
+            <!-- Filtros -->
+            <div class="filters-section">
+                <div class="filter-group">
+                    <label for="filtroEstado">Filtrar por estado:</label>
+                    <select id="filtroEstado">
+                        <option value="todos">Todos</option>
+                        <option value="con_registro">Con registro manual</option>
+                        <option value="sin_registro">Sin registro manual</option>
+                        <option value="con_eoa">Con EOA realizado</option>
+                        <option value="sin_eoa">Sin EOA realizado</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filtroMes">Filtrar por mes:</label>
+                    <input type="month" id="filtroMes">
+                </div>
+                <div class="filter-group">
+                    <button id="aplicarFiltrosBtn" class="btn btn-primary">Aplicar Filtros</button>
+                    <button id="limpiarFiltrosBtn" class="btn btn-secondary">Limpiar</button>
+                </div>
+            </div>
+            
+            <!-- Lista de datos importados -->
+            <div class="importados-section">
+                <div class="section-header">
+                    <h3>Lista de Datos Importados</h3>
+                    <div class="header-actions">
+                        <button id="recargarBtn" class="btn btn-secondary btn-sm">Recargar</button>
+                        <button id="exportarBtn" class="btn btn-primary btn-sm">Exportar Excel</button>
+                    </div>
+                </div>
+                <div id="importadosList" class="importados-list">
+                    <p class="loading">Cargando datos...</p>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Modal para ver detalles -->
+        <div id="detalleModal" class="modal" style="display: none;">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3>Detalles del Registro</h3>
+                    <button class="modal-close" onclick="closeDetalleModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="detalleContent">
+                        <!-- Contenido dinámico -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification -->
+        <div id="notification" class="notification" style="display: none;">
+            <span id="notificationMessage"></span>
+            <button class="notification-close" onclick="hideNotification()">&times;</button>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/utils.js?v=202511092000"></script>
+    <script>
+        // Configuración directa de Supabase
+        const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
+        
+        // Inicializar Supabase directamente
+        let supabase;
+        
+        function initializeSupabase() {
+            if (typeof window.supabase !== 'undefined') {
+                try {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    console.log('✅ Supabase inicializado correctamente');
+                    
+                    // Hacer supabase disponible globalmente para otros scripts
+                    window.supabaseClient = supabase;
+                    
+                    // Cargar scripts después de verificar conexión
+                    loadImportadosScripts();
+                    
+                } catch (error) {
+                    console.error('❌ Error al inicializar Supabase:', error);
+                    loadImportadosScripts();
+                }
+            } else {
+                console.log('⏳ Esperando a Supabase...');
+                setTimeout(initializeSupabase, 100);
+            }
+        }
+        
+        function loadImportadosScripts() {
+            console.log('🚀 Iniciando carga de scripts de importados...');
+            
+            const version = '202511092000';
+            const scripts = [
+                `js/importados.js?v=${version}`
+            ];
+            
+            scripts.forEach(scriptSrc => {
+                const script = document.createElement('script');
+                script.src = scriptSrc;
+                script.onload = function() {
+                    console.log(`✅ Script cargado: ${scriptSrc}`);
+                };
+                script.onerror = function() {
+                    console.error(`❌ Error al cargar script: ${scriptSrc}`);
+                };
+                document.head.appendChild(script);
+            });
+            
+            // Configurar event listeners después de un breve retraso
+            setTimeout(() => {
+                console.log('🔧 Configurando event listeners...');
+                setupEventListeners();
+                
+                // Cargar datos iniciales
+                setTimeout(() => {
+                    console.log('📊 Cargando datos iniciales...');
+                    if (window.importados && window.importados.cargarDatos) {
+                        window.importados.cargarDatos();
+                    }
+                }, 500);
+            }, 500);
+        }
+        
+        function setupEventListeners() {
+            // Botón volver al dashboard
+            const backToDashboardBtn = document.getElementById('backToDashboardBtn');
+            if (backToDashboardBtn) {
+                backToDashboardBtn.addEventListener('click', function() {
+                    window.location.href = 'dashboard.html';
+                });
+            }
+            
+            // Botones de filtros
+            const aplicarFiltrosBtn = document.getElementById('aplicarFiltrosBtn');
+            if (aplicarFiltrosBtn) {
+                aplicarFiltrosBtn.addEventListener('click', function() {
+                    if (window.importados && window.importados.aplicarFiltros) {
+                        window.importados.aplicarFiltros();
+                    }
+                });
+            }
+            
+            const limpiarFiltrosBtn = document.getElementById('limpiarFiltrosBtn');
+            if (limpiarFiltrosBtn) {
+                limpiarFiltrosBtn.addEventListener('click', function() {
+                    if (window.importados && window.importados.limpiarFiltros) {
+                        window.importados.limpiarFiltros();
+                    }
+                });
+            }
+            
+            // Botón recargar
+            const recargarBtn = document.getElementById('recargarBtn');
+            if (recargarBtn) {
+                recargarBtn.addEventListener('click', function() {
+                    if (window.importados && window.importados.cargarDatos) {
+                        window.importados.cargarDatos();
+                    }
+                });
+            }
+            
+            // Botón exportar
+            const exportarBtn = document.getElementById('exportarBtn');
+            if (exportarBtn) {
+                exportarBtn.addEventListener('click', function() {
+                    if (window.importados && window.importados.exportarExcel) {
+                        window.importados.exportarExcel();
+                    }
+                });
+            }
+        }
+        
+        // Funciones globales para modales
+        window.closeDetalleModal = function() {
+            const modal = document.getElementById('detalleModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+        };
+        
+        window.hideNotification = function() {
+            const notification = document.getElementById('notification');
+            if (notification) {
+                notification.style.display = 'none';
+            }
+        };
+        
+        // Iniciar la carga después de que el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeSupabase);
+        } else {
+            initializeSupabase();
+        }
+    </script>
+</body>
+</html>
