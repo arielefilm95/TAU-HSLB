@@ -156,8 +156,6 @@ function displayRecentMothers() {
     
     const html = recentMothers.map(madre => {
         const nombreCompleto = [madre.nombre, madre.apellido].filter(Boolean).join(' ');
-        const titulo = nombreCompleto ? nombreCompleto.toUpperCase() : utils.formatearRUT(madre.rut);
-        const subtitulo = nombreCompleto ? utils.formatearRUT(madre.rut) : '';
         const estado = obtenerEstadoEOAVisual(madre.id);
         const itemClasses = ['recent-item'];
         if (estado.containerClass) {
@@ -169,20 +167,24 @@ function displayRecentMothers() {
         return `
         <div class="${itemClasses.join(' ')}" data-madre-id="${madre.id}">
             <div class="recent-item-info">
-                <div class="recent-item-rut">${utils.escapeHTML(titulo)}</div>
-                ${subtitulo ? `<div class="recent-item-subtitle">${utils.escapeHTML(subtitulo)}</div>` : ''}
+                <div class="recent-item-basic">
+                    <div class="recent-item-name">${utils.escapeHTML(nombreCompleto)}</div>
+                    <div class="recent-item-cama">Cama: ${utils.escapeHTML(madre.cama)}</div>
+                </div>
+                <div class="recent-item-expand">▼</div>
                 <div class="recent-item-details">
-                    Ficha: ${utils.escapeHTML(madre.numero_ficha)} |
-                    Sala: ${utils.escapeHTML(madre.sala)} |
-                    Cama: ${utils.escapeHTML(madre.cama)} |
-                    Hijos: ${utils.escapeHTML((madre.cantidad_hijos ?? 'N/A').toString())}
+                    <div><strong>RUT:</strong> ${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
+                    <div><strong>Ficha:</strong> ${utils.escapeHTML(madre.numero_ficha)}</div>
+                    <div><strong>Sala:</strong> ${utils.escapeHTML(madre.sala)}</div>
+                    <div><strong>Hijos:</strong> ${utils.escapeHTML((madre.cantidad_hijos ?? 'N/A').toString())}</div>
+                    <div><strong>Registro:</strong> ${utils.formatearFecha(madre.created_at)}</div>
+                    <div class="recent-item-status">
+                        <span class="${statusClass}">${statusText}</span>
+                    </div>
                 </div>
-                <div class="recent-item-status">
-                    <span class="${statusClass}">${statusText}</span>
+                <div class="recent-item-date">
+                    ${utils.formatearFecha(madre.created_at)}
                 </div>
-            </div>
-            <div class="recent-item-date">
-                ${utils.formatearFecha(madre.created_at)}
             </div>
             <div class="recent-item-actions">
                 <button class="btn btn-secondary btn-sm" data-action="abrir-eoa" data-madre-id="${madre.id}">
@@ -195,29 +197,37 @@ function displayRecentMothers() {
     
     recentMothersElement.innerHTML = html;
     
-    // Agregar listeners para abrir la plantilla EOA
+    // Agregar listeners para expandir/contraer y abrir la plantilla EOA
     const recentItems = recentMothersElement.querySelectorAll('.recent-item');
     recentItems.forEach(item => {
         const madreId = item.getAttribute('data-madre-id');
         if (!madreId) return;
         
-        const openMadre = async (event) => {
-            if (event) {
-                event.preventDefault();
-            }
-            if (window.dashboard && typeof window.dashboard.selectMadre === 'function') {
-                await window.dashboard.selectMadre(madreId);
-            }
-        };
+        // Listener para expandir/contraer
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Cerrar otros items expandidos
+            recentItems.forEach(otherItem => {
+                if (otherItem !== item) {
+                    otherItem.classList.remove('expanded');
+                }
+            });
+            
+            // Toggle estado expandido
+            item.classList.toggle('expanded');
+        });
         
-        item.addEventListener('click', openMadre);
-        
+        // Listener para abrir la plantilla EOA
         const actionButton = item.querySelector('button[data-action="abrir-eoa"]');
         if (actionButton) {
             actionButton.addEventListener('click', async function(e) {
                 e.stopPropagation();
                 e.preventDefault();
-                await openMadre(e);
+                if (window.dashboard && typeof window.dashboard.selectMadre === 'function') {
+                    await window.dashboard.selectMadre(madreId);
+                }
             });
         }
     });
