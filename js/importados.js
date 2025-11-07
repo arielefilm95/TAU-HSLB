@@ -114,9 +114,15 @@ function mostrarDatos() {
         const primerExamen = examenes[0];
         const segundoExamen = examenes[1];
 
-        const renderExamen = (examen, label) => {
+        const renderExamen = (examen, label, registroId) => {
             if (!examen) {
-                return `<span class="status-pill pending">${label} pendiente</span>`;
+                return `
+                    <div class="estado-eoa">
+                        <button class="btn btn-secondary btn-sm" onclick="window.importados.abrirRegistrarEoaModal('${registroId}', '${label}')">
+                            ${label} pendiente
+                        </button>
+                    </div>
+                `;
             }
 
             const clase = examen.od_resultado === 'PASA' && examen.oi_resultado === 'PASA'
@@ -149,8 +155,8 @@ function mostrarDatos() {
                 <td>${madre ? window.utils.escapeHTML(madre.numero_ficha || '') : ''}</td>
                 <td>${window.utils ? window.utils.escapeHTML(window.utils.formatearRUT(item.rut)) : item.rut}</td>
                 <td>${window.utils ? window.utils.formatearFecha(item.fecha_parto) : new Date(item.fecha_parto).toLocaleDateString()}</td>
-                <td>${renderExamen(primerExamen, '1er examen')}</td>
-                <td>${renderExamen(segundoExamen, '2do examen')}</td>
+                <td>${renderExamen(primerExamen, '1er examen', item.id)}</td>
+                <td>${renderExamen(segundoExamen, '2do examen', item.id)}</td>
                 <td class="observaciones">${window.utils ? window.utils.escapeHTML(observaciones) : observaciones}</td>
             </tr>
         `;
@@ -166,18 +172,14 @@ function examenObservacion(examen, etiqueta) {
     return `${etiqueta}: ${examen.observaciones}`;
 }
 
-function abrirRegistrarEoaModal(importadoId) {
+function abrirRegistrarEoaModal(importadoId, etiquetaExamen = null) {
     const item = datosImportados.find(d => d.id === importadoId);
     if (!item) {
         return;
     }
 
-    if (!item.madre_id) {
-        window.utils?.showNotification('Debes asociar este parto a un registro manual antes de registrar el examen', 'warning');
-        return;
-    }
-
     registroEoaSeleccionado = item;
+    registroEoaSeleccionado.etiqueta = etiquetaExamen;
 
     const modal = document.getElementById('registrarEoaModal');
     if (modal) {
