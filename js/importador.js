@@ -1,15 +1,25 @@
 // Funcionalidad para importar datos de partos desde archivos Excel
 
-// Variable global para almacenar la librería SheetJS
-let XLSX = null;
+// Variable global para almacenar la librería SheetJS (compartida entre cargas)
+if (typeof window.__TAU_XLSX__ === 'undefined') {
+    window.__TAU_XLSX__ = null;
+}
+
+function setSheetJS(instance) {
+    window.__TAU_XLSX__ = instance;
+}
+
+function getSheetJS() {
+    return window.__TAU_XLSX__;
+}
 
 // Cargar la librería SheetJS dinámicamente
 function cargarSheetJS() {
     return new Promise((resolve, reject) => {
-        if (window.XLSX && window.XLSX.read) {
-            XLSX = window.XLSX;
+        const existente = getSheetJS();
+        if (existente && typeof existente.read === 'function') {
             console.log('✅ SheetJS ya está disponible');
-            resolve(window.XLSX);
+            resolve(existente);
             return;
         }
 
@@ -30,7 +40,7 @@ function cargarSheetJS() {
                 console.log(`🔍 Verificación ${intentos}/${maxIntentos}: window.XLSX =`, !!window.XLSX);
                 
                 if (window.XLSX && typeof window.XLSX.read === 'function') {
-                    XLSX = window.XLSX;
+                    setSheetJS(window.XLSX);
                     console.log('✅ SheetJS disponible y funcional');
                     resolve(window.XLSX);
                 } else if (intentos >= maxIntentos) {
@@ -74,7 +84,8 @@ async function procesarArchivoExcel(file) {
             // Función para procesar una vez que SheetJS esté cargado
             const procesarConSheetJS = () => {
                 try {
-                    if (!window.XLSX || typeof window.XLSX.read !== 'function') {
+                    const sheetJS = getSheetJS() || window.XLSX;
+                    if (!sheetJS || typeof sheetJS.read !== 'function') {
                         throw new Error('SheetJS no está disponible correctamente');
                     }
                     
@@ -93,7 +104,7 @@ async function procesarArchivoExcel(file) {
                             }
                             
                             console.log('📊 Procesando workbook con SheetJS...');
-                            const workbook = window.XLSX.read(data, { type: 'array' });
+                            const workbook = sheetJS.read(data, { type: 'array' });
                             
                             if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
                                 throw new Error('El archivo no contiene hojas válidas');
@@ -108,7 +119,7 @@ async function procesarArchivoExcel(file) {
                             }
                             
                             // Convertir a JSON
-                            const jsonData = window.XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            const jsonData = sheetJS.utils.sheet_to_json(worksheet, { header: 1 });
                             
                             console.log(`📋 Se encontraron ${jsonData.length} filas en el Excel`);
                             
@@ -137,7 +148,7 @@ async function procesarArchivoExcel(file) {
             };
             
             // Verificar si SheetJS ya está disponible
-            if (window.XLSX && typeof window.XLSX.read === 'function') {
+            if ((getSheetJS() || window.XLSX) && typeof (getSheetJS() || window.XLSX).read === 'function') {
                 console.log('🚀 SheetJS ya está disponible');
                 procesarConSheetJS();
                 return;
@@ -153,6 +164,7 @@ async function procesarArchivoExcel(file) {
                 // Esperar un momento y verificar
                 setTimeout(() => {
                     if (window.XLSX && typeof window.XLSX.read === 'function') {
+                        setSheetJS(window.XLSX);
                         console.log('✅ SheetJS verificado y disponible');
                         procesarConSheetJS();
                     } else {
