@@ -3,6 +3,8 @@
 // Variables globales
 let currentMadreEOA = null;
 let currentExamenEOA = null;
+let currentMadreExamenes = [];
+let currentMadreExamenCount = 0;
 const EOA_FORM_STORAGE_PREFIX = 'tau_eoa_form_state_';
 
 function getEoaFormStorageKey(madreId) {
@@ -54,6 +56,8 @@ function restaurarFormularioEOADesdeLocal(madreId) {
 // Función para abrir modal de EOA
 function openEoaModal(madre) {
     currentMadreEOA = madre;
+    currentMadreExamenes = [];
+    currentMadreExamenCount = 0;
     
     const modal = document.getElementById('eoaModal');
     if (modal) {
@@ -98,6 +102,8 @@ function closeEoaModal() {
     
     currentMadreEOA = null;
     currentExamenEOA = null;
+    currentMadreExamenes = [];
+    currentMadreExamenCount = 0;
 }
 
 // Función para cargar exámenes anteriores de una madre
@@ -108,9 +114,9 @@ async function cargarExamenesAnteriores(madreId) {
             return;
         }
         
-        const { data, error } = await window.supabaseClient
+        const { data, error, count } = await window.supabaseClient
             .from('examenes_eoa')
-            .select('*')
+            .select('*', { count: 'exact' })
             .eq('madre_id', madreId)
             .order('fecha_examen', { ascending: false })
             .limit(5);
@@ -118,15 +124,20 @@ async function cargarExamenesAnteriores(madreId) {
         if (error) {
             throw error;
         }
+
+        const examenesDesc = data || [];
+        const examenesAsc = examenesDesc.slice().sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
+        currentMadreExamenes = examenesAsc;
+        currentMadreExamenCount = typeof count === 'number' ? count : examenesAsc.length;
         
         // Mostrar exámenes anteriores si existen
-        if (data && data.length > 0) {
-            mostrarExamenesAnteriores(data);
+        if (examenesDesc.length > 0) {
+            mostrarExamenesAnteriores(examenesDesc);
             
             // Mantener referencia al último examen
-            currentExamenEOA = data[0];
-            prefillFormularioEOA(data[0]);
-            guardarEstadoFormularioEOA(data[0].madre_id, data[0]);
+            currentExamenEOA = examenesDesc[0];
+            prefillFormularioEOA(examenesDesc[0]);
+            guardarEstadoFormularioEOA(examenesDesc[0].madre_id, examenesDesc[0]);
         }
         
     } catch (error) {
@@ -578,6 +589,44 @@ function validarFormularioEOA() {
     return isValid;
 }
 
+function construirPayloadExamenDesdeFormulario() {
+    const odResultadoInput = document.querySelector('input[name="od"]:checked');
+    const oiResultadoInput = document.querySelector('input[name="oi"]:checked');
+    const sexoBebeInput = document.querySelector('input[name="sexoBebe"]:checked');
+    const tipoPartoInput = document.querySelector('input[name="tipoParto"]:checked');
+    const familiaresInput = document.querySelector('input[name="familiaresPerdidaAuditiva"]:checked');
+    const madreFumoInput = document.querySelector('input[name="madreFumo"]:checked');
+    const madreAlcoholInput = document.querySelector('input[name="madreAlcohol"]:checked');
+    const madreDrogasInput = document.querySelector('input[name="madreDrogas"]:checked');
+
+    if (!odResultadoInput || !oiResultadoInput || !sexoBebeInput || !tipoPartoInput ||
+        !familiaresInput || !madreFumoInput || !madreAlcoholInput || !madreDrogasInput) {
+        return null;
+    }
+
+    const semanasGestacionValue = document.getElementById('semanasGestacion').value;
+    const semanasGestacion = semanasGestacionValue ? parseInt(semanasGestacionValue, 10) : null;
+
+    return {
+        madre_id: currentMadreEOA ? currentMadreEOA.id : null,
+        madre_nombre: currentMadreEOA ? currentMadreEOA.nombre : null,
+        madre_apellido: currentMadreEOA ? currentMadreEOA.apellido : null,
+        od_resultado: odResultadoInput.value,
+        oi_resultado: oiResultadoInput.value,
+        fecha_nacimiento: document.getElementById('fechaNacimiento').value,
+        sexo_bebe: sexoBebeInput.value,
+        tipo_parto: tipoPartoInput.value,
+        semanas_gestacion: semanasGestacion,
+        complicaciones_embarazo: document.getElementById('complicacionesEmbarazo').value.trim() || null,
+        complicaciones_desarrollo: document.getElementById('complicacionesDesarrollo').value.trim() || null,
+        familiares_perdida_auditiva: familiaresInput.value === 'true',
+        madre_fumo: madreFumoInput.value === 'true',
+        madre_alcohol: madreAlcoholInput.value === 'true',
+        madre_drogas: madreDrogasInput.value === 'true',
+        observaciones: document.getElementById('observaciones').value.trim() || null
+    };
+}
+
 function prefillFormularioEOA(examenData) {
     if (!examenData) {
         return;
@@ -681,6 +730,140 @@ function limpiarFormularioEOA() {
     }
 }
 
+function formatearFechaTexto(fecha) {
+    if (!fecha) {
+        return 'Sin registro';
+    }
+    const date = new Date(fecha);
+    if (Number.isNaN(date.getTime())) {
+        return fecha;
+    }
+    return date.toLocaleDateString('es-CL');
+}
+
+function formatearSiNo(valor) {
+    return valor ? 'S\u00ed' : 'No';
+}
+
+function formatearTipoParto(tipo) {
+    if (!tipo) {
+        return 'Sin registro';
+    }
+    if (tipo === 'NORMAL') {
+        return 'Parto normal';
+    }
+    if (tipo === 'CESAREA') {
+        return 'Ces\u00e1rea';
+    }
+    return tipo.charAt(0) + tipo.slice(1).toLowerCase();
+}
+
+function formatearUsoSustancias(examenData) {
+    const partes = [];
+    partes.push(`Drogas: ${formatearSiNo(examenData.madre_drogas)}`);
+    partes.push(`Alcohol: ${formatearSiNo(examenData.madre_alcohol)}`);
+    partes.push(`Cigarros: ${formatearSiNo(examenData.madre_fumo)}`);
+    return partes.join(' / ');
+}
+
+function esResultadoRefiere(examenData) {
+    if (!examenData) {
+        return false;
+    }
+    return examenData.od_resultado === 'REFIERE' || examenData.oi_resultado === 'REFIERE';
+}
+
+function generarTextoEvolucion(examenData, numeroExamen) {
+    if (!examenData) {
+        return '';
+    }
+
+    const resultadoRefiere = esResultadoRefiere(examenData);
+    const od = examenData.od_resultado || '';
+    const oi = examenData.oi_resultado || '';
+
+    if (numeroExamen <= 1) {
+        const lineasPrimera = [
+            'FONOAUDIOLOG\u00cdA - EOA',
+            '',
+            `•    Fecha de nacimiento: ${formatearFechaTexto(examenData.fecha_nacimiento)}`,
+            `•    Semana de gestación: ${examenData.semanas_gestacion ?? 'Sin registro'}`,
+            `•    Tipo de parto: ${formatearTipoParto(examenData.tipo_parto)}`,
+            `•    Complicaciones embarazo: ${examenData.complicaciones_embarazo || 'Sin antecedentes'}`,
+            `•    Uso de drogas/ Alcohol/ Cigarros: ${formatearUsoSustancias(examenData)}`,
+            `•    Antecedentes m\u00f3rbidos familiares: ${examenData.familiares_perdida_auditiva ? 'Presentes' : 'Ausentes'}`,
+            `•    Resultado EOA: OD: (${od})   OI: (${oi})`,
+            ''
+        ];
+        if (resultadoRefiere) {
+            lineasPrimera.push('Se solicita asistir nuevamente a la realizaci\u00f3n del examen en 2 semanas m\u00e1s. En carnet del RN queda informativo para pedir hora.');
+        } else {
+            lineasPrimera.push('Se da alta fonoaudiol\u00f3gica.');
+        }
+        return lineasPrimera.join('\n');
+    }
+
+    const lineasRepeticion = [
+        'FONOAUDIOLOG\u00cdA - EOA',
+        '',
+        'Usuaria asiste junto a su beb\u00e9 para repetir examen de audici\u00f3n.',
+        '',
+        `•    Resultado EOA: OD: (${od}) OI: (${oi})`,
+        ''
+    ];
+
+    if (resultadoRefiere) {
+        lineasRepeticion.push('Se realiza IC a ORL de HBLT para realizaci\u00f3n de PEAT + Impedanciometr\u00eda por sospecha de Hipoacusia');
+    } else {
+        lineasRepeticion.push('Se educa a la usuaria para estimulaci\u00f3n temprana del lenguaje.');
+        lineasRepeticion.push('Se da alta fonoaudiol\u00f3gica.');
+    }
+
+    return lineasRepeticion.join('\n');
+}
+
+function descargarTextoEvolucion(nombreArchivo, contenido) {
+    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(link.href), 500);
+}
+
+function exportarEvolucionDesdeFormulario() {
+    if (!currentMadreEOA) {
+        utils.showNotification('Seleccione una madre antes de exportar la evoluci\u00f3n', 'error');
+        return;
+    }
+
+    if (!validarFormularioEOA()) {
+        return;
+    }
+
+    const examenPayload = construirPayloadExamenDesdeFormulario();
+    if (!examenPayload) {
+        utils.showNotification('Complete todos los campos antes de exportar la evoluci\u00f3n', 'error');
+        return;
+    }
+
+    const numeroExamen = currentMadreExamenCount + 1;
+    const texto = generarTextoEvolucion(examenPayload, numeroExamen);
+
+    if (!texto) {
+        utils.showNotification('No se pudo generar el texto de la evoluci\u00f3n', 'error');
+        return;
+    }
+
+    const madreIdentificador = currentMadreEOA.rut || currentMadreEOA.id || 'madre';
+    const safeName = madreIdentificador.toString().replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const fileName = `evolucion_${safeName}_${new Date().toISOString().split('T')[0]}.txt`;
+    descargarTextoEvolucion(fileName, texto);
+    utils.showNotification('Evoluci\u00f3n exportada en TXT', 'success');
+}
+
 // Event listeners específicos para EOA
 let eoaEventHandlersInitialized = false;
 
@@ -712,56 +895,37 @@ function initializeEoaEventHandlers() {
             return;
         }
         
-        // Obtener datos del formulario
-        const odResultado = document.querySelector('input[name="od"]:checked').value;
-        const oiResultado = document.querySelector('input[name="oi"]:checked').value;
-        const fechaNacimiento = document.getElementById('fechaNacimiento').value;
-        const sexoBebe = document.querySelector('input[name="sexoBebe"]:checked').value;
-        const tipoParto = document.querySelector('input[name="tipoParto"]:checked').value;
-        const semanasGestacion = parseInt(document.getElementById('semanasGestacion').value);
-        const complicacionesEmbarazo = document.getElementById('complicacionesEmbarazo').value.trim();
-        const complicacionesDesarrollo = document.getElementById('complicacionesDesarrollo').value.trim();
-        const familiaresPerdidaAuditiva = document.querySelector('input[name="familiaresPerdidaAuditiva"]:checked').value === 'true';
-        const madreFumo = document.querySelector('input[name="madreFumo"]:checked').value === 'true';
-        const madreAlcohol = document.querySelector('input[name="madreAlcohol"]:checked').value === 'true';
-        const madreDrogas = document.querySelector('input[name="madreDrogas"]:checked').value === 'true';
-        const observaciones = document.getElementById('observaciones').value.trim();
+        const examenPayload = construirPayloadExamenDesdeFormulario();
+        if (!examenPayload) {
+            utils.showNotification('Complete los campos del formulario para continuar', 'error');
+            return;
+        }
         
         // Mostrar loader
         utils.toggleButtonLoader('guardarEoaBtn', true);
         
         try {
-            const result = await registrarExamenEOA({
-                madre_id: currentMadreEOA.id,
-                madre_nombre: currentMadreEOA.nombre,
-                madre_apellido: currentMadreEOA.apellido,
-                od_resultado: odResultado,
-                oi_resultado: oiResultado,
-                fecha_nacimiento: fechaNacimiento,
-                sexo_bebe: sexoBebe,
-                tipo_parto: tipoParto,
-                semanas_gestacion: semanasGestacion,
-                complicaciones_embarazo: complicacionesEmbarazo || null,
-                complicaciones_desarrollo: complicacionesDesarrollo || null,
-                familiares_perdida_auditiva: familiaresPerdidaAuditiva,
-                madre_fumo: madreFumo,
-                madre_alcohol: madreAlcohol,
-                madre_drogas: madreDrogas,
-                observaciones: observaciones || null
-            });
+            const result = await registrarExamenEOA(examenPayload);
             
-            if (result.success) {
-                utils.showNotification('Examen registrado exitosamente', 'success');
-                
-                if (result.data) {
-                    currentExamenEOA = result.data;
-                    guardarEstadoFormularioEOA(result.data.madre_id || (currentMadreEOA && currentMadreEOA.id), result.data);
-                }
-                
-                closeEoaModal();
-                
-                // Recargar registros recientes si estamos en el dashboard
-                if (typeof dashboard !== 'undefined' && dashboard.loadRecentMothers) {
+                if (result.success) {
+                    utils.showNotification('Examen registrado exitosamente', 'success');
+                    
+                    if (result.data) {
+                        currentExamenEOA = result.data;
+                        currentMadreExamenes.push(result.data);
+                        currentMadreExamenes.sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
+                        currentMadreExamenCount += 1;
+                        guardarEstadoFormularioEOA(result.data.madre_id || (currentMadreEOA && currentMadreEOA.id), result.data);
+                    }
+
+                    if (typeof dashboard !== 'undefined' && typeof dashboard.markMadreConExamen === 'function') {
+                        dashboard.markMadreConExamen(currentMadreEOA.id, result.data);
+                    }
+                    
+                    closeEoaModal();
+                    
+                    // Recargar registros recientes si estamos en el dashboard
+                    if (typeof dashboard !== 'undefined' && dashboard.loadRecentMothers) {
                     await dashboard.loadRecentMothers();
                 }
             } else {
@@ -773,6 +937,13 @@ function initializeEoaEventHandlers() {
             utils.toggleButtonLoader('guardarEoaBtn', false);
         }
     });
+
+    const exportBtn = document.getElementById('exportEvolucionBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            exportarEvolucionDesdeFormulario();
+        });
+    }
 
     // Efectos visuales en radio buttons
     const radioLabels = document.querySelectorAll('.radio-label');
@@ -813,6 +984,7 @@ window.eoa = {
     eliminarExamenEOA,
     obtenerEstadisticasEOA,
     exportarExamenesCSV,
+    exportarEvolucionDesdeFormulario,
     validarFormularioEOA,
     limpiarFormularioEOA,
     getCurrentMadre: () => currentMadreEOA,

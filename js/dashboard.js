@@ -2,38 +2,84 @@
 
 // Variables globales
 let recentMothers = [];
+const madresResumenExamen = new Map();
 
-async function obtenerMadresConExamenes(madreIds = []) {
+function resultadoRefiere(examen) {
+    if (!examen) {
+        return false;
+    }
+    return examen.od_resultado === 'REFIERE' || examen.oi_resultado === 'REFIERE';
+}
+
+function mergeResumenExamenes(resumenMap) {
+    if (!(resumenMap instanceof Map)) {
+        return;
+    }
+    resumenMap.forEach((resumen, madreId) => {
+        madresResumenExamen.set(madreId, resumen);
+    });
+}
+
+async function obtenerResumenExamenes(madreIds = []) {
     if (!Array.isArray(madreIds) || madreIds.length === 0) {
-        return new Set();
+        return new Map();
     }
 
     if (!window.supabaseClient) {
-        return new Set();
+        return new Map();
     }
 
     const uniqueIds = [...new Set(madreIds.filter(Boolean))];
     if (uniqueIds.length === 0) {
-        return new Set();
+        return new Map();
     }
 
     const { data, error } = await window.supabaseClient
         .from('examenes_eoa')
-        .select('madre_id')
-        .in('madre_id', uniqueIds);
+        .select('id,madre_id,od_resultado,oi_resultado,fecha_examen')
+        .in('madre_id', uniqueIds)
+        .order('fecha_examen', { ascending: true });
 
     if (error) {
         throw error;
     }
 
-    const madresConExamen = new Set();
-    (data || []).forEach(item => {
-        if (item && item.madre_id) {
-            madresConExamen.add(item.madre_id);
+    const agrupados = new Map();
+    (data || []).forEach(examen => {
+        if (!agrupados.has(examen.madre_id)) {
+            agrupados.set(examen.madre_id, []);
+        }
+        agrupados.get(examen.madre_id).push(examen);
+    });
+
+    const resumenMap = new Map();
+    uniqueIds.forEach(id => {
+        const lista = agrupados.get(id) || [];
+        if (lista.length === 0) {
+            resumenMap.set(id, {
+                examenes: [],
+                examCount: 0,
+                firstExam: null,
+                lastExam: null,
+                firstExamRefiere: false,
+                lastExamRefiere: false
+            });
+        } else {
+            const sorted = lista.slice().sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
+            const firstExam = sorted[0];
+            const lastExam = sorted[sorted.length - 1];
+            resumenMap.set(id, {
+                examenes: sorted,
+                examCount: sorted.length,
+                firstExam,
+                lastExam,
+                firstExamRefiere: resultadoRefiere(firstExam),
+                lastExamRefiere: resultadoRefiere(lastExam)
+            });
         }
     });
 
-    return madresConExamen;
+    return resumenMap;
 }
 
 // Función para inicializar el dashboard
@@ -78,18 +124,14 @@ async function loadRecentMothers() {
         }
         
         const madresData = data || [];
-        let madresConExamen = new Set();
-
         try {
-            madresConExamen = await obtenerMadresConExamenes(madresData.map(madre => madre.id));
+            const resumenMap = await obtenerResumenExamenes(madresData.map(madre => madre.id));
+            mergeResumenExamenes(resumenMap);
         } catch (statusError) {
             console.warn('No se pudo obtener estado de exámenes EOA para recientes:', statusError);
         }
 
-        recentMothers = madresData.map(madre => ({
-            ...madre,
-            has_examen_eoa: madresConExamen.has(madre.id)
-        }));
+        recentMothers = madresData.slice();
         displayRecentMothers();
         
     } catch (error) {
@@ -116,12 +158,13 @@ function displayRecentMothers() {
         const nombreCompleto = [madre.nombre, madre.apellido].filter(Boolean).join(' ');
         const titulo = nombreCompleto ? nombreCompleto.toUpperCase() : utils.formatearRUT(madre.rut);
         const subtitulo = nombreCompleto ? utils.formatearRUT(madre.rut) : '';
+        const estado = obtenerEstadoEOAVisual(madre.id);
         const itemClasses = ['recent-item'];
-        if (madre.has_examen_eoa) {
-            itemClasses.push('completed');
+        if (estado.containerClass) {
+            itemClasses.push(estado.containerClass);
         }
-        const statusClass = madre.has_examen_eoa ? 'status-pill success' : 'status-pill warning';
-        const statusText = madre.has_examen_eoa ? 'EOA registrado' : 'EOA pendiente';
+        const statusClass = `status-pill ${estado.pillTheme}`;
+        const statusText = estado.pillText;
         
         return `
         <div class="${itemClasses.join(' ')}" data-madre-id="${madre.id}">
@@ -178,6 +221,31 @@ function displayRecentMothers() {
             });
         }
     });
+}
+
+function obtenerEstadoEOAVisual(madreId) {
+    const resumen = madresResumenExamen.get(madreId);
+    if (!resumen || resumen.examCount === 0) {
+        return {
+            containerClass: '',
+            pillTheme: 'pending',
+            pillText: 'EOA pendiente'
+        };
+    }
+
+    if (resumen.firstExamRefiere) {
+        return {
+            containerClass: 'referido',
+            pillTheme: 'warning',
+            pillText: 'EOA refiere (1er examen)'
+        };
+    }
+
+    return {
+        containerClass: 'completed',
+        pillTheme: 'success',
+        pillText: 'EOA pasa (1er examen)'
+    };
 }
 
 // Función para configurar event listeners
@@ -252,14 +320,14 @@ async function loadMadresList(searchTerm = '') {
         }
         
         const madresData = data || [];
-        let madresConExamen = new Set();
         try {
-            madresConExamen = await obtenerMadresConExamenes(madresData.map(madre => madre.id));
+            const resumenMap = await obtenerResumenExamenes(madresData.map(madre => madre.id));
+            mergeResumenExamenes(resumenMap);
         } catch (statusError) {
             console.warn('No se pudo obtener estado de exámenes para la lista completa:', statusError);
         }
         
-        displayMadresList(madresData, madresConExamen);
+        displayMadresList(madresData);
         
     } catch (error) {
         console.error('Error al cargar lista de madres:', error);
@@ -271,7 +339,7 @@ async function loadMadresList(searchTerm = '') {
 }
 
 // Función para mostrar lista de madres
-function displayMadresList(madres, madresConExamen = new Set()) {
+function displayMadresList(madres) {
     const madresListElement = document.getElementById('madresList');
     
     if (!madresListElement) return;
@@ -282,16 +350,16 @@ function displayMadresList(madres, madresConExamen = new Set()) {
     }
     
     const html = madres.map(madre => {
-        const hasExamen = madresConExamen.has(madre.id);
+        const estado = obtenerEstadoEOAVisual(madre.id);
         const itemClasses = ['madre-item'];
-        if (hasExamen) {
-            itemClasses.push('completed');
+        if (estado.containerClass) {
+            itemClasses.push(estado.containerClass);
         }
-        const statusClass = hasExamen ? 'status-pill success' : 'status-pill warning';
-        const statusText = hasExamen ? 'EOA registrado' : 'EOA pendiente';
+        const statusClass = `status-pill ${estado.pillTheme}`;
+        const statusText = estado.pillText;
 
         return `
-        <div class="${itemClasses.join(' ')}" onclick="selectMadre('${madre.id}')">
+        <div class="${itemClasses.join(' ')}" data-madre-id="${madre.id}" onclick="selectMadre('${madre.id}')">
             <div class="madre-item-header">
                 <div class="madre-item-rut">${utils.escapeHTML([madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Nombre no registrado')}</div>
                 <div class="madre-item-identificacion">${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
@@ -324,6 +392,83 @@ function displayMadresList(madres, madresConExamen = new Set()) {
     }).join('');
     
     madresListElement.innerHTML = html;
+}
+
+function actualizarEstadoVisualMadre(madreId) {
+    if (!madreId) {
+        return;
+    }
+
+    const estado = obtenerEstadoEOAVisual(madreId);
+
+    const recentItem = document.querySelector(`.recent-item[data-madre-id="${madreId}"]`);
+    if (recentItem) {
+        recentItem.classList.remove('completed', 'referido');
+        if (estado.containerClass) {
+            recentItem.classList.add(estado.containerClass);
+        }
+        const pill = recentItem.querySelector('.recent-item-status .status-pill');
+        if (pill) {
+            pill.textContent = estado.pillText;
+            pill.classList.remove('success', 'warning', 'pending');
+            pill.classList.add(estado.pillTheme);
+        } else {
+            const statusContainer = recentItem.querySelector('.recent-item-status');
+            if (statusContainer) {
+                statusContainer.innerHTML = `<span class="status-pill ${estado.pillTheme}">${estado.pillText}</span>`;
+            }
+        }
+    }
+
+    const madreItem = document.querySelector(`.madre-item[data-madre-id="${madreId}"]`);
+    if (madreItem) {
+        madreItem.classList.remove('completed', 'referido');
+        if (estado.containerClass) {
+            madreItem.classList.add(estado.containerClass);
+        }
+        const pill = madreItem.querySelector('.madre-item-status .status-pill');
+        if (pill) {
+            pill.textContent = estado.pillText;
+            pill.classList.remove('success', 'warning', 'pending');
+            pill.classList.add(estado.pillTheme);
+        } else {
+            const statusContainer = madreItem.querySelector('.madre-item-status');
+            if (statusContainer) {
+                statusContainer.innerHTML = `<span class="status-pill ${estado.pillTheme}">${estado.pillText}</span>`;
+            }
+        }
+    }
+}
+
+function markMadreConExamen(madreId, examenData = null) {
+    if (!madreId) {
+        return;
+    }
+
+    if (examenData) {
+        let resumen = madresResumenExamen.get(madreId);
+        if (!resumen) {
+            resumen = {
+                examenes: [],
+                examCount: 0,
+                firstExam: null,
+                lastExam: null,
+                firstExamRefiere: false,
+                lastExamRefiere: false
+            };
+        }
+        resumen.examenes.push(examenData);
+        resumen.examenes.sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
+        resumen.examCount = resumen.examenes.length;
+        resumen.firstExam = resumen.examenes[0];
+        resumen.lastExam = resumen.examenes[resumen.examenes.length - 1];
+        resumen.firstExamRefiere = resultadoRefiere(resumen.firstExam);
+        resumen.lastExamRefiere = resultadoRefiere(resumen.lastExam);
+        madresResumenExamen.set(madreId, resumen);
+    }
+
+    recentMothers = recentMothers.map(madre => madre.id === madreId ? { ...madre } : madre);
+    actualizarEstadoVisualMadre(madreId);
 }
 
 // Función para seleccionar una madre
@@ -458,5 +603,6 @@ window.dashboard = {
     openMadresModal,
     selectMadre,
     closeModal,
-    closeMadresModal
+    closeMadresModal,
+    markMadreConExamen
 };

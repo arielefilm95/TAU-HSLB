@@ -349,6 +349,9 @@
                         
                         <div class="form-actions">
                             <button type="button" class="btn btn-secondary" onclick="closeEoaModal()">Cancelar</button>
+                            <button type="button" class="btn btn-secondary" id="exportEvolucionBtn">
+                                Exportar Evolución
+                            </button>
                             <button type="submit" class="btn btn-primary" id="guardarEoaBtn">
                                 <span class="btn-text">Guardar Examen</span>
                                 <span class="btn-loader" style="display: none;">Guardando...</span>
@@ -427,7 +430,7 @@
         function loadDashboardScripts() {
             console.log('🚀 Iniciando carga de scripts del dashboard...');
             
-            const version = '202511091530';
+            const version = '202511091800';
             const scripts = [
                 `js/dashboard.js?v=${version}`,
                 `js/madres.js?v=${version}`,

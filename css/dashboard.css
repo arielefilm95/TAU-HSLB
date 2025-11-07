@@ -211,6 +211,11 @@
     border-left: 4px solid #2ecc71;
 }
 
+.recent-item.referido {
+    background-color: rgba(241, 196, 15, 0.15);
+    border-left: 4px solid #f1c40f;
+}
+
 .recent-item-date {
     font-size: 0.8rem;
     color: #999;
@@ -271,6 +276,11 @@
 .madre-item.completed {
     border-color: #2ecc71;
     background: rgba(46, 204, 113, 0.05);
+}
+
+.madre-item.referido {
+    border-color: #f1c40f;
+    background: rgba(241, 196, 15, 0.12);
 }
 
 .madre-item:hover {
@@ -359,6 +369,11 @@
 .status-pill.warning {
     background: rgba(241, 196, 15, 0.2);
     color: #8a6400;
+}
+
+.status-pill.pending {
+    background: rgba(189, 195, 199, 0.4);
+    color: #2c3e50;
 }
 
 /* EOA Status */
