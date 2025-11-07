@@ -682,7 +682,14 @@ function limpiarFormularioEOA() {
 }
 
 // Event listeners específicos para EOA
-document.addEventListener('DOMContentLoaded', function() {
+let eoaEventHandlersInitialized = false;
+
+function initializeEoaEventHandlers() {
+    if (eoaEventHandlersInitialized) {
+        return;
+    }
+    eoaEventHandlersInitialized = true;
+
     // Formulario de EOA
     const eoaForm = document.getElementById('eoaForm');
     if (eoaForm) {
@@ -761,7 +768,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Efectos visuales en radio buttons
     const radioLabels = document.querySelectorAll('.radio-label');
     radioLabels.forEach(label => {
@@ -782,7 +789,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEoaEventHandlers);
+} else {
+    initializeEoaEventHandlers();
+}
 
 // Exportar funciones para uso en otros módulos
 window.eoa = {
