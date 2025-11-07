@@ -149,7 +149,7 @@ function mostrarDatos() {
 
         return `
             <tr>
-                <td class="nombre-clickable" onclick="abrirRegistrarEoaModal('${item.id}')">
+                <td>
                     ${window.utils ? window.utils.escapeHTML(nombreCompleto) : nombreCompleto}
                 </td>
                 <td>${madre ? window.utils.escapeHTML(madre.numero_ficha || '') : ''}</td>
@@ -172,7 +172,7 @@ function examenObservacion(examen, etiqueta) {
     return `${etiqueta}: ${examen.observaciones}`;
 }
 
-function abrirRegistrarEoaModal(importadoId, etiquetaExamen = null) {
+window.abrirRegistrarEoaModal = function(importadoId, etiquetaExamen = null) {
     const item = datosImportados.find(d => d.id === importadoId);
     if (!item) {
         return;
@@ -566,8 +566,7 @@ window.importados = {
     cargarDatos,
     aplicarFiltros,
     limpiarFiltros,
-    exportarExcel,
-    abrirRegistrarEoaModal
+    exportarExcel
 };
 
 window.verDetalles = verDetalles;
