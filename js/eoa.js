@@ -688,86 +688,91 @@ function initializeEoaEventHandlers() {
     if (eoaEventHandlersInitialized) {
         return;
     }
+
+    const eoaForm = document.getElementById('eoaForm');
+    if (!eoaForm) {
+        // El DOM aún no está listo para el formulario; reintentar en breve
+        setTimeout(initializeEoaEventHandlers, 200);
+        return;
+    }
+
     eoaEventHandlersInitialized = true;
 
     // Formulario de EOA
-    const eoaForm = document.getElementById('eoaForm');
-    if (eoaForm) {
-        eoaForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            // Validar formulario
-            if (!validarFormularioEOA()) {
-                return;
-            }
-            
-            if (!currentMadreEOA) {
-                utils.showNotification('Error: no se ha seleccionado una madre', 'error');
-                return;
-            }
-            
-            // Obtener datos del formulario
-            const odResultado = document.querySelector('input[name="od"]:checked').value;
-            const oiResultado = document.querySelector('input[name="oi"]:checked').value;
-            const fechaNacimiento = document.getElementById('fechaNacimiento').value;
-            const sexoBebe = document.querySelector('input[name="sexoBebe"]:checked').value;
-            const tipoParto = document.querySelector('input[name="tipoParto"]:checked').value;
-            const semanasGestacion = parseInt(document.getElementById('semanasGestacion').value);
-            const complicacionesEmbarazo = document.getElementById('complicacionesEmbarazo').value.trim();
-            const complicacionesDesarrollo = document.getElementById('complicacionesDesarrollo').value.trim();
-            const familiaresPerdidaAuditiva = document.querySelector('input[name="familiaresPerdidaAuditiva"]:checked').value === 'true';
-            const madreFumo = document.querySelector('input[name="madreFumo"]:checked').value === 'true';
-            const madreAlcohol = document.querySelector('input[name="madreAlcohol"]:checked').value === 'true';
-            const madreDrogas = document.querySelector('input[name="madreDrogas"]:checked').value === 'true';
-            const observaciones = document.getElementById('observaciones').value.trim();
-            
-            // Mostrar loader
-            utils.toggleButtonLoader('guardarEoaBtn', true);
-            
-            try {
+    eoaForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Validar formulario
+        if (!validarFormularioEOA()) {
+            return;
+        }
+        
+        if (!currentMadreEOA) {
+            utils.showNotification('Error: no se ha seleccionado una madre', 'error');
+            return;
+        }
+        
+        // Obtener datos del formulario
+        const odResultado = document.querySelector('input[name="od"]:checked').value;
+        const oiResultado = document.querySelector('input[name="oi"]:checked').value;
+        const fechaNacimiento = document.getElementById('fechaNacimiento').value;
+        const sexoBebe = document.querySelector('input[name="sexoBebe"]:checked').value;
+        const tipoParto = document.querySelector('input[name="tipoParto"]:checked').value;
+        const semanasGestacion = parseInt(document.getElementById('semanasGestacion').value);
+        const complicacionesEmbarazo = document.getElementById('complicacionesEmbarazo').value.trim();
+        const complicacionesDesarrollo = document.getElementById('complicacionesDesarrollo').value.trim();
+        const familiaresPerdidaAuditiva = document.querySelector('input[name="familiaresPerdidaAuditiva"]:checked').value === 'true';
+        const madreFumo = document.querySelector('input[name="madreFumo"]:checked').value === 'true';
+        const madreAlcohol = document.querySelector('input[name="madreAlcohol"]:checked').value === 'true';
+        const madreDrogas = document.querySelector('input[name="madreDrogas"]:checked').value === 'true';
+        const observaciones = document.getElementById('observaciones').value.trim();
+        
+        // Mostrar loader
+        utils.toggleButtonLoader('guardarEoaBtn', true);
+        
+        try {
             const result = await registrarExamenEOA({
                 madre_id: currentMadreEOA.id,
                 madre_nombre: currentMadreEOA.nombre,
                 madre_apellido: currentMadreEOA.apellido,
                 od_resultado: odResultado,
                 oi_resultado: oiResultado,
-                    fecha_nacimiento: fechaNacimiento,
-                    sexo_bebe: sexoBebe,
-                    tipo_parto: tipoParto,
-                    semanas_gestacion: semanasGestacion,
-                    complicaciones_embarazo: complicacionesEmbarazo || null,
-                    complicaciones_desarrollo: complicacionesDesarrollo || null,
-                    familiares_perdida_auditiva: familiaresPerdidaAuditiva,
-                    madre_fumo: madreFumo,
-                    madre_alcohol: madreAlcohol,
-                    madre_drogas: madreDrogas,
-                    observaciones: observaciones || null
-                });
+                fecha_nacimiento: fechaNacimiento,
+                sexo_bebe: sexoBebe,
+                tipo_parto: tipoParto,
+                semanas_gestacion: semanasGestacion,
+                complicaciones_embarazo: complicacionesEmbarazo || null,
+                complicaciones_desarrollo: complicacionesDesarrollo || null,
+                familiares_perdida_auditiva: familiaresPerdidaAuditiva,
+                madre_fumo: madreFumo,
+                madre_alcohol: madreAlcohol,
+                madre_drogas: madreDrogas,
+                observaciones: observaciones || null
+            });
+            
+            if (result.success) {
+                utils.showNotification('Examen registrado exitosamente', 'success');
                 
-                if (result.success) {
-                    utils.showNotification('Examen registrado exitosamente', 'success');
-                    
-                    if (result.data) {
-                        currentExamenEOA = result.data;
-                        guardarEstadoFormularioEOA(result.data.madre_id || (currentMadreEOA && currentMadreEOA.id), result.data);
-                    }
-                    
-                    closeEoaModal();
-                    
-                    // Recargar registros recientes si estamos en el dashboard
-                    if (typeof dashboard !== 'undefined' && dashboard.loadRecentMothers) {
-                        await dashboard.loadRecentMothers();
-                    }
-                } else {
-                    utils.showNotification(result.error, 'error');
+                if (result.data) {
+                    currentExamenEOA = result.data;
+                    guardarEstadoFormularioEOA(result.data.madre_id || (currentMadreEOA && currentMadreEOA.id), result.data);
                 }
-            } catch (error) {
-                utils.showNotification('Error al registrar examen', 'error');
-            } finally {
-                utils.toggleButtonLoader('guardarEoaBtn', false);
+                
+                closeEoaModal();
+                
+                // Recargar registros recientes si estamos en el dashboard
+                if (typeof dashboard !== 'undefined' && dashboard.loadRecentMothers) {
+                    await dashboard.loadRecentMothers();
+                }
+            } else {
+                utils.showNotification(result.error, 'error');
             }
-        });
-    }
+        } catch (error) {
+            utils.showNotification('Error al registrar examen', 'error');
+        } finally {
+            utils.toggleButtonLoader('guardarEoaBtn', false);
+        }
+    });
 
     // Efectos visuales en radio buttons
     const radioLabels = document.querySelectorAll('.radio-label');

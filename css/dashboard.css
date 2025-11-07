@@ -202,6 +202,15 @@
     margin-top: 5px;
 }
 
+.recent-item-status {
+    margin-top: 8px;
+}
+
+.recent-item.completed {
+    background-color: rgba(46, 204, 113, 0.08);
+    border-left: 4px solid #2ecc71;
+}
+
 .recent-item-date {
     font-size: 0.8rem;
     color: #999;
@@ -259,6 +268,11 @@
     cursor: pointer;
 }
 
+.madre-item.completed {
+    border-color: #2ecc71;
+    background: rgba(46, 204, 113, 0.05);
+}
+
 .madre-item:hover {
     background: white;
     box-shadow: var(--shadow);
@@ -311,6 +325,10 @@
     color: var(--text-color);
 }
 
+.madre-item-status {
+    margin: 10px 0;
+}
+
 .madre-item-actions {
     display: flex;
     gap: 10px;
@@ -320,6 +338,27 @@
 .madre-item-actions .btn {
     padding: 8px 16px;
     font-size: 0.9rem;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.status-pill.success {
+    background: rgba(46, 204, 113, 0.15);
+    color: #1b7f4b;
+}
+
+.status-pill.warning {
+    background: rgba(241, 196, 15, 0.2);
+    color: #8a6400;
 }
 
 /* EOA Status */

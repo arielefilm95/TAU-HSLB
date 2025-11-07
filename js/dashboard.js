@@ -3,6 +3,39 @@
 // Variables globales
 let recentMothers = [];
 
+async function obtenerMadresConExamenes(madreIds = []) {
+    if (!Array.isArray(madreIds) || madreIds.length === 0) {
+        return new Set();
+    }
+
+    if (!window.supabaseClient) {
+        return new Set();
+    }
+
+    const uniqueIds = [...new Set(madreIds.filter(Boolean))];
+    if (uniqueIds.length === 0) {
+        return new Set();
+    }
+
+    const { data, error } = await window.supabaseClient
+        .from('examenes_eoa')
+        .select('madre_id')
+        .in('madre_id', uniqueIds);
+
+    if (error) {
+        throw error;
+    }
+
+    const madresConExamen = new Set();
+    (data || []).forEach(item => {
+        if (item && item.madre_id) {
+            madresConExamen.add(item.madre_id);
+        }
+    });
+
+    return madresConExamen;
+}
+
 // Función para inicializar el dashboard
 async function initDashboard() {
     try {
@@ -44,7 +77,19 @@ async function loadRecentMothers() {
             throw error;
         }
         
-        recentMothers = data || [];
+        const madresData = data || [];
+        let madresConExamen = new Set();
+
+        try {
+            madresConExamen = await obtenerMadresConExamenes(madresData.map(madre => madre.id));
+        } catch (statusError) {
+            console.warn('No se pudo obtener estado de exámenes EOA para recientes:', statusError);
+        }
+
+        recentMothers = madresData.map(madre => ({
+            ...madre,
+            has_examen_eoa: madresConExamen.has(madre.id)
+        }));
         displayRecentMothers();
         
     } catch (error) {
@@ -71,9 +116,15 @@ function displayRecentMothers() {
         const nombreCompleto = [madre.nombre, madre.apellido].filter(Boolean).join(' ');
         const titulo = nombreCompleto ? nombreCompleto.toUpperCase() : utils.formatearRUT(madre.rut);
         const subtitulo = nombreCompleto ? utils.formatearRUT(madre.rut) : '';
+        const itemClasses = ['recent-item'];
+        if (madre.has_examen_eoa) {
+            itemClasses.push('completed');
+        }
+        const statusClass = madre.has_examen_eoa ? 'status-pill success' : 'status-pill warning';
+        const statusText = madre.has_examen_eoa ? 'EOA registrado' : 'EOA pendiente';
         
         return `
-        <div class="recent-item" data-madre-id="${madre.id}">
+        <div class="${itemClasses.join(' ')}" data-madre-id="${madre.id}">
             <div class="recent-item-info">
                 <div class="recent-item-rut">${utils.escapeHTML(titulo)}</div>
                 ${subtitulo ? `<div class="recent-item-subtitle">${utils.escapeHTML(subtitulo)}</div>` : ''}
@@ -82,6 +133,9 @@ function displayRecentMothers() {
                     Sala: ${utils.escapeHTML(madre.sala)} |
                     Cama: ${utils.escapeHTML(madre.cama)} |
                     Hijos: ${utils.escapeHTML((madre.cantidad_hijos ?? 'N/A').toString())}
+                </div>
+                <div class="recent-item-status">
+                    <span class="${statusClass}">${statusText}</span>
                 </div>
             </div>
             <div class="recent-item-date">
@@ -197,7 +251,15 @@ async function loadMadresList(searchTerm = '') {
             throw error;
         }
         
-        displayMadresList(data || []);
+        const madresData = data || [];
+        let madresConExamen = new Set();
+        try {
+            madresConExamen = await obtenerMadresConExamenes(madresData.map(madre => madre.id));
+        } catch (statusError) {
+            console.warn('No se pudo obtener estado de exámenes para la lista completa:', statusError);
+        }
+        
+        displayMadresList(madresData, madresConExamen);
         
     } catch (error) {
         console.error('Error al cargar lista de madres:', error);
@@ -209,7 +271,7 @@ async function loadMadresList(searchTerm = '') {
 }
 
 // Función para mostrar lista de madres
-function displayMadresList(madres) {
+function displayMadresList(madres, madresConExamen = new Set()) {
     const madresListElement = document.getElementById('madresList');
     
     if (!madresListElement) return;
@@ -219,12 +281,24 @@ function displayMadresList(madres) {
         return;
     }
     
-    const html = madres.map(madre => `
-        <div class="madre-item" onclick="selectMadre('${madre.id}')">
+    const html = madres.map(madre => {
+        const hasExamen = madresConExamen.has(madre.id);
+        const itemClasses = ['madre-item'];
+        if (hasExamen) {
+            itemClasses.push('completed');
+        }
+        const statusClass = hasExamen ? 'status-pill success' : 'status-pill warning';
+        const statusText = hasExamen ? 'EOA registrado' : 'EOA pendiente';
+
+        return `
+        <div class="${itemClasses.join(' ')}" onclick="selectMadre('${madre.id}')">
             <div class="madre-item-header">
                 <div class="madre-item-rut">${utils.escapeHTML([madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Nombre no registrado')}</div>
                 <div class="madre-item-identificacion">${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
                 <div class="madre-item-ficha">Ficha: ${utils.escapeHTML(madre.numero_ficha)}</div>
+            </div>
+            <div class="madre-item-status">
+                <span class="${statusClass}">${statusText}</span>
             </div>
             <div class="madre-item-details">
                 <div class="madre-item-detail">
@@ -246,7 +320,8 @@ function displayMadresList(madres) {
                 </button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
     
     madresListElement.innerHTML = html;
 }
