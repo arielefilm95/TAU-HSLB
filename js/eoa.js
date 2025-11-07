@@ -5,6 +5,7 @@ let currentMadreEOA = null;
 let currentExamenEOA = null;
 let currentMadreExamenes = [];
 let currentMadreExamenCount = 0;
+let eoaFormPristine = true;
 const EOA_FORM_STORAGE_PREFIX = 'tau_eoa_form_state_';
 
 function getEoaFormStorageKey(madreId) {
@@ -58,6 +59,7 @@ function openEoaModal(madre) {
     currentMadreEOA = madre;
     currentMadreExamenes = [];
     currentMadreExamenCount = 0;
+    eoaFormPristine = true;
     
     const modal = document.getElementById('eoaModal');
     if (modal) {
@@ -104,6 +106,7 @@ function closeEoaModal() {
     currentExamenEOA = null;
     currentMadreExamenes = [];
     currentMadreExamenCount = 0;
+    eoaFormPristine = true;
 }
 
 // Función para cargar exámenes anteriores de una madre
@@ -627,6 +630,53 @@ function construirPayloadExamenDesdeFormulario() {
     };
 }
 
+function sonExamenesIguales(examenA, examenB) {
+    if (!examenA || !examenB) {
+        return false;
+    }
+
+    const camposComparar = [
+        'od_resultado',
+        'oi_resultado',
+        'fecha_nacimiento',
+        'sexo_bebe',
+        'tipo_parto',
+        'semanas_gestacion',
+        'complicaciones_embarazo',
+        'complicaciones_desarrollo',
+        'familiares_perdida_auditiva',
+        'madre_fumo',
+        'madre_alcohol',
+        'madre_drogas',
+        'observaciones'
+    ];
+
+    return camposComparar.every(campo => {
+        const valorA = examenA[campo];
+        const valorB = examenB[campo];
+
+        if (typeof valorA === 'boolean' || typeof valorB === 'boolean') {
+            return Boolean(valorA) === Boolean(valorB);
+        }
+
+        if (campo === 'fecha_nacimiento') {
+            const fechaA = valorA ? valorA.split('T')[0] : '';
+            const fechaB = valorB ? valorB.split('T')[0] : '';
+            return fechaA === fechaB;
+        }
+
+        if (campo === 'observaciones') {
+            return (valorA || '').trim() === (valorB || '').trim();
+        }
+
+        if (campo === 'complicaciones_embarazo' || campo === 'complicaciones_desarrollo') {
+            return (valorA || '').trim() === (valorB || '').trim();
+        }
+
+        return valorA === valorB;
+    });
+}
+
 function prefillFormularioEOA(examenData) {
     if (!examenData) {
         return;
@@ -728,6 +778,8 @@ function limpiarFormularioEOA() {
     if (examenesSection) {
         examenesSection.remove();
     }
+
+    eoaFormPristine = true;
 }
 
 function formatearFechaTexto(fecha) {
@@ -849,7 +901,15 @@ function exportarEvolucionDesdeFormulario() {
         return;
     }
 
-    const numeroExamen = currentMadreExamenCount + 1;
+    const esReimpresion = eoaFormPristine &&
+        currentMadreExamenCount > 0 &&
+        currentExamenEOA &&
+        sonExamenesIguales(examenPayload, currentExamenEOA);
+
+    const numeroExamen = esReimpresion
+        ? currentMadreExamenCount
+        : currentMadreExamenCount + 1;
+
     const texto = generarTextoEvolucion(examenPayload, numeroExamen);
 
     if (!texto) {
@@ -884,7 +944,9 @@ function initializeEoaEventHandlers() {
     // Formulario de EOA
     eoaForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
+        eoaFormPristine = false;
+
         // Validar formulario
         if (!validarFormularioEOA()) {
             return;
@@ -944,6 +1006,16 @@ function initializeEoaEventHandlers() {
             exportarEvolucionDesdeFormulario();
         });
     }
+
+    const trackDirty = () => {
+        eoaFormPristine = false;
+    };
+
+    const formInputs = document.querySelectorAll('#eoaForm input, #eoaForm textarea');
+    formInputs.forEach(input => {
+        input.addEventListener('input', trackDirty);
+        input.addEventListener('change', trackDirty);
+    });
 
     // Efectos visuales en radio buttons
     const radioLabels = document.querySelectorAll('.radio-label');
