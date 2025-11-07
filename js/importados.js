@@ -356,8 +356,9 @@ async function guardarExamenDesdeImportados(event) {
         };
 
         let data, error;
+        const esModoEdicion = registroEoaSeleccionado.modoEdicion === true;
         
-        if (registroEoaSeleccionado.modoEdicion) {
+        if (esModoEdicion) {
             // Modo edición: actualizar examen existente
             const result = await window.supabaseClient
                 .from('examenes_eoa')
@@ -402,7 +403,7 @@ async function guardarExamenDesdeImportados(event) {
         }
 
         closeRegistrarEoaModal();
-        const mensaje = registroEoaSeleccionado.modoEdicion
+        const mensaje = esModoEdicion
             ? 'Examen actualizado exitosamente'
             : 'Examen registrado exitosamente';
         window.utils?.showNotification(mensaje, 'success');
