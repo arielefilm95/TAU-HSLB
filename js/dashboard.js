@@ -3,6 +3,7 @@
 // Variables globales
 let recentMothers = [];
 const madresResumenExamen = new Map();
+let midnightCleanupInterval = null;
 
 function resultadoRefiere(examen) {
     if (!examen) {
@@ -113,14 +114,64 @@ async function loadRecentMothers() {
             return;
         }
         
+        // Obtener fecha actual en formato ISO (inicio y fin del día)
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        
+        // Convertir a formato ISO para Supabase
+        const startOfDayISO = startOfDay.toISOString();
+        const endOfDayISO = endOfDay.toISOString();
+        
+        console.log('📅 Cargando registros recientes del día:', {
+            startOfDay: startOfDayISO,
+            endOfDay: endOfDayISO
+        });
+        
+        // Consultar solo registros manuales del día actual
+        // Usamos el campo origen_registro para filtrar más eficientemente
         const { data, error } = await window.supabaseClient
             .from('madres')
             .select('*')
+            .eq('origen_registro', 'MANUAL') // Solo registros manuales
+            .gte('created_at', startOfDayISO)
+            .lt('created_at', endOfDayISO)
             .order('created_at', { ascending: false })
-            .limit(5);
+            .limit(10);
         
         if (error) {
-            throw error;
+            console.error('Error en consulta principal:', error);
+            // Si falla la consulta con origen_registro, intentar con el método anterior
+            const { data: fallbackData, error: fallbackError } = await window.supabaseClient
+                .from('madres')
+                .select('*')
+                .gte('created_at', startOfDayISO)
+                .lt('created_at', endOfDayISO)
+                .order('created_at', { ascending: false })
+                .limit(10);
+            
+            if (fallbackError) {
+                throw fallbackError;
+            }
+            
+            // Filtrar manualmente los que no son importados (método de respaldo)
+            const madresIds = fallbackData.map(m => m.id);
+            const { data: importadosData } = await window.supabaseClient
+                .from('partos_importados')
+                .select('madre_id')
+                .in('madre_id', madresIds);
+            
+            const importadosIds = new Set((importadosData || []).map(i => i.madre_id));
+            const madresData = (fallbackData || []).filter(madre =>
+                !importadosIds.has(madre.id) && madre.origen_registro !== 'IMPORTADO'
+            );
+            
+            const resumenMap = await obtenerResumenExamenes(madresData.map(madre => madre.id));
+            mergeResumenExamenes(resumenMap);
+            
+            recentMothers = madresData.slice();
+            displayRecentMothers();
+            return;
         }
         
         const madresData = data || [];
@@ -629,6 +680,53 @@ const searchMadres = utils.debounce(async function(searchTerm) {
     await loadMadresList(searchTerm);
 }, 300);
 
+// Función para configurar limpieza automática a medianoche
+function setupMidnightCleanup() {
+    console.log('🕐 Configurando limpieza automática a medianoche...');
+    
+    // Función para verificar si es medianoche y limpiar registros recientes
+    function checkAndCleanup() {
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        
+        // Verificar si es medianoche (00:00:00)
+        if (hours === 0 && minutes === 0 && seconds < 5) {
+            console.log('🌙 Es medianoche, limpiando registros recientes...');
+            clearRecentMothersDisplay();
+        }
+    }
+    
+    // Verificar cada minuto
+    midnightCleanupInterval = setInterval(checkAndCleanup, 60000); // 60 segundos
+    
+    // También verificar inmediatamente
+    checkAndCleanup();
+}
+
+// Función para limpiar la visualización de registros recientes
+function clearRecentMothersDisplay() {
+    const recentMothersElement = document.getElementById('recentMothers');
+    if (recentMothersElement) {
+        recentMothersElement.innerHTML = '<p class="no-data">No hay registros recientes del día</p>';
+        console.log('✅ Visualización de registros recientes limpiada');
+    }
+    
+    // Limpiar también el array de datos
+    recentMothers = [];
+    madresResumenExamen.clear();
+}
+
+// Función para detener la limpieza automática (útil para pruebas)
+function stopMidnightCleanup() {
+    if (midnightCleanupInterval) {
+        clearInterval(midnightCleanupInterval);
+        midnightCleanupInterval = null;
+        console.log('⏹️ Limpieza automática detenida');
+    }
+}
+
 // Event listeners globales
 document.addEventListener('DOMContentLoaded', function() {
     // Configurar búsqueda de madres
@@ -638,6 +736,9 @@ document.addEventListener('DOMContentLoaded', function() {
             searchMadres(e.target.value);
         });
     }
+
+    // Configurar limpieza automática a medianoche
+    setupMidnightCleanup();
 
     // Cerrar modales con Escape
     document.addEventListener('keydown', function(e) {
@@ -674,5 +775,8 @@ window.dashboard = {
     closeModal,
     closeMadresModal,
     markMadreConExamen,
-    confirmarEliminacionMadre
+    confirmarEliminacionMadre,
+    setupMidnightCleanup,
+    stopMidnightCleanup,
+    clearRecentMothersDisplay
 };

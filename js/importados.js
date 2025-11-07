@@ -473,7 +473,8 @@ async function asegurarMadreParaImportado(registro) {
         numero_ficha: (`IMPORT-${rutNormalizado}`).substring(0, 20),
         sala: 'PEND',
         cama: 'PEND',
-        cantidad_hijos: 1
+        cantidad_hijos: 1,
+        origen_registro: 'IMPORTADO' // Marcar como importado
     };
 
     const { data, error } = await window.supabaseClient
