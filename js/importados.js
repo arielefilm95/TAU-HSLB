@@ -133,9 +133,11 @@ function mostrarDatos() {
 
             return `
                 <div class="estado-eoa">
-                    <span class="status-pill ${clase}">${label}</span>
-                    <span>${textoEstado}</span>
-                    <span>${fecha}</span>
+                    <div>
+                        <span class="status-pill ${clase}">${label}</span>
+                        <span>${textoEstado}</span>
+                        <span>${fecha}</span>
+                    </div>
                     <div class="exam-actions">
                         <button class="btn-icon btn-edit" onclick="abrirEditarEoaModal('${examen.id}', '${registroId}', '${label}')" title="Editar examen">
                             ✏️

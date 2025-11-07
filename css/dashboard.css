@@ -1286,10 +1286,31 @@
 }
 
 /* Botones de iconos para exámenes */
+.tabla-importados .estado-eoa {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.tabla-importados .estado-eoa > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.tabla-importados .estado-eoa > div:first-child > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .exam-actions {
     display: flex;
     gap: 4px;
-    margin-top: 4px;
+    flex-shrink: 0;
 }
 
 .btn-icon {
