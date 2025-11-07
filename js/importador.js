@@ -278,9 +278,17 @@ function identificarColumnas(encabezados = []) {
 
     const sinonimos = {
         rut: ['rut', 'r.u.t', 'run', 'documento'],
-        nombre: ['nombre', 'nombres', 'nombre madre', 'nombre paciente'],
+        nombre: ['nombre', 'nombres', 'nombre madre'],
         apellido: ['apellido', 'apellidos'],
-        nombreCompleto: ['nombre completo', 'nombre y apellido', 'madre', 'paciente', 'familia'],
+        nombreCompleto: [
+            'nombre completo',
+            'nombre y apellido',
+            'madre',
+            'paciente',
+            'familia',
+            'nombre paciente',
+            'paciente madre'
+        ],
         fechaParto: ['fecha parto', 'fecha de parto', 'fecha nacimiento', 'fecha de nacimiento', 'fecha parto/nacimiento']
     };
 
