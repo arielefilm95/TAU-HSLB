@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAU - Reportes EOA</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .reportes-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        .reportes-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .reportes-table-wrapper {
+            background: white;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            overflow: auto;
+            max-height: 70vh;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            background: var(--primary-color);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        th, td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 0.95rem;
+        }
+        tbody tr:nth-child(even) {
+            background: #f9fbfd;
+        }
+        tbody tr:hover {
+            background: rgba(52, 152, 219, 0.08);
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        .status-badge.success {
+            background: rgba(46, 204, 113, 0.15);
+            color: #1b7f4b;
+        }
+        .status-badge.warning {
+            background: rgba(241, 196, 15, 0.2);
+            color: #8a6400;
+        }
+        .status-badge.danger {
+            background: rgba(231, 76, 60, 0.2);
+            color: #7a1e15;
+        }
+        @media (max-width: 768px) {
+            .reportes-actions {
+                flex-direction: column;
+            }
+            th, td {
+                min-width: 140px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>TAU</h1>
+                <p class="subtitle">Reportes de Exámenes EOA</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="reportes-container">
+        <div class="dashboard-header" style="text-align: left;">
+            <h2>Reportes EOA</h2>
+            <p class="dashboard-subtitle">Visualiza y exporta los resultados de todos los exámenes registrados.</p>
+        </div>
+
+        <div class="reportes-actions">
+            <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
+                ← Volver al Dashboard
+            </button>
+            <button class="btn btn-primary" id="exportReportesBtn">
+                <span class="btn-text">Exportar a Excel</span>
+                <span class="btn-loader" style="display: none;">Generando...</span>
+            </button>
+        </div>
+
+        <div class="reportes-table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>N° Ficha</th>
+                        <th>RUT</th>
+                        <th>Nombre de la Madre</th>
+                        <th>Primer Examen</th>
+                        <th>Segundo Examen</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody id="reportesTableBody">
+                    <tr>
+                        <td colspan="6" style="text-align: center;">Cargando datos...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="notification" class="notification" style="display: none;">
+        <span id="notificationMessage"></span>
+        <button class="notification-close" onclick="hideNotification()">&times;</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/utils.js?v=202511071200"></script>
+    <script src="js/reportes.js"></script>
+</body>
+</html>

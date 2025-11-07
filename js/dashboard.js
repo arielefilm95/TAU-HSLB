@@ -264,34 +264,6 @@ function obtenerEstadoEOAVisual(madreId) {
     };
 }
 
-function describirExamenParaReporte(examen) {
-    if (!examen) {
-        return '';
-    }
-
-    const partes = [
-        `OD: ${examen.od_resultado || '-'}`,
-        `OI: ${examen.oi_resultado || '-'}`
-    ];
-
-    if (examen.fecha_examen) {
-        partes.push(utils.formatearFecha(examen.fecha_examen));
-    }
-
-    return partes.join(' | ');
-}
-
-function compilarObservaciones(firstExam, secondExam) {
-    const observaciones = [];
-    if (firstExam && firstExam.observaciones) {
-        observaciones.push(`1er: ${firstExam.observaciones}`);
-    }
-    if (secondExam && secondExam.observaciones) {
-        observaciones.push(`2do: ${secondExam.observaciones}`);
-    }
-    return observaciones.join(' | ');
-}
-
 // Función para configurar event listeners
 function setupEventListeners() {
     // Event listeners configurados manualmente en dashboard.html
@@ -555,71 +527,6 @@ async function confirmarEliminacionMadre(madreId, madreNombre = '') {
     }
 }
 
-async function exportarReporteEOAExcel() {
-    const buttonId = 'exportExcelBtn';
-    try {
-        if (!window.supabaseClient) {
-            throw new Error('Supabase no está inicializado');
-        }
-        if (typeof XLSX === 'undefined') {
-            throw new Error('Librería XLSX no disponible');
-        }
-
-        utils.toggleButtonLoader(buttonId, true);
-
-        const { data, error } = await window.supabaseClient
-            .from('madres')
-            .select(`
-                id,
-                nombre,
-                apellido,
-                rut,
-                numero_ficha,
-                examenes_eoa (
-                    od_resultado,
-                    oi_resultado,
-                    observaciones,
-                    fecha_examen
-                )
-            `)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            throw error;
-        }
-
-        const headers = ['N° Ficha', 'RUT', 'Nombre de la Madre', 'Primer Examen', 'Segundo Examen', 'Observaciones'];
-        const rows = (data || []).map(madre => {
-            const examenesOrdenados = (madre.examenes_eoa || []).slice().sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
-            const primerExamen = examenesOrdenados[0] || null;
-            const segundoExamen = examenesOrdenados[1] || null;
-
-            return [
-                madre.numero_ficha || '',
-                utils.formatearRUT(madre.rut),
-                [madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado',
-                describirExamenParaReporte(primerExamen),
-                describirExamenParaReporte(segundoExamen),
-                compilarObservaciones(primerExamen, segundoExamen)
-            ];
-        });
-
-        const aoaData = [headers, ...rows];
-        const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.aoa_to_sheet(aoaData);
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte EOA');
-
-        const today = new Date().toISOString().split('T')[0];
-        XLSX.writeFile(workbook, `reporte_eoa_${today}.xlsx`);
-        utils.showNotification('Reporte Excel generado correctamente', 'success');
-    } catch (error) {
-        console.error('Error al exportar reporte EOA:', error);
-        utils.showNotification(error.message || 'Error al exportar reporte', 'error');
-    } finally {
-        utils.toggleButtonLoader(buttonId, false);
-    }
-}
-
 // Función para seleccionar una madre
 async function selectMadre(madreId) {
     try {
@@ -721,11 +628,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const exportExcelBtn = document.getElementById('exportExcelBtn');
-    if (exportExcelBtn) {
-        exportExcelBtn.addEventListener('click', function(e) {
+    const reportesBtn = document.getElementById('reportesBtn');
+    if (reportesBtn) {
+        reportesBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            exportarReporteEOAExcel();
+            window.location.href = 'reportes.html';
         });
     }
     
@@ -762,6 +669,5 @@ window.dashboard = {
     closeModal,
     closeMadresModal,
     markMadreConExamen,
-    confirmarEliminacionMadre,
-    exportarReporteEOAExcel
+    confirmarEliminacionMadre
 };
