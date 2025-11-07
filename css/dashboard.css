@@ -149,12 +149,20 @@
     border: 1px solid var(--border-color);
 }
 
-.recent-section h3 {
-    font-size: 1.5rem;
+.recent-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
-    color: var(--text-color);
     border-bottom: 2px solid var(--primary-color);
     padding-bottom: 10px;
+    gap: 15px;
+}
+
+.recent-section-header h3 {
+    font-size: 1.5rem;
+    margin: 0;
+    color: var(--text-color);
 }
 
 .recent-list {
