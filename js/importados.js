@@ -136,6 +136,14 @@ function mostrarDatos() {
                     <span class="status-pill ${clase}">${label}</span>
                     <span>${textoEstado}</span>
                     <span>${fecha}</span>
+                    <div class="exam-actions">
+                        <button class="btn btn-primary btn-xs" onclick="abrirEditarEoaModal('${examen.id}', '${registroId}', '${label}')" title="Editar examen">
+                            ✏️
+                        </button>
+                        <button class="btn btn-danger btn-xs" onclick="eliminarExamenEoa('${examen.id}')" title="Eliminar examen">
+                            🗑️
+                        </button>
+                    </div>
                 </div>
             `;
         };
@@ -180,9 +188,16 @@ window.abrirRegistrarEoaModal = function(importadoId, etiquetaExamen = null) {
 
     registroEoaSeleccionado = item;
     registroEoaSeleccionado.etiqueta = etiquetaExamen;
+    registroEoaSeleccionado.modoEdicion = false;
 
     const modal = document.getElementById('registrarEoaModal');
     if (modal) {
+        // Cambiar título del modal
+        const modalTitle = modal.querySelector('.modal-header h3');
+        if (modalTitle) {
+            modalTitle.textContent = `Registrar ${etiquetaExamen || 'Examen'} EOA`;
+        }
+        
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('show'), 10);
     }
@@ -195,6 +210,104 @@ window.abrirRegistrarEoaModal = function(importadoId, etiquetaExamen = null) {
     document.querySelectorAll('#registrarEoaForm input[name="eoaOd"]').forEach(input => input.checked = false);
     document.querySelectorAll('#registrarEoaForm input[name="eoaOi"]').forEach(input => input.checked = false);
     document.getElementById('eoaObservaciones').value = '';
+    
+    // Resetear botón de guardar
+    const guardarBtn = document.getElementById('guardarEoaImportadosBtn');
+    if (guardarBtn) {
+        guardarBtn.innerHTML = '<span class="btn-text">Guardar Examen</span><span class="btn-loader" style="display: none;">Guardando...</span>';
+    }
+}
+
+window.abrirEditarEoaModal = function(examenId, importadoId, etiquetaExamen = null) {
+    const item = datosImportados.find(d => d.id === importadoId);
+    if (!item) {
+        return;
+    }
+
+    // Buscar el examen específico
+    let examenEditar = null;
+    if (item.madre_id && datosEOA.has(item.madre_id)) {
+        examenEditar = datosEOA.get(item.madre_id).find(e => e.id === examenId);
+    }
+
+    if (!examenEditar) {
+        window.utils?.showNotification('No se encontró el examen a editar', 'error');
+        return;
+    }
+
+    registroEoaSeleccionado = item;
+    registroEoaSeleccionado.etiqueta = etiquetaExamen;
+    registroEoaSeleccionado.modoEdicion = true;
+    registroEoaSeleccionado.examenId = examenId;
+
+    const modal = document.getElementById('registrarEoaModal');
+    if (modal) {
+        // Cambiar título del modal
+        const modalTitle = modal.querySelector('.modal-header h3');
+        if (modalTitle) {
+            modalTitle.textContent = `Editar ${etiquetaExamen || 'Examen'} EOA`;
+        }
+        
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show'), 10);
+    }
+
+    // Cargar datos del examen
+    const fechaInput = document.getElementById('eoaFecha');
+    if (fechaInput) {
+        fechaInput.value = examenEditar.fecha_examen;
+    }
+
+    // Seleccionar resultados del examen
+    document.querySelectorAll('#registrarEoaForm input[name="eoaOd"]').forEach(input => {
+        input.checked = input.value === examenEditar.od_resultado;
+    });
+    document.querySelectorAll('#registrarEoaForm input[name="eoaOi"]').forEach(input => {
+        input.checked = input.value === examenEditar.oi_resultado;
+    });
+    
+    document.getElementById('eoaObservaciones').value = examenEditar.observaciones || '';
+    
+    // Cambiar texto del botón
+    const guardarBtn = document.getElementById('guardarEoaImportadosBtn');
+    if (guardarBtn) {
+        guardarBtn.innerHTML = '<span class="btn-text">Actualizar Examen</span><span class="btn-loader" style="display: none;">Actualizando...</span>';
+    }
+}
+
+window.eliminarExamenEoa = async function(examenId) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este examen? Esta acción no se puede deshacer.')) {
+        return;
+    }
+
+    try {
+        const { error } = await window.supabaseClient
+            .from('examenes_eoa')
+            .delete()
+            .eq('id', examenId);
+
+        if (error) {
+            throw error;
+        }
+
+        // Eliminar del mapa de datos
+        datosEOA.forEach((examenes, madreId) => {
+            const index = examenes.findIndex(e => e.id === examenId);
+            if (index !== -1) {
+                examenes.splice(index, 1);
+                if (examenes.length === 0) {
+                    datosEOA.delete(madreId);
+                }
+            }
+        });
+
+        window.utils?.showNotification('Examen eliminado exitosamente', 'success');
+        mostrarDatos();
+        actualizarEstadisticas();
+    } catch (error) {
+        console.error('Error eliminando examen:', error);
+        window.utils?.showNotification(error.message || 'Error al eliminar examen', 'error');
+    }
 }
 
 function closeRegistrarEoaModal() {
@@ -240,28 +353,62 @@ async function guardarExamenDesdeImportados(event) {
             observaciones: observaciones || null
         };
 
-        const { data, error } = await window.supabaseClient
-            .from('examenes_eoa')
-            .insert([payload])
-            .select()
-            .single();
+        let data, error;
+        
+        if (registroEoaSeleccionado.modoEdicion) {
+            // Modo edición: actualizar examen existente
+            const result = await window.supabaseClient
+                .from('examenes_eoa')
+                .update(payload)
+                .eq('id', registroEoaSeleccionado.examenId)
+                .select()
+                .single();
+            
+            data = result.data;
+            error = result.error;
+            
+            if (!error) {
+                // Actualizar en el mapa de datos
+                if (datosEOA.has(madreId)) {
+                    const index = datosEOA.get(madreId).findIndex(e => e.id === registroEoaSeleccionado.examenId);
+                    if (index !== -1) {
+                        datosEOA.get(madreId)[index] = data;
+                    }
+                }
+            }
+        } else {
+            // Modo creación: insertar nuevo examen
+            const result = await window.supabaseClient
+                .from('examenes_eoa')
+                .insert([payload])
+                .select()
+                .single();
+            
+            data = result.data;
+            error = result.error;
+            
+            if (!error) {
+                if (!datosEOA.has(registroEoaSeleccionado.madre_id)) {
+                    datosEOA.set(registroEoaSeleccionado.madre_id, []);
+                }
+                datosEOA.get(registroEoaSeleccionado.madre_id).push(data);
+            }
+        }
 
         if (error) {
             throw error;
         }
 
-        if (!datosEOA.has(registroEoaSeleccionado.madre_id)) {
-            datosEOA.set(registroEoaSeleccionado.madre_id, []);
-        }
-        datosEOA.get(registroEoaSeleccionado.madre_id).push(data);
-
         closeRegistrarEoaModal();
-        window.utils?.showNotification('Examen registrado exitosamente', 'success');
+        const mensaje = registroEoaSeleccionado.modoEdicion
+            ? 'Examen actualizado exitosamente'
+            : 'Examen registrado exitosamente';
+        window.utils?.showNotification(mensaje, 'success');
         mostrarDatos();
         actualizarEstadisticas();
     } catch (error) {
-        console.error('Error registrando examen vía importados:', error);
-        window.utils?.showNotification(error.message || 'Error al registrar examen', 'error');
+        console.error('Error guardando examen vía importados:', error);
+        window.utils?.showNotification(error.message || 'Error al guardar examen', 'error');
     } finally {
         window.utils?.toggleButtonLoader('guardarEoaImportadosBtn', false);
     }
@@ -567,7 +714,9 @@ window.importados = {
     aplicarFiltros,
     limpiarFiltros,
     exportarExcel,
-    abrirRegistrarEoaModal
+    abrirRegistrarEoaModal,
+    abrirEditarEoaModal,
+    eliminarExamenEoa
 };
 
 window.verDetalles = verDetalles;
