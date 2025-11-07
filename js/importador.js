@@ -13,6 +13,17 @@ function getSheetJS() {
     return window.__TAU_XLSX__;
 }
 
+function normalizarTexto(texto) {
+    if (texto === null || texto === undefined) {
+        return '';
+    }
+    return texto.toString()
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 // Cargar la librería SheetJS dinámicamente
 function cargarSheetJS() {
     return new Promise((resolve, reject) => {
@@ -190,78 +201,136 @@ async function procesarArchivoExcel(file) {
 
 // Función para procesar los datos del Excel y validarlos
 function procesarDatosExcel(jsonData, nombreArchivo) {
-    // Eliminar filas vacías y obtener encabezados
-    const datosLimpios = jsonData.filter(row => row.some(cell => cell !== null && cell !== undefined && cell !== ''));
-    
+    // Eliminar filas vacías
+    const datosLimpios = jsonData.filter(row => Array.isArray(row) && row.some(cell => cell !== null && cell !== undefined && cell !== ''));
+
     if (datosLimpios.length < 2) {
         throw new Error('El archivo no contiene datos válidos');
     }
-    
-    // La primera fila contiene los encabezados
-    const encabezados = datosLimpios[0];
-    const filasDatos = datosLimpios.slice(1);
-    
-    // Mapear columnas esperadas
+
+    const { encabezados, data: filasDatos } = obtenerEncabezados(datosLimpios);
     const mapaColumnas = identificarColumnas(encabezados);
-    
-    if (!mapaColumnas.rut || !mapaColumnas.nombre || !mapaColumnas.apellido || !mapaColumnas.fechaParto) {
-        throw new Error('El archivo debe contener columnas para RUT, nombre, apellido y fecha de parto');
+
+    const tieneSeparado = typeof mapaColumnas.rut === 'number' &&
+        typeof mapaColumnas.nombre === 'number' &&
+        typeof mapaColumnas.apellido === 'number' &&
+        typeof mapaColumnas.fechaParto === 'number';
+
+    const tieneNombreCompleto = typeof mapaColumnas.rut === 'number' &&
+        typeof mapaColumnas.nombreCompleto === 'number' &&
+        typeof mapaColumnas.fechaParto === 'number';
+
+    if (!tieneSeparado && !tieneNombreCompleto) {
+        throw new Error('El archivo debe contener columnas para RUT, nombre/apellido (o nombre completo) y fecha de parto');
     }
-    
-    // Procesar cada fila
+
     const datosProcesados = filasDatos.map((fila, index) => {
         try {
             const rut = limpiarRUT(fila[mapaColumnas.rut]);
-            const nombre = limpiarTexto(fila[mapaColumnas.nombre]);
-            const apellido = limpiarTexto(fila[mapaColumnas.apellido]);
+
+            let nombre = mapaColumnas.nombre !== undefined ? limpiarTexto(fila[mapaColumnas.nombre]) : '';
+            let apellido = mapaColumnas.apellido !== undefined ? limpiarTexto(fila[mapaColumnas.apellido]) : '';
+
+            if ((!nombre || !apellido) && mapaColumnas.nombreCompleto !== undefined) {
+                const nombreCompleto = limpiarTexto(fila[mapaColumnas.nombreCompleto]);
+                if (nombreCompleto) {
+                    const partes = nombreCompleto.split(/\s+/);
+                    if (!nombre) {
+                        nombre = partes.shift() || '';
+                    }
+                    if (!apellido) {
+                        apellido = partes.join(' ').trim();
+                    }
+                }
+            }
+
             const fechaParto = parsearFecha(fila[mapaColumnas.fechaParto]);
-            
-            // Validaciones básicas
+
             if (!rut || !nombre || !apellido || !fechaParto) {
                 console.warn(`Fila ${index + 2} con datos incompletos, omitiendo:`, fila);
                 return null;
             }
-            
+
             return {
-                rut: rut,
-                nombre: nombre,
-                apellido: apellido,
+                rut,
+                nombre,
+                apellido,
                 fecha_parto: fechaParto,
                 archivo_origen: nombreArchivo,
-                fila_original: index + 2 // Para referencia
+                fila_original: index + 2
             };
         } catch (error) {
             console.warn(`Error procesando fila ${index + 2}:`, error);
             return null;
         }
-    }).filter(item => item !== null); // Eliminar filas nulas
-    
+    }).filter(Boolean);
+
     if (datosProcesados.length === 0) {
         throw new Error('No se encontraron datos válidos en el archivo');
     }
-    
+
     return datosProcesados;
 }
 
 // Función para identificar las columnas del Excel
-function identificarColumnas(encabezados) {
+function identificarColumnas(encabezados = []) {
     const mapa = {};
-    
+
+    const sinonimos = {
+        rut: ['rut', 'r.u.t', 'run', 'documento'],
+        nombre: ['nombre', 'nombres', 'nombre madre', 'nombre paciente'],
+        apellido: ['apellido', 'apellidos'],
+        nombreCompleto: ['nombre completo', 'nombre y apellido', 'madre', 'paciente', 'familia'],
+        fechaParto: ['fecha parto', 'fecha de parto', 'fecha nacimiento', 'fecha de nacimiento', 'fecha parto/nacimiento']
+    };
+
     encabezados.forEach((encabezado, index) => {
-        const texto = (encabezado || '').toString().toLowerCase().trim();
-        
-        if (texto.includes('rut')) {
+        const texto = normalizarTexto(encabezado);
+
+        if (!texto) {
+            return;
+        }
+
+        if (sinonimos.rut.some(s => texto.includes(s))) {
             mapa.rut = index;
-        } else if (texto.includes('nombre') && !texto.includes('apellido')) {
+        } else if (sinonimos.nombre.some(s => texto === s)) {
             mapa.nombre = index;
-        } else if (texto.includes('apellido')) {
+        } else if (sinonimos.apellido.some(s => texto.includes(s))) {
             mapa.apellido = index;
-        } else if (texto.includes('fecha') && (texto.includes('parto') || texto.includes('nacimiento'))) {
+        } else if (sinonimos.nombreCompleto.some(s => texto.includes(s))) {
+            mapa.nombreCompleto = index;
+        } else if (sinonimos.fechaParto.some(s => texto.includes(s))) {
             mapa.fechaParto = index;
         }
     });
-    
+
     return mapa;
+}
+
+function obtenerEncabezados(jsonData) {
+    if (!Array.isArray(jsonData)) {
+        return { encabezados: [], data: [] };
+    }
+
+    for (let i = 0; i < jsonData.length; i++) {
+        const fila = jsonData[i];
+        if (!Array.isArray(fila)) {
+            continue;
+        }
+
+        const textoFila = fila.map(normalizarTexto).join(' ');
+        if (textoFila.includes('rut') || textoFila.includes('nombre') || textoFila.includes('parto')) {
+            return {
+                encabezados: fila,
+                data: jsonData.slice(i + 1)
+            };
+        }
+    }
+
+    return {
+        encabezados: jsonData[0] || [],
+        data: jsonData.slice(1)
+    };
 }
 
 // Función para limpiar y formatear RUT
