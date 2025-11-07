@@ -118,7 +118,7 @@ function mostrarDatos() {
             if (!examen) {
                 return `
                     <div class="estado-eoa">
-                        <button class="btn btn-secondary btn-sm" onclick="window.importados.abrirRegistrarEoaModal('${registroId}', '${label}')">
+                        <button class="btn btn-secondary btn-sm" onclick="abrirRegistrarEoaModal('${registroId}', '${label}')">
                             ${label} pendiente
                         </button>
                     </div>
@@ -566,7 +566,8 @@ window.importados = {
     cargarDatos,
     aplicarFiltros,
     limpiarFiltros,
-    exportarExcel
+    exportarExcel,
+    abrirRegistrarEoaModal
 };
 
 window.verDetalles = verDetalles;
