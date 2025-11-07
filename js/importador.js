@@ -6,27 +6,50 @@ let XLSX = null;
 // Cargar la librería SheetJS dinámicamente
 function cargarSheetJS() {
     return new Promise((resolve, reject) => {
-        if (window.XLSX) {
+        if (window.XLSX && window.XLSX.read) {
             XLSX = window.XLSX;
+            console.log('✅ SheetJS ya está disponible');
             resolve(window.XLSX);
             return;
         }
 
+        console.log('🔄 Cargando SheetJS desde CDN...');
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.crossOrigin = 'anonymous';
+        
         script.onload = () => {
-            // Esperar un poco más para asegurar que XLSX esté completamente disponible
-            setTimeout(() => {
-                if (window.XLSX) {
+            console.log('📦 Script SheetJS cargado, verificando disponibilidad...');
+            
+            // Esperar más tiempo y verificar múltiples veces
+            let intentos = 0;
+            const maxIntentos = 10;
+            
+            const verificarDisponibilidad = () => {
+                intentos++;
+                console.log(`🔍 Verificación ${intentos}/${maxIntentos}: window.XLSX =`, !!window.XLSX);
+                
+                if (window.XLSX && typeof window.XLSX.read === 'function') {
                     XLSX = window.XLSX;
-                    console.log('✅ SheetJS cargado correctamente');
+                    console.log('✅ SheetJS disponible y funcional');
                     resolve(window.XLSX);
+                } else if (intentos >= maxIntentos) {
+                    console.error('❌ SheetJS no está disponible después de múltiples intentos');
+                    reject(new Error('SheetJS no se pudo cargar correctamente'));
                 } else {
-                    reject(new Error('SheetJS no está disponible después de la carga'));
+                    setTimeout(verificarDisponibilidad, 200);
                 }
-            }, 100);
+            };
+            
+            // Iniciar verificación después de un breve retraso
+            setTimeout(verificarDisponibilidad, 300);
         };
-        script.onerror = () => reject(new Error('No se pudo cargar la librería SheetJS'));
+        
+        script.onerror = (error) => {
+            console.error('❌ Error cargando SheetJS:', error);
+            reject(new Error('No se pudo cargar la librería SheetJS'));
+        };
+        
         document.head.appendChild(script);
     });
 }
