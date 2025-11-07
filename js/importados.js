@@ -212,11 +212,6 @@ async function guardarExamenDesdeImportados(event) {
         return;
     }
 
-    if (!registroEoaSeleccionado.madre_id) {
-        window.utils?.showNotification('Este registro no tiene una madre asociada', 'error');
-        return;
-    }
-
     const fecha = document.getElementById('eoaFecha').value;
     const od = document.querySelector('input[name="eoaOd"]:checked');
     const oi = document.querySelector('input[name="eoaOi"]:checked');
@@ -230,8 +225,13 @@ async function guardarExamenDesdeImportados(event) {
     try {
         window.utils?.toggleButtonLoader('guardarEoaImportadosBtn', true);
 
+        const madreId = await asegurarMadreParaImportado(registroEoaSeleccionado);
+        if (!madreId) {
+            throw new Error('No fue posible asociar una madre al registro');
+        }
+
         const payload = {
-            madre_id: registroEoaSeleccionado.madre_id,
+            madre_id: madreId,
             od_resultado: od.value,
             oi_resultado: oi.value,
             fecha_examen: fecha,
@@ -263,6 +263,71 @@ async function guardarExamenDesdeImportados(event) {
     } finally {
         window.utils?.toggleButtonLoader('guardarEoaImportadosBtn', false);
     }
+}
+
+function normalizarRutValor(rut) {
+    return (rut || '').toString().replace(/\./g, '').replace(/-/g, '').toUpperCase();
+}
+
+function formatearRutCompleto(rut) {
+    const limpio = normalizarRutValor(rut);
+    if (limpio.length < 2) {
+        return rut || '';
+    }
+    const cuerpo = limpio.slice(0, -1);
+    const dv = limpio.slice(-1);
+    return `${cuerpo}-${dv}`;
+}
+
+async function asegurarMadreParaImportado(registro) {
+    if (!registro) {
+        return null;
+    }
+
+    const rutNormalizado = normalizarRutValor(registro.rut);
+    const madreExistente = datosMadres.get(rutNormalizado);
+
+    if (madreExistente) {
+        if (!registro.madre_id) {
+            await window.supabaseClient
+                .from('partos_importados')
+                .update({ madre_id: madreExistente.id })
+                .eq('id', registro.id);
+            registro.madre_id = madreExistente.id;
+        }
+        return madreExistente.id;
+    }
+
+    const nuevaMadre = {
+        nombre: registro.nombre || 'SIN',
+        apellido: registro.apellido || 'REGISTRO',
+        rut: formatearRutCompleto(registro.rut),
+        numero_ficha: (`IMPORT-${rutNormalizado}`).substring(0, 20),
+        sala: 'PEND',
+        cama: 'PEND',
+        cantidad_hijos: 1
+    };
+
+    const { data, error } = await window.supabaseClient
+        .from('madres')
+        .insert([nuevaMadre])
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error creando madre desde importado:', error);
+        throw error;
+    }
+
+    datosMadres.set(rutNormalizado, data);
+
+    await window.supabaseClient
+        .from('partos_importados')
+        .update({ madre_id: data.id })
+        .eq('id', registro.id);
+
+    registro.madre_id = data.id;
+    return data.id;
 }
 // Función para mostrar estado de carga
 function mostrarCarga() {
