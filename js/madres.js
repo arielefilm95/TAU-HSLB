@@ -227,22 +227,17 @@ async function eliminarMadre(madreId) {
             throw new Error('Supabase no está inicializado');
         }
         
-        // Primero verificar si tiene exámenes asociados
-        const { data: examenes, error: examenesError } = await window.supabaseClient
+        // Primero eliminar todos los exámenes asociados (eliminación en cascada manual)
+        const { error: examenesError } = await window.supabaseClient
             .from('examenes_eoa')
-            .select('id')
+            .delete()
             .eq('madre_id', madreId);
         
         if (examenesError) {
             throw examenesError;
         }
         
-        // Si tiene exámenes, no permitir eliminar
-        if (examenes && examenes.length > 0) {
-            throw new Error('No se puede eliminar la madre porque tiene exámenes asociados');
-        }
-        
-        // Eliminar madre
+        // Luego eliminar la madre
         const { error } = await window.supabaseClient
             .from('madres')
             .delete()
@@ -256,9 +251,9 @@ async function eliminarMadre(madreId) {
         
     } catch (error) {
         console.error('Error al eliminar madre:', error);
-        return { 
-            success: false, 
-            error: error.message || 'Error al eliminar madre' 
+        return {
+            success: false,
+            error: error.message || 'Error al eliminar madre'
         };
     }
 }
