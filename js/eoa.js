@@ -205,8 +205,13 @@ async function registrarExamenEOA(examenData) {
         }
         
         // Preparar datos para inserción
+        const madreNombre = (examenData.madre_nombre || '').trim() || 'SIN REGISTRO';
+        const madreApellido = (examenData.madre_apellido || '').trim() || 'SIN REGISTRO';
+
         const dataToInsert = {
             madre_id: examenData.madre_id,
+            nombre: madreNombre,
+            apellido: madreApellido,
             od_resultado: examenData.od_resultado,
             oi_resultado: examenData.oi_resultado,
             fecha_nacimiento: examenData.fecha_nacimiento,
@@ -713,10 +718,12 @@ document.addEventListener('DOMContentLoaded', function() {
             utils.toggleButtonLoader('guardarEoaBtn', true);
             
             try {
-                const result = await registrarExamenEOA({
-                    madre_id: currentMadreEOA.id,
-                    od_resultado: odResultado,
-                    oi_resultado: oiResultado,
+            const result = await registrarExamenEOA({
+                madre_id: currentMadreEOA.id,
+                madre_nombre: currentMadreEOA.nombre,
+                madre_apellido: currentMadreEOA.apellido,
+                od_resultado: odResultado,
+                oi_resultado: oiResultado,
                     fecha_nacimiento: fechaNacimiento,
                     sexo_bebe: sexoBebe,
                     tipo_parto: tipoParto,
