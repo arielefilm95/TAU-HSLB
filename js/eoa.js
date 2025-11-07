@@ -3,6 +3,53 @@
 // Variables globales
 let currentMadreEOA = null;
 let currentExamenEOA = null;
+const EOA_FORM_STORAGE_PREFIX = 'tau_eoa_form_state_';
+
+function getEoaFormStorageKey(madreId) {
+    return `${EOA_FORM_STORAGE_PREFIX}${madreId}`;
+}
+
+function guardarEstadoFormularioEOA(madreId, examen) {
+    if (!madreId || !examen) {
+        return;
+    }
+
+    try {
+        const payload = {
+            savedAt: new Date().toISOString(),
+            data: examen
+        };
+        localStorage.setItem(getEoaFormStorageKey(madreId), JSON.stringify(payload));
+    } catch (error) {
+        console.warn('No se pudo guardar el estado del formulario EOA:', error);
+    }
+}
+
+function obtenerEstadoFormularioEOA(madreId) {
+    if (!madreId) {
+        return null;
+    }
+
+    try {
+        const raw = localStorage.getItem(getEoaFormStorageKey(madreId));
+        if (!raw) {
+            return null;
+        }
+        const parsed = JSON.parse(raw);
+        return parsed.data || null;
+    } catch (error) {
+        console.warn('No se pudo leer el estado del formulario EOA:', error);
+        return null;
+    }
+}
+
+function restaurarFormularioEOADesdeLocal(madreId) {
+    const data = obtenerEstadoFormularioEOA(madreId);
+    if (data) {
+        prefillFormularioEOA(data);
+        currentExamenEOA = data;
+    }
+}
 
 // Función para abrir modal de EOA
 function openEoaModal(madre) {
@@ -24,6 +71,9 @@ function openEoaModal(madre) {
         
         // Limpiar formulario
         limpiarFormularioEOA();
+
+        // Intentar restaurar el último examen guardado localmente
+        restaurarFormularioEOADesdeLocal(madre.id);
         
         // Mostrar modal
         modal.style.display = 'flex';
@@ -72,6 +122,11 @@ async function cargarExamenesAnteriores(madreId) {
         // Mostrar exámenes anteriores si existen
         if (data && data.length > 0) {
             mostrarExamenesAnteriores(data);
+            
+            // Mantener referencia al último examen
+            currentExamenEOA = data[0];
+            prefillFormularioEOA(data[0]);
+            guardarEstadoFormularioEOA(data[0].madre_id, data[0]);
         }
         
     } catch (error) {
@@ -518,6 +573,81 @@ function validarFormularioEOA() {
     return isValid;
 }
 
+function prefillFormularioEOA(examenData) {
+    if (!examenData) {
+        return;
+    }
+
+    const setRadioValue = (name, value) => {
+        if (value === undefined || value === null) {
+            return;
+        }
+
+        const radios = document.querySelectorAll(`#eoaForm input[name="${name}"]`);
+        if (!radios.length) {
+            return;
+        }
+
+        radios.forEach(radio => {
+            const label = radio.closest('.radio-label');
+            if (label) {
+                label.classList.remove('selected');
+            }
+        });
+
+        const radioToSelect = document.querySelector(`#eoaForm input[name="${name}"][value="${value}"]`);
+        if (radioToSelect) {
+            radioToSelect.checked = true;
+            const label = radioToSelect.closest('.radio-label');
+            if (label) {
+                label.classList.add('selected');
+            }
+        }
+    };
+
+    const setBooleanRadio = (name, value) => {
+        if (value === undefined || value === null) {
+            return;
+        }
+        setRadioValue(name, String(Boolean(value)));
+    };
+
+    setRadioValue('od', examenData.od_resultado);
+    setRadioValue('oi', examenData.oi_resultado);
+    setRadioValue('sexoBebe', examenData.sexo_bebe);
+    setRadioValue('tipoParto', examenData.tipo_parto);
+    setBooleanRadio('familiaresPerdidaAuditiva', examenData.familiares_perdida_auditiva);
+    setBooleanRadio('madreFumo', examenData.madre_fumo);
+    setBooleanRadio('madreAlcohol', examenData.madre_alcohol);
+    setBooleanRadio('madreDrogas', examenData.madre_drogas);
+
+    const fechaNacimientoInput = document.getElementById('fechaNacimiento');
+    if (fechaNacimientoInput) {
+        const fecha = examenData.fecha_nacimiento ? examenData.fecha_nacimiento.split('T')[0] : '';
+        fechaNacimientoInput.value = fecha || '';
+    }
+
+    const semanasGestacionInput = document.getElementById('semanasGestacion');
+    if (semanasGestacionInput) {
+        semanasGestacionInput.value = examenData.semanas_gestacion ?? '';
+    }
+
+    const complicacionesEmbarazoInput = document.getElementById('complicacionesEmbarazo');
+    if (complicacionesEmbarazoInput) {
+        complicacionesEmbarazoInput.value = examenData.complicaciones_embarazo || '';
+    }
+
+    const complicacionesDesarrolloInput = document.getElementById('complicacionesDesarrollo');
+    if (complicacionesDesarrolloInput) {
+        complicacionesDesarrolloInput.value = examenData.complicaciones_desarrollo || '';
+    }
+
+    const observacionesInput = document.getElementById('observaciones');
+    if (observacionesInput) {
+        observacionesInput.value = examenData.observaciones || '';
+    }
+}
+
 // Función para limpiar formulario EOA
 function limpiarFormularioEOA() {
     // Limpiar radio buttons
@@ -602,6 +732,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (result.success) {
                     utils.showNotification('Examen registrado exitosamente', 'success');
+                    
+                    if (result.data) {
+                        currentExamenEOA = result.data;
+                        guardarEstadoFormularioEOA(result.data.madre_id || (currentMadreEOA && currentMadreEOA.id), result.data);
+                    }
+                    
                     closeEoaModal();
                     
                     // Recargar registros recientes si estamos en el dashboard
