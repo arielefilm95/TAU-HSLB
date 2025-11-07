@@ -100,8 +100,25 @@
                         <button id="exportarBtn" class="btn btn-primary btn-sm">Exportar Excel</button>
                     </div>
                 </div>
-                <div id="importadosList" class="importados-list">
-                    <p class="loading">Cargando datos...</p>
+                <div class="tabla-importados-wrapper">
+                    <table class="tabla-importados">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>N° Ficha</th>
+                                <th>RUT</th>
+                                <th>Fecha de Parto</th>
+                                <th>Primer Examen EOA</th>
+                                <th>Segundo Examen EOA</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="importadosList">
+                            <tr>
+                                <td colspan="7" class="loading">Cargando datos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </main>

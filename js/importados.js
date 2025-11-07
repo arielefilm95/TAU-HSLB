@@ -95,76 +95,73 @@ function mostrarDatos() {
     if (!container) return;
     
     if (datosFiltrados.length === 0) {
-        container.innerHTML = '<p class="no-data">No hay datos para mostrar</p>';
+        container.innerHTML = `
+            <tr>
+                <td colspan="7" class="no-data">No hay datos para mostrar</td>
+            </tr>
+        `;
         return;
     }
-    
-    const html = datosFiltrados.map(item => {
+
+    const rowsHtml = datosFiltrados.map(item => {
         const rutNormalizado = item.rut.replace('-', '').toUpperCase();
         const madre = datosMadres.get(rutNormalizado);
-        const tieneEOA = item.madre_id && datosEOA.has(item.madre_id);
-        
-        // Determinar clases de estado
-        const itemClasses = ['importado-item'];
-        if (item.madre_id) {
-            itemClasses.push('con-registro');
-        } else {
-            itemClasses.push('sin-registro');
-        }
-        
-        if (tieneEOA) {
-            itemClasses.push('con-eoa');
-        } else {
-            itemClasses.push('sin-eoa');
-        }
-        
-        // Formatear fecha
-        const fechaParto = window.utils ? window.utils.formatearFecha(item.fecha_parto) : new Date(item.fecha_parto).toLocaleDateString();
-        const fechaImportacion = window.utils ? window.utils.formatearFecha(item.fecha_importacion) : new Date(item.fecha_importacion).toLocaleDateString();
-        
+        const examenes = item.madre_id && datosEOA.has(item.madre_id)
+            ? datosEOA.get(item.madre_id).sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen))
+            : [];
+
+        const primerExamen = examenes[0];
+        const segundoExamen = examenes[1];
+
+        const renderExamen = (examen, label) => {
+            if (!examen) {
+                return `<span class="status-pill pending">${label} pendiente</span>`;
+            }
+
+            const clase = examen.od_resultado === 'PASA' && examen.oi_resultado === 'PASA'
+                ? 'success'
+                : 'danger';
+            const textoEstado = `OD: ${examen.od_resultado || '-'}, OI: ${examen.oi_resultado || '-'}`;
+            const fecha = window.utils ? window.utils.formatearFecha(examen.fecha_examen) : new Date(examen.fecha_examen).toLocaleDateString();
+
+            return `
+                <div class="estado-eoa">
+                    <span class="status-pill ${clase}">${label}</span>
+                    <span>${textoEstado}</span>
+                    <span>${fecha}</span>
+                </div>
+            `;
+        };
+
+        const observaciones = [
+            examenObservacion(primerExamen, '1er'),
+            examenObservacion(segundoExamen, '2do')
+        ].filter(Boolean).join(' | ');
+
+        const nombreCompleto = `${item.nombre} ${item.apellido}`.trim();
+
         return `
-            <div class="${itemClasses.join(' ')}" data-id="${item.id}">
-                <div class="importado-item-header">
-                    <div class="importado-item-rut">${window.utils ? window.utils.escapeHTML(window.utils.formatearRUT(item.rut)) : item.rut}</div>
-                    <div class="importado-item-nombre">${window.utils ? window.utils.escapeHTML(`${item.nombre} ${item.apellido}`) : `${item.nombre} ${item.apellido}`}</div>
-                    <div class="importado-item-fecha">${fechaParto}</div>
-                </div>
-                <div class="importado-item-status">
-                    ${item.madre_id ? 
-                        `<span class="status-pill success">Con registro manual</span>` : 
-                        `<span class="status-pill warning">Sin registro manual</span>`
-                    }
-                    ${tieneEOA ? 
-                        `<span class="status-pill success">EOA realizado</span>` : 
-                        `<span class="status-pill pending">EOA pendiente</span>`
-                    }
-                </div>
-                <div class="importado-item-details">
-                    <div><strong>Archivo:</strong> ${window.utils ? window.utils.escapeHTML(item.archivo_origen) : item.archivo_origen}</div>
-                    <div><strong>Importación:</strong> ${fechaImportacion}</div>
-                    ${madre ? `
-                        <div><strong>Ficha:</strong> ${window.utils ? window.utils.escapeHTML(madre.numero_ficha) : madre.numero_ficha}</div>
-                        <div><strong>Sala:</strong> ${window.utils ? window.utils.escapeHTML(madre.sala) : madre.sala}</div>
-                        <div><strong>Cama:</strong> ${window.utils ? window.utils.escapeHTML(madre.cama) : madre.cama}</div>
-                    ` : ''}
-                </div>
-                <div class="importado-item-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="verDetalles('${item.id}')">
-                        Ver Detalles
-                    </button>
-                    ${item.madre_id && !tieneEOA ? `
-                        <button class="btn btn-primary btn-sm" onclick="realizarEOA('${item.madre_id}')">
-                            Realizar EOA
-                        </button>
-                    ` : ''}
-                </div>
-            </div>
+            <tr>
+                <td>${window.utils ? window.utils.escapeHTML(nombreCompleto) : nombreCompleto}</td>
+                <td>${madre ? window.utils.escapeHTML(madre.numero_ficha || '') : ''}</td>
+                <td>${window.utils ? window.utils.escapeHTML(window.utils.formatearRUT(item.rut)) : item.rut}</td>
+                <td>${window.utils ? window.utils.formatearFecha(item.fecha_parto) : new Date(item.fecha_parto).toLocaleDateString()}</td>
+                <td>${renderExamen(primerExamen, '1er examen')}</td>
+                <td>${renderExamen(segundoExamen, '2do examen')}</td>
+                <td class="observaciones">${window.utils ? window.utils.escapeHTML(observaciones) : observaciones}</td>
+            </tr>
         `;
     }).join('');
-    
-    container.innerHTML = html;
+
+    container.innerHTML = rowsHtml;
 }
 
+function examenObservacion(examen, etiqueta) {
+    if (!examen || !examen.observaciones) {
+        return '';
+    }
+    return `${etiqueta}: ${examen.observaciones}`;
+}
 // Función para mostrar estado de carga
 function mostrarCarga() {
     const container = document.getElementById('importadosList');

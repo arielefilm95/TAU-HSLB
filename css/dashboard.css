@@ -983,6 +983,70 @@
     overflow-y: auto;
 }
 
+.tabla-importados-wrapper {
+    max-height: 600px;
+    overflow: auto;
+}
+
+.tabla-importados {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+    font-size: 0.95rem;
+}
+
+.tabla-importados thead {
+    position: sticky;
+    top: 0;
+    background: var(--primary-color);
+    color: white;
+    z-index: 1;
+}
+
+.tabla-importados th,
+.tabla-importados td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e9ecef;
+    text-align: left;
+}
+
+.tabla-importados tbody tr:nth-child(even) {
+    background: #f9fbfd;
+}
+
+.tabla-importados tbody tr:hover {
+    background: rgba(52, 152, 219, 0.08);
+}
+
+.tabla-importados .no-data,
+.tabla-importados .loading {
+    text-align: center;
+    padding: 40px 0;
+}
+
+.tabla-importados .estado-eoa {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tabla-importados .estado-eoa span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tabla-importados .estado-eoa .status-pill {
+    width: fit-content;
+}
+
+.tabla-importados .observaciones {
+    white-space: pre-wrap;
+    color: var(--dark-color);
+    font-size: 0.9rem;
+    max-width: 280px;
+}
+
 .importado-item {
     background: #f8f9fa;
     border: 1px solid var(--border-color);
