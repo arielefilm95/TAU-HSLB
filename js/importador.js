@@ -7,6 +7,7 @@ let XLSX = null;
 function cargarSheetJS() {
     return new Promise((resolve, reject) => {
         if (window.XLSX) {
+            XLSX = window.XLSX;
             resolve(window.XLSX);
             return;
         }
@@ -14,8 +15,16 @@ function cargarSheetJS() {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
         script.onload = () => {
-            XLSX = window.XLSX;
-            resolve(window.XLSX);
+            // Esperar un poco más para asegurar que XLSX esté completamente disponible
+            setTimeout(() => {
+                if (window.XLSX) {
+                    XLSX = window.XLSX;
+                    console.log('✅ SheetJS cargado correctamente');
+                    resolve(window.XLSX);
+                } else {
+                    reject(new Error('SheetJS no está disponible después de la carga'));
+                }
+            }, 100);
         };
         script.onerror = () => reject(new Error('No se pudo cargar la librería SheetJS'));
         document.head.appendChild(script);
@@ -25,9 +34,20 @@ function cargarSheetJS() {
 // Función para procesar archivo Excel
 async function procesarArchivoExcel(file) {
     try {
+        // Validar archivo
+        if (!file) {
+            throw new Error('No se seleccionó ningún archivo');
+        }
+        
         // Cargar SheetJS si no está disponible
         if (!XLSX) {
+            console.log('🔄 Cargando SheetJS...');
             await cargarSheetJS();
+        }
+
+        // Verificar que XLSX esté disponible
+        if (!XLSX || !XLSX.read) {
+            throw new Error('La librería SheetJS no está disponible correctamente');
         }
 
         // Mostrar notificación de procesamiento
@@ -40,34 +60,54 @@ async function procesarArchivoExcel(file) {
             
             reader.onload = function(e) {
                 try {
+                    console.log('📖 Leyendo archivo Excel...');
                     const data = new Uint8Array(e.target.result);
+                    
+                    // Validar datos antes de procesar
+                    if (!data || data.length === 0) {
+                        throw new Error('El archivo está vacío o no se pudo leer');
+                    }
+                    
+                    console.log('📊 Procesando workbook con SheetJS...');
                     const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+                        throw new Error('El archivo no contiene hojas válidas');
+                    }
                     
                     // Obtener la primera hoja del workbook
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
                     
+                    if (!worksheet) {
+                        throw new Error('No se pudo acceder a la primera hoja del archivo');
+                    }
+                    
                     // Convertir a JSON
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    console.log(`📋 Se encontraron ${jsonData.length} filas en el Excel`);
                     
                     // Procesar datos
                     const datosProcesados = procesarDatosExcel(jsonData, file.name);
                     
+                    console.log(`✅ Se procesaron ${datosProcesados.length} registros válidos`);
                     resolve(datosProcesados);
                 } catch (error) {
-                    console.error('Error al procesar el archivo Excel:', error);
+                    console.error('❌ Error al procesar el archivo Excel:', error);
                     reject(error);
                 }
             };
             
-            reader.onerror = function() {
+            reader.onerror = function(e) {
+                console.error('❌ Error en FileReader:', e);
                 reject(new Error('Error al leer el archivo'));
             };
             
             reader.readAsArrayBuffer(file);
         });
     } catch (error) {
-        console.error('Error en procesarArchivoExcel:', error);
+        console.error('❌ Error en procesarArchivoExcel:', error);
         throw error;
     }
 }
