@@ -144,6 +144,65 @@
             <button class="notification-close" onclick="hideNotification()">&times;</button>
         </div>
     </div>
+
+    <!-- Modal registrar examen -->
+    <div id="registrarEoaModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Registrar Examen EOA</h3>
+                <button class="modal-close" onclick="closeRegistrarEoaModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="registrarEoaForm">
+                    <div class="form-group">
+                        <label for="eoaFecha">Fecha del examen</label>
+                        <input type="date" id="eoaFecha" name="eoaFecha" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Oído Derecho (OD)</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="eoaOd" value="PASA" required>
+                                <span class="radio-custom"></span>
+                                PASA
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="eoaOd" value="REFIERE" required>
+                                <span class="radio-custom"></span>
+                                REFIERE
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Oído Izquierdo (OI)</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="eoaOi" value="PASA" required>
+                                <span class="radio-custom"></span>
+                                PASA
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="eoaOi" value="REFIERE" required>
+                                <span class="radio-custom"></span>
+                                REFIERE
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="eoaObservaciones">Observaciones</label>
+                        <textarea id="eoaObservaciones" name="eoaObservaciones" rows="3" placeholder="Observaciones del examen"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeRegistrarEoaModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="guardarEoaImportadosBtn">
+                            <span class="btn-text">Guardar Examen</span>
+                            <span class="btn-loader" style="display: none;">Guardando...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -181,7 +240,7 @@
         function loadImportadosScripts() {
             console.log('🚀 Iniciando carga de scripts de importados...');
             
-            const version = '202511092000';
+            const version = '202511092020';
             const scripts = [
                 `js/importados.js?v=${version}`
             ];

@@ -5,6 +5,7 @@ let datosImportados = [];
 let datosFiltrados = [];
 let datosMadres = new Map();
 let datosEOA = new Map();
+let registroEoaSeleccionado = null;
 
 // Función para cargar todos los datos
 async function cargarDatos() {
@@ -142,7 +143,9 @@ function mostrarDatos() {
 
         return `
             <tr>
-                <td>${window.utils ? window.utils.escapeHTML(nombreCompleto) : nombreCompleto}</td>
+                <td class="nombre-clickable" onclick="abrirRegistrarEoaModal('${item.id}')">
+                    ${window.utils ? window.utils.escapeHTML(nombreCompleto) : nombreCompleto}
+                </td>
                 <td>${madre ? window.utils.escapeHTML(madre.numero_ficha || '') : ''}</td>
                 <td>${window.utils ? window.utils.escapeHTML(window.utils.formatearRUT(item.rut)) : item.rut}</td>
                 <td>${window.utils ? window.utils.formatearFecha(item.fecha_parto) : new Date(item.fecha_parto).toLocaleDateString()}</td>
@@ -161,6 +164,105 @@ function examenObservacion(examen, etiqueta) {
         return '';
     }
     return `${etiqueta}: ${examen.observaciones}`;
+}
+
+function abrirRegistrarEoaModal(importadoId) {
+    const item = datosImportados.find(d => d.id === importadoId);
+    if (!item) {
+        return;
+    }
+
+    if (!item.madre_id) {
+        window.utils?.showNotification('Debes asociar este parto a un registro manual antes de registrar el examen', 'warning');
+        return;
+    }
+
+    registroEoaSeleccionado = item;
+
+    const modal = document.getElementById('registrarEoaModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show'), 10);
+    }
+
+    const fechaInput = document.getElementById('eoaFecha');
+    if (fechaInput) {
+        fechaInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    document.querySelectorAll('#registrarEoaForm input[name="eoaOd"]').forEach(input => input.checked = false);
+    document.querySelectorAll('#registrarEoaForm input[name="eoaOi"]').forEach(input => input.checked = false);
+    document.getElementById('eoaObservaciones').value = '';
+}
+
+function closeRegistrarEoaModal() {
+    const modal = document.getElementById('registrarEoaModal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+    registroEoaSeleccionado = null;
+}
+
+async function guardarExamenDesdeImportados(event) {
+    event.preventDefault();
+
+    if (!registroEoaSeleccionado) {
+        window.utils?.showNotification('No se encontró el registro seleccionado', 'error');
+        return;
+    }
+
+    if (!registroEoaSeleccionado.madre_id) {
+        window.utils?.showNotification('Este registro no tiene una madre asociada', 'error');
+        return;
+    }
+
+    const fecha = document.getElementById('eoaFecha').value;
+    const od = document.querySelector('input[name="eoaOd"]:checked');
+    const oi = document.querySelector('input[name="eoaOi"]:checked');
+    const observaciones = document.getElementById('eoaObservaciones').value.trim();
+
+    if (!fecha || !od || !oi) {
+        window.utils?.showNotification('Completa todos los campos del examen', 'error');
+        return;
+    }
+
+    try {
+        window.utils?.toggleButtonLoader('guardarEoaImportadosBtn', true);
+
+        const payload = {
+            madre_id: registroEoaSeleccionado.madre_id,
+            od_resultado: od.value,
+            oi_resultado: oi.value,
+            fecha_examen: fecha,
+            observaciones: observaciones || null
+        };
+
+        const { data, error } = await window.supabaseClient
+            .from('examenes_eoa')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        if (!datosEOA.has(registroEoaSeleccionado.madre_id)) {
+            datosEOA.set(registroEoaSeleccionado.madre_id, []);
+        }
+        datosEOA.get(registroEoaSeleccionado.madre_id).push(data);
+
+        closeRegistrarEoaModal();
+        window.utils?.showNotification('Examen registrado exitosamente', 'success');
+        mostrarDatos();
+        actualizarEstadisticas();
+    } catch (error) {
+        console.error('Error registrando examen vía importados:', error);
+        window.utils?.showNotification(error.message || 'Error al registrar examen', 'error');
+    } finally {
+        window.utils?.toggleButtonLoader('guardarEoaImportadosBtn', false);
+    }
 }
 // Función para mostrar estado de carga
 function mostrarCarga() {
@@ -397,5 +499,15 @@ window.importados = {
     cargarDatos,
     aplicarFiltros,
     limpiarFiltros,
-    exportarExcel
+    exportarExcel,
+    abrirRegistrarEoaModal
 };
+
+window.verDetalles = verDetalles;
+window.realizarEOA = realizarEOA;
+window.closeRegistrarEoaModal = closeRegistrarEoaModal;
+
+const registrarEoaForm = document.getElementById('registrarEoaForm');
+if (registrarEoaForm) {
+    registrarEoaForm.addEventListener('submit', guardarExamenDesdeImportados);
+}

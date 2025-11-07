@@ -1047,6 +1047,21 @@
     max-width: 280px;
 }
 
+.tabla-importados td.nombre-clickable {
+    color: var(--primary-dark);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tabla-importados td.nombre-clickable:hover {
+    text-decoration: underline;
+}
+
+.tabla-importados .estado-eoa .status-pill.danger {
+    background: rgba(231, 76, 60, 0.2);
+    color: #7a1e15;
+}
+
 .importado-item {
     background: #f8f9fa;
     border: 1px solid var(--border-color);
