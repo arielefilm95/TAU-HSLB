@@ -169,13 +169,15 @@ function displayRecentMothers() {
             <div class="recent-item-info">
                 <div class="recent-item-basic">
                     <div class="recent-item-name">${utils.escapeHTML(nombreCompleto)}</div>
-                    <div class="recent-item-cama">Cama: ${utils.escapeHTML(madre.cama)}</div>
+                    <div class="recent-item-sala-cama">
+                        <div class="recent-item-sala">Sala: ${utils.escapeHTML(madre.sala)}</div>
+                        <div class="recent-item-cama">Cama: ${utils.escapeHTML(madre.cama)}</div>
+                    </div>
                 </div>
                 <div class="recent-item-expand">▼</div>
                 <div class="recent-item-details">
                     <div><strong>RUT:</strong> ${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
                     <div><strong>Ficha:</strong> ${utils.escapeHTML(madre.numero_ficha)}</div>
-                    <div><strong>Sala:</strong> ${utils.escapeHTML(madre.sala)}</div>
                     <div><strong>Hijos:</strong> ${utils.escapeHTML((madre.cantidad_hijos ?? 'N/A').toString())}</div>
                     <div><strong>Registro:</strong> ${utils.formatearFecha(madre.created_at)}</div>
                     <div class="recent-item-status">
@@ -187,7 +189,7 @@ function displayRecentMothers() {
                 </div>
             </div>
             <div class="recent-item-actions">
-                <button class="btn btn-secondary btn-sm" data-action="abrir-eoa" data-madre-id="${madre.id}">
+                <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${madre.id}">
                     Ver plantilla EOA
                 </button>
             </div>
@@ -197,27 +199,11 @@ function displayRecentMothers() {
     
     recentMothersElement.innerHTML = html;
     
-    // Agregar listeners para expandir/contraer y abrir la plantilla EOA
+    // Agregar listeners para abrir la plantilla EOA (sin expansión)
     const recentItems = recentMothersElement.querySelectorAll('.recent-item');
     recentItems.forEach(item => {
         const madreId = item.getAttribute('data-madre-id');
         if (!madreId) return;
-        
-        // Listener para expandir/contraer
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Cerrar otros items expandidos
-            recentItems.forEach(otherItem => {
-                if (otherItem !== item) {
-                    otherItem.classList.remove('expanded');
-                }
-            });
-            
-            // Toggle estado expandido
-            item.classList.toggle('expanded');
-        });
         
         // Listener para abrir la plantilla EOA
         const actionButton = item.querySelector('button[data-action="abrir-eoa"]');

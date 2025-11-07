@@ -211,6 +211,22 @@
     line-height: 1.2;
 }
 
+.recent-item-sala-cama {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.recent-item-sala {
+    background: var(--primary-dark);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
 .recent-item-cama {
     background: var(--primary-color);
     color: white;
@@ -276,6 +292,12 @@
 .recent-item-actions .btn-sm {
     padding: 6px 12px;
     font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.recent-item-actions .btn-small {
+    padding: 4px 8px;
+    font-size: 0.7rem;
     white-space: nowrap;
 }
 
@@ -551,6 +573,11 @@
         font-size: 0.8rem;
     }
     
+    .recent-item-sala {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+    }
+    
     .recent-item-cama {
         font-size: 0.7rem;
         padding: 2px 6px;
@@ -586,6 +613,12 @@
         width: 100%;
         padding: 8px 12px;
         font-size: 0.8rem;
+    }
+    
+    .recent-item-actions .btn-small {
+        width: 100%;
+        padding: 6px 10px;
+        font-size: 0.75rem;
     }
     
     .recent-item-expand {
@@ -644,6 +677,11 @@
     .recent-item-actions .btn-sm {
         padding: 8px 10px;
         font-size: 0.75rem;
+    }
+    
+    .recent-item-actions .btn-small {
+        padding: 6px 8px;
+        font-size: 0.7rem;
     }
     
     .madre-item {

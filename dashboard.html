@@ -783,10 +783,12 @@
                     <div class="recent-item" data-madre-id="${madre.id}">
                         <div class="recent-item-info">
                             <div class="recent-item-rut">${window.utils ? window.utils.escapeHTML(window.utils.formatearRUT(madre.rut)) : madre.rut}</div>
+                            <div class="recent-item-sala-cama">
+                                <div class="recent-item-sala">Sala: ${window.utils ? window.utils.escapeHTML(madre.sala) : madre.sala}</div>
+                                <div class="recent-item-cama">Cama: ${window.utils ? window.utils.escapeHTML(madre.cama) : madre.cama}</div>
+                            </div>
                             <div class="recent-item-details">
                                 Ficha: ${window.utils ? window.utils.escapeHTML(madre.numero_ficha) : madre.numero_ficha} |
-                                Sala: ${window.utils ? window.utils.escapeHTML(madre.sala) : madre.sala} |
-                                Cama: ${window.utils ? window.utils.escapeHTML(madre.cama) : madre.cama} |
                                 Hijos: ${madre.cantidad_hijos ?? 'N/A'}
                             </div>
                         </div>
@@ -794,7 +796,7 @@
                             ${window.utils ? window.utils.formatearFecha(madre.created_at) : new Date(madre.created_at).toLocaleDateString()}
                         </div>
                         <div class="recent-item-actions">
-                            <button class="btn btn-secondary btn-sm" data-action="abrir-eoa" data-madre-id="${madre.id}">
+                            <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${madre.id}">
                                 Ver plantilla EOA
                             </button>
                         </div>
@@ -804,7 +806,7 @@
                 recentMothersElement.innerHTML = html;
                 console.log(`✅ ${data.length} registros recientes cargados directamente`);
                 
-                // Agregar event listeners a los botones recién creados
+                // Agregar event listeners a los botones recién creados (sin expansión)
                 const actionButtons = recentMothersElement.querySelectorAll('button[data-action="abrir-eoa"]');
                 actionButtons.forEach(button => {
                     button.addEventListener('click', function(e) {
