@@ -542,6 +542,26 @@
                 console.error('❌ No se encontró el botón verMadresBtn');
             }
             
+            // Botón ver reportes
+            const reportesBtn = document.getElementById('reportesBtn');
+            if (reportesBtn) {
+                // Remover listeners anteriores
+                reportesBtn.replaceWith(reportesBtn.cloneNode(true));
+                const newReportesBtn = document.getElementById('reportesBtn');
+                
+                newReportesBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('🖱️ Botón ver reportes clickeado');
+                    
+                    // Redirigir a la página de reportes
+                    window.location.href = 'reportes.html';
+                });
+                
+                console.log('✅ Event listener para botón ver reportes configurado');
+            } else {
+                console.error('❌ No se encontró el botón reportesBtn');
+            }
+            
             // Formulario de madre
             const madreForm = document.getElementById('madreForm');
             if (madreForm) {
