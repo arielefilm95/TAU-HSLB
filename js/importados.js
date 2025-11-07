@@ -450,6 +450,22 @@ async function asegurarMadreParaImportado(registro) {
         return madreExistente.id;
     }
 
+    // Solo crear nueva madre si no existe y si no tiene madre_id asociado
+    // Esto evita crear madres duplicadas innecesariamente
+    if (registro.madre_id) {
+        // Si ya tiene madre_id, verificar que exista en la base de datos
+        const { data: madreVerificada } = await window.supabaseClient
+            .from('madres')
+            .select('id')
+            .eq('id', registro.madre_id)
+            .single();
+        
+        if (madreVerificada) {
+            return registro.madre_id;
+        }
+    }
+
+    // Crear nueva madre solo si es absolutamente necesario
     const nuevaMadre = {
         nombre: registro.nombre || 'SIN',
         apellido: registro.apellido || 'REGISTRO',
