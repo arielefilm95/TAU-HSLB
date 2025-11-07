@@ -6,9 +6,9 @@
 -- =====================================================
 
 -- 1. Actualizar registros que tienen ficha comenzando con "IMPORT-"
-UPDATE madres 
-SET numero_ficha = ''
-WHERE origen_registro = 'IMPORTADO' 
+UPDATE madres
+SET numero_ficha = NULL
+WHERE origen_registro = 'IMPORTADO'
 AND numero_ficha LIKE 'IMPORT-%';
 
 -- 2. Verificar cuántos registros fueron actualizados
@@ -17,9 +17,9 @@ DECLARE
     count_actualizados INTEGER;
 BEGIN
     SELECT COUNT(*) INTO count_actualizados
-    FROM madres 
-    WHERE origen_registro = 'IMPORTADO' 
-    AND numero_ficha = '';
+    FROM madres
+    WHERE origen_registro = 'IMPORTADO'
+    AND numero_ficha IS NULL;
     
     RAISE NOTICE 'Registros importados con ficha vacía: %', count_actualizados;
 END $$;

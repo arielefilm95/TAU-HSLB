@@ -470,7 +470,7 @@ async function asegurarMadreParaImportado(registro) {
         nombre: registro.nombre || 'SIN',
         apellido: registro.apellido || 'REGISTRO',
         rut: formatearRutCompleto(registro.rut),
-        numero_ficha: '', // Dejar ficha vacía para registros importados
+        numero_ficha: null, // Dejar ficha como NULL para registros importados
         sala: 'PEND',
         cama: 'PEND',
         cantidad_hijos: 1,
