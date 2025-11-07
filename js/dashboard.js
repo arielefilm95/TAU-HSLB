@@ -233,18 +233,34 @@ function obtenerEstadoEOAVisual(madreId) {
         };
     }
 
-    if (resumen.firstExamRefiere) {
+    if (resumen.examCount === 1) {
+        if (resumen.firstExamRefiere) {
+            return {
+                containerClass: 'referido',
+                pillTheme: 'warning',
+                pillText: 'EOA refiere (1er examen)'
+            };
+        }
+
         return {
-            containerClass: 'referido',
-            pillTheme: 'warning',
-            pillText: 'EOA refiere (1er examen)'
+            containerClass: 'completed',
+            pillTheme: 'success',
+            pillText: 'EOA pasa (1er examen)'
+        };
+    }
+
+    if (resumen.lastExamRefiere) {
+        return {
+            containerClass: 'derivacion',
+            pillTheme: 'danger',
+            pillText: 'EOA refiere (2do examen)'
         };
     }
 
     return {
         containerClass: 'completed',
         pillTheme: 'success',
-        pillText: 'EOA pasa (1er examen)'
+        pillText: 'EOA pasa (2do examen)'
     };
 }
 
@@ -357,6 +373,8 @@ function displayMadresList(madres) {
         }
         const statusClass = `status-pill ${estado.pillTheme}`;
         const statusText = estado.pillText;
+        const nombreCompletoPlano = [madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado';
+        const nombreConfirm = nombreCompletoPlano.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
 
         return `
         <div class="${itemClasses.join(' ')}" data-madre-id="${madre.id}" onclick="selectMadre('${madre.id}')">
@@ -385,6 +403,9 @@ function displayMadresList(madres) {
             <div class="madre-item-actions">
                 <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); selectMadre('${madre.id}')">
                     Realizar EOA
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); dashboard.confirmarEliminacionMadre('${madre.id}', '${nombreConfirm}')">
+                    Eliminar
                 </button>
             </div>
         </div>
@@ -469,6 +490,41 @@ function markMadreConExamen(madreId, examenData = null) {
 
     recentMothers = recentMothers.map(madre => madre.id === madreId ? { ...madre } : madre);
     actualizarEstadoVisualMadre(madreId);
+}
+
+async function confirmarEliminacionMadre(madreId, madreNombre = '') {
+    if (!madreId) {
+        return;
+    }
+
+    const nombreMostrar = madreNombre || 'esta madre';
+    const confirmMessage = `¿Eliminar el registro de ${nombreMostrar}? Esta acción no se puede deshacer.`;
+    const confirmed = window.confirm(confirmMessage);
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        if (!window.madres || typeof window.madres.eliminarMadre !== 'function') {
+            throw new Error('Función de eliminación no disponible');
+        }
+
+        utils.showNotification('Eliminando registro...', 'info');
+        const result = await window.madres.eliminarMadre(madreId);
+
+        if (!result.success) {
+            throw new Error(result.error || 'No se pudo eliminar el registro');
+        }
+
+        utils.showNotification('Madre eliminada correctamente', 'success');
+        const searchMadresInput = document.getElementById('searchMadres');
+        const currentSearch = searchMadresInput ? searchMadresInput.value : '';
+        await loadMadresList(currentSearch);
+        await loadRecentMothers();
+    } catch (error) {
+        console.error('Error al eliminar madre:', error);
+        utils.showNotification(error.message || 'Error al eliminar madre', 'error');
+    }
 }
 
 // Función para seleccionar una madre
@@ -604,5 +660,6 @@ window.dashboard = {
     selectMadre,
     closeModal,
     closeMadresModal,
-    markMadreConExamen
+    markMadreConExamen,
+    confirmarEliminacionMadre
 };
