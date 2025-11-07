@@ -137,10 +137,10 @@ function mostrarDatos() {
                     <span>${textoEstado}</span>
                     <span>${fecha}</span>
                     <div class="exam-actions">
-                        <button class="btn btn-primary btn-xs" onclick="abrirEditarEoaModal('${examen.id}', '${registroId}', '${label}')" title="Editar examen">
+                        <button class="btn-icon btn-edit" onclick="abrirEditarEoaModal('${examen.id}', '${registroId}', '${label}')" title="Editar examen">
                             ✏️
                         </button>
-                        <button class="btn btn-danger btn-xs" onclick="eliminarExamenEoa('${examen.id}')" title="Eliminar examen">
+                        <button class="btn-icon btn-delete" onclick="eliminarExamenEoa('${examen.id}')" title="Eliminar examen">
                             🗑️
                         </button>
                     </div>
