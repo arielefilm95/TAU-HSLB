@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eliminar Registros Importados - TAU</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+        .danger-box {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: #721c24;
+        }
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-danger:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(231, 76, 60, 0.3);
+        }
+        .btn-danger:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #721c24;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Eliminar Todos los Registros Importados</h1>
+        
+        <div class="danger-box">
+            <h3>⚠️ ADVERTENCIA IMPORTANTE</h3>
+            <p>Esta acción eliminará <strong>PERMANENTEMENTE</strong> todos los registros importados de la base de datos:</p>
+            <ul>
+                <li>✅ Todos los registros de la tabla <code>partos_importados</code></li>
+                <li>✅ Todos los exámenes EOA relacionados con registros importados</li>
+                <li>✅ Todas las madres con <code>origen_registro = 'IMPORTADO'</code></li>
+            </ul>
+            <p><strong>Esta acción no se puede deshacer.</strong></p>
+        </div>
+
+        <div class="warning-box">
+            <h3>📋 Antes de continuar</h3>
+            <p>Se recomienda:</p>
+            <ul>
+                <li>Hacer un backup de la base de datos antes de proceder</li>
+                <li>Verificar que realmente quieres eliminar todos los datos importados</li>
+                <li>Confirmar que no hay información importante que necesites conservar</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <button id="eliminarBtn" class="btn-danger" onclick="confirmarEliminacion()">
+                🗑️ Eliminar Todos los Registros Importados
+            </button>
+        </div>
+
+        <div id="resultBox" class="result-box">
+            <h3>Resultado de la Operación</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config/supabase-config.js"></script>
+    <script>
+        let supabase;
+
+        async function initializeSupabase() {
+            try {
+                supabase = window.supabase.createClient(
+                    window.supabaseConfig.url,
+                    window.supabaseConfig.anonKey
+                );
+                console.log('✅ Supabase inicializado');
+            } catch (error) {
+                console.error('❌ Error al inicializar Supabase:', error);
+                showError('Error al conectar con la base de datos');
+            }
+        }
+
+        async function confirmarEliminacion() {
+            const confirmacion = confirm(
+                '¿ESTÁS SEGURO DE QUE QUIERES ELIMINAR TODOS LOS REGISTROS IMPORTADOS?\n\n' +
+                'Esta acción eliminará permanentemente:\n' +
+                '• Todos los registros importados\n' +
+                '• Todos los exámenes EOA relacionados\n' +
+                '• Todas las madres importadas\n\n' +
+                'ESTA ACCIÓN NO SE PUEDE DESHACER\n\n' +
+                'Escribe "ELIMINAR" para confirmar:'
+            );
+
+            if (!confirmacion) return;
+
+            const confirmacionTexto = prompt('Para confirmar, escribe exactamente: ELIMINAR');
+            if (confirmacionTexto !== 'ELIMINAR') {
+                alert('Texto de confirmación incorrecto. Operación cancelada.');
+                return;
+            }
+
+            await eliminarRegistrosImportados();
+        }
+
+        async function eliminarRegistrosImportados() {
+            const btn = document.getElementById('eliminarBtn');
+            const resultBox = document.getElementById('resultBox');
+            const resultContent = document.getElementById('resultContent');
+
+            try {
+                // Deshabilitar botón y mostrar loading
+                btn.disabled = true;
+                btn.textContent = '⏳ Eliminando registros...';
+                resultBox.style.display = 'block';
+                resultContent.innerHTML = '<div class="loading">Eliminando registros importados...</div>';
+
+                // Script SQL para eliminar todos los importados
+                const sqlScript = `
+                    -- Iniciar transacción
+                    BEGIN;
+                    
+                    -- 1. Eliminar todos los registros de partos_importados
+                    DELETE FROM partos_importados;
+                    
+                    -- 2. Eliminar exámenes EOA de madres importadas
+                    WITH madres_a_eliminar AS (
+                        SELECT id FROM madres WHERE origen_registro = 'IMPORTADO'
+                    )
+                    DELETE FROM examenes_eoa 
+                    WHERE madre_id IN (SELECT id FROM madres_a_eliminar);
+                    
+                    -- 3. Eliminar todas las madres con origen_registro = 'IMPORTADO'
+                    DELETE FROM madres WHERE origen_registro = 'IMPORTADO';
+                    
+                    -- Confirmar la transacción
+                    COMMIT;
+                    
+                    SELECT 'Todos los registros importados han sido eliminados exitosamente' AS resultado;
+                `;
+
+                // Ejecutar el script SQL usando RPC
+                const { data, error } = await supabase.rpc('exec_sql', { 
+                    sql_query: sqlScript 
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                // Verificar el resultado
+                await verificarResultados();
+
+            } catch (error) {
+                console.error('Error al eliminar registros importados:', error);
+                showError('Error al eliminar los registros: ' + error.message);
+            } finally {
+                // Restaurar botón
+                btn.disabled = false;
+                btn.textContent = '🗑️ Eliminar Todos los Registros Importados';
+            }
+        }
+
+        async function verificarResultados() {
+            const resultContent = document.getElementById('resultContent');
+            
+            try {
+                // Contar registros restantes
+                const { data: madresData, error: madresError } = await supabase
+                    .from('madres')
+                    .select('origen_registro')
+                    .eq('origen_registro', 'IMPORTADO');
+
+                const { data: importadosData, error: importadosError } = await supabase
+                    .from('partos_importados')
+                    .select('id');
+
+                const totalMadresImportadas = madresData ? madresData.length : 0;
+                const totalImportados = importadosData ? importadosData.length : 0;
+
+                if (totalMadresImportadas === 0 && totalImportados === 0) {
+                    showSuccess(`
+                        <h4>✅ Eliminación Completada Exitosamente</h4>
+                        <p>Todos los registros importados han sido eliminados permanentemente.</p>
+                        <ul>
+                            <li>Madres importadas restantes: ${totalMadresImportadas}</li>
+                            <li>Registros en partos_importados: ${totalImportados}</li>
+                        </ul>
+                        <p><strong>La base de datos ha sido limpiada exitosamente.</strong></p>
+                    `);
+                } else {
+                    showWarning(`
+                        <h4>⚠️ Eliminación Parcial</h4>
+                        <p>Algunos registros podrían no haber sido eliminados:</p>
+                        <ul>
+                            <li>Madres importadas restantes: ${totalMadresImportadas}</li>
+                            <li>Registros en partos_importados: ${totalImportados}</li>
+                        </ul>
+                        <p>Es posible que necesites ejecutar el script directamente en la base de datos.</p>
+                    `);
+                }
+
+            } catch (error) {
+                console.error('Error al verificar resultados:', error);
+                showError('Error al verificar los resultados: ' + error.message);
+            }
+        }
+
+        function showSuccess(message) {
+            const resultContent = document.getElementById('resultContent');
+            resultContent.innerHTML = `<div class="success">${message}</div>`;
+        }
+
+        function showError(message) {
+            const resultContent = document.getElementById('resultContent');
+            resultContent.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function showWarning(message) {
+            const resultContent = document.getElementById('resultContent');
+            resultContent.innerHTML = `<div class="warning-box">${message}</div>`;
+        }
+
+        // Inicializar cuando la página cargue
+        document.addEventListener('DOMContentLoaded', initializeSupabase);
+    </script>
+</body>
+</html>
