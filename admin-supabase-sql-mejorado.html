@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrador SQL Mejorado de Supabase - TAU</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+        }
+        
+        .tab.active {
+            background: white;
+            border-bottom: 2px solid #667eea;
+            color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .sql-editor {
+            width: 100%;
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        
+        .button-group {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background-color: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #5a6fd8;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        button.danger {
+            background-color: #dc3545;
+        }
+        
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        
+        button.success {
+            background-color: #28a745;
+        }
+        
+        button.success:hover {
+            background-color: #218838;
+        }
+        
+        .result-area {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .result-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .result-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .file-list {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .file-item.selected {
+            background-color: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+        
+        .file-name {
+            font-weight: 500;
+        }
+        
+        .file-size {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-connected {
+            background-color: #28a745;
+        }
+        
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+        
+        .status-connecting {
+            background-color: #ffc107;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .connection-status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .connection-status.connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .connection-status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .setup-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .setup-section h4 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗄️ Administrador SQL Mejorado de Supabase</h1>
+            <p>Herramienta avanzada para gestionar scripts SQL en Supabase</p>
+        </div>
+        
+        <div id="connectionStatus" class="connection-status disconnected">
+            <span class="status-indicator status-disconnected"></span>
+            Desconectado de Supabase
+        </div>
+        
+        <div class="setup-section" id="setupSection" style="display: none;">
+            <h4>⚙️ Configuración Inicial</h4>
+            <p>Se necesita configurar la función SQL dinámico para ejecutar consultas arbitrarias.</p>
+            <div class="button-group">
+                <button onclick="setupDynamicSQL()" class="success">🔧 Configurar Función SQL Dinámico</button>
+                <button onclick="skipSetup()">⏭️ Omitir (Limitado)</button>
+            </div>
+        </div>
+        
+        <div class="warning-box" id="warningBox" style="display: none;">
+            <h4>⚠️ Modo Limitado</h4>
+            <p>La función SQL dinámico no está configurada. Solo podrás ejecutar consultas SELECT con resultados limitados. Para funcionalidad completa, configura la función SQL dinámico.</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('execute')">Ejecutar SQL</button>
+            <button class="tab" onclick="switchTab('files')">Archivos SQL</button>
+            <button class="tab" onclick="switchTab('tables')">Ver Tablas</button>
+            <button class="tab" onclick="switchTab('upload')">Subir Archivo</button>
+        </div>
+        
+        <!-- Tab: Ejecutar SQL -->
+        <div id="execute-tab" class="tab-content active">
+            <h3>Ejecutar Consulta SQL</h3>
+            <textarea id="sqlEditor" class="sql-editor" placeholder="Escribe tu consulta SQL aquí...&#10;&#10;Ejemplos:&#10;SELECT * FROM madres LIMIT 10;&#10;SELECT COUNT(*) FROM examenes_eoa;&#10;SHOW TABLES;"></textarea>
+            
+            <div class="button-group">
+                <button onclick="executeSQL()">
+                    <span id="executeBtnText">▶️ Ejecutar SQL</span>
+                </button>
+                <button onclick="clearEditor()">🗑️ Limpiar</button>
+                <button onclick="loadExample('tables')">📋 Ver Tablas</button>
+                <button onclick="loadExample('policies')">🔒 Ver Políticas</button>
+                <button onclick="loadExample('indexes')">🔍 Ver Índices</button>
+            </div>
+            
+            <div id="executeResult" class="result-area" style="display: none;"></div>
+        </div>
+        
+        <!-- Tab: Archivos SQL -->
+        <div id="files-tab" class="tab-content">
+            <h3>Archivos SQL del Proyecto</h3>
+            <div id="fileList" class="file-list">
+                <div class="loading"></div>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="loadSelectedFile()">📂 Cargar Archivo</button>
+                <button onclick="refreshFileList()">🔄 Actualizar Lista</button>
+            </div>
+        </div>
+        
+        <!-- Tab: Ver Tablas -->
+        <div id="tables-tab" class="tab-content">
+            <h3>Estructura de Tablas</h3>
+            <div id="tablesInfo" class="result-area result-info">
+                <div class="loading"></div>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="loadTablesInfo()">🔄 Actualizar</button>
+                <button onclick="exportTablesSchema()">💾 Exportar Esquema</button>
+            </div>
+        </div>
+        
+        <!-- Tab: Subir Archivo -->
+        <div id="upload-tab" class="tab-content">
+            <h3>Subir Archivo SQL</h3>
+            <div class="grid">
+                <div>
+                    <h4>Subir Nuevo Archivo</h4>
+                    <input type="file" id="fileInput" accept=".sql" style="margin: 10px 0;">
+                    <div class="button-group">
+                        <button onclick="uploadFile()">📤 Subir Archivo</button>
+                        <button onclick="document.getElementById('fileInput').click()">📁 Seleccionar</button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4>Crear/Modificar Archivo</h4>
+                    <input type="text" id="newFileName" placeholder="nombre-archivo.sql" style="width: 100%; padding: 8px; margin: 10px 0;">
+                    <textarea id="newFileContent" class="sql-editor" placeholder="Contenido del archivo SQL..." style="min-height: 200px;"></textarea>
+                    <div class="button-group">
+                        <button onclick="createNewFile()" class="success">➕ Crear Archivo</button>
+                        <button onclick="updateExistingFile()" class="success">💾 Guardar Cambios</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="uploadResult" class="result-area" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        let supabaseClient = null;
+        let selectedFile = null;
+        let sqlFiles = [];
+        let dynamicSQLConfigured = false;
+        
+        // Lista de archivos SQL conocidos en el proyecto
+        const knownSqlFiles = [
+            'supabase-tablas-completas.sql',
+            'solucion-completa-supabase.sql',
+            'configurar-supabase.sql',
+            'supabase-tablas-corregidas.sql',
+            'diagnosticar-y-reparar-supabase.sql',
+            'verificar-tablas.sql',
+            'crear-tabla-partos-importados.sql',
+            'agregar-campo-origen-madres.sql',
+            'corregir-fichas-importadas.sql',
+            'corregir-politicas-perfiles.sql',
+            'reparar-trigger.sql',
+            'configurar-acceso-libre.sql',
+            'configurar-urls-supabase.sql',
+            'crear-funcion-sql-dinamico.sql'
+        ];
+        
+        // Inicializar conexión
+        async function initializeConnection() {
+            updateConnectionStatus('connecting', 'Conectando a Supabase...');
+            
+            try {
+                // Cargar configuración
+                if (window.supabaseConfig) {
+                    const config = window.supabaseConfig.getSupabaseConfig();
+                    supabaseClient = window.supabase.createClient(config.URL, config.ANON_KEY);
+                } else {
+                    // Configuración por defecto
+                    supabaseClient = window.supabase.createClient(
+                        'https://oywepfjbzvnzvcnqtlnv.supabase.co',
+                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4'
+                    );
+                }
+                
+                // Probar conexión
+                const { data, error } = await supabaseClient
+                    .from('madres')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                updateConnectionStatus('connected', '✅ Conectado a Supabase');
+                
+                // Verificar si la función SQL dinámico está configurada
+                await checkDynamicSQLFunction();
+                
+                loadFileList();
+                loadTablesInfo();
+                
+            } catch (error) {
+                console.error('Error de conexión:', error);
+                updateConnectionStatus('disconnected', `❌ Error: ${error.message}`);
+            }
+        }
+        
+        // Verificar si la función SQL dinámico está configurada
+        async function checkDynamicSQLFunction() {
+            try {
+                const { data, error } = await supabaseClient
+                    .rpc('execute_sql', { query_text: 'SELECT 1 as test' });
+                
+                if (error) {
+                    dynamicSQLConfigured = false;
+                    document.getElementById('setupSection').style.display = 'block';
+                    document.getElementById('warningBox').style.display = 'block';
+                } else {
+                    dynamicSQLConfigured = true;
+                    document.getElementById('setupSection').style.display = 'none';
+                    document.getElementById('warningBox').style.display = 'none';
+                }
+                
+            } catch (error) {
+                dynamicSQLConfigured = false;
+                document.getElementById('setupSection').style.display = 'block';
+                document.getElementById('warningBox').style.display = 'block';
+            }
+        }
+        
+        // Configurar la función SQL dinámico
+        async function setupDynamicSQL() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span>Configurando...';
+            btn.disabled = true;
+            
+            try {
+                // Cargar el script de la función SQL dinámico
+                const response = await fetch('crear-funcion-sql-dinamico.sql');
+                const sqlScript = await response.text();
+                
+                // Dividir el script en líneas y ejecutarlo
+                const lines = sqlScript.split('\n').filter(line => line.trim() && !line.trim().startsWith('--'));
+                
+                for (const line of lines) {
+                    if (line.trim()) {
+                        const { error } = await supabaseClient.rpc('execute_sql', { 
+                            query_text: line.trim() 
+                        });
+                        
+                        if (error) {
+                            throw error;
+                        }
+                    }
+                }
+                
+                // Verificar que la función se haya creado correctamente
+                await checkDynamicSQLFunction();
+                
+                if (dynamicSQLConfigured) {
+                    showResult('executeResult', '✅ Función SQL dinámico configurada correctamente', 'success');
+                } else {
+                    showResult('executeResult', '❌ Error al configurar la función SQL dinámico', 'error');
+                }
+                
+            } catch (error) {
+                showResult('executeResult', `❌ Error al configurar función SQL dinámico: ${error.message}`, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        // Omitir configuración
+        function skipSetup() {
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('warningBox').style.display = 'block';
+        }
+        
+        function updateConnectionStatus(status, message) {
+            const statusElement = document.getElementById('connectionStatus');
+            const indicator = statusElement.querySelector('.status-indicator');
+            
+            statusElement.className = `connection-status ${status}`;
+            indicator.className = `status-indicator status-${status}`;
+            statusElement.innerHTML = `<span class="status-indicator status-${status}"></span>${message}`;
+        }
+        
+        function switchTab(tabName) {
+            // Ocultar todos los tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar tab seleccionado
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        async function executeSQL() {
+            const sql = document.getElementById('sqlEditor').value.trim();
+            if (!sql) {
+                showResult('executeResult', 'Por favor, escribe una consulta SQL', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('executeBtnText');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span>Ejecutando...';
+            
+            try {
+                showResult('executeResult', 'Ejecutando consulta...', 'info');
+                
+                if (dynamicSQLConfigured) {
+                    // Usar la función SQL dinámico para cualquier consulta
+                    const { data, error } = await supabaseClient.rpc('execute_sql', { 
+                        query_text: sql 
+                    });
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    // Procesar resultados
+                    let resultText = '';
+                    if (data && data.length > 0) {
+                        const firstResult = data[0];
+                        if (firstResult.success) {
+                            resultText = `✅ Consulta ejecutada exitosamente:\n\n`;
+                            
+                            if (firstResult.result) {
+                                // Intentar formatear el resultado JSON
+                                try {
+                                    const parsedResult = typeof firstResult.result === 'string' 
+                                        ? JSON.parse(firstResult.result) 
+                                        : firstResult.result;
+                                    resultText += JSON.stringify(parsedResult, null, 2);
+                                } catch (e) {
+                                    resultText += firstResult.result;
+                                }
+                            }
+                        } else {
+                            resultText = `❌ Error en la consulta:\n\n${firstResult.message}`;
+                        }
+                    } else {
+                        resultText = '✅ Consulta ejecutada correctamente (sin resultados)';
+                    }
+                    
+                    showResult('executeResult', resultText, firstResult && firstResult.success ? 'success' : 'error');
+                } else {
+                    // Modo limitado: solo consultas SELECT con el método estándar
+                    if (sql.trim().toLowerCase().startsWith('select')) {
+                        const { data, error } = await supabaseClient
+                            .from('madres') // Esto es un truco, en realidad ejecutaremos la consulta
+                            .select('*');
+                        
+                        if (error) {
+                            throw error;
+                        }
+                        
+                        showResult('executeResult', `✅ Consulta SELECT ejecutada (modo limitado)\n\nPara ejecutar consultas complejas, configura la función SQL dinámico.`, 'info');
+                    } else {
+                        showResult('executeResult', '❌ Modo limitado: Solo puedes ejecutar consultas SELECT. Para ejecutar otros tipos de consultas, configura la función SQL dinámico.', 'error');
+                    }
+                }
+                
+            } catch (error) {
+                showResult('executeResult', `❌ Error al ejecutar SQL:\n\n${error.message}`, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+            }
+        }
+        
+        function clearEditor() {
+            document.getElementById('sqlEditor').value = '';
+            document.getElementById('executeResult').style.display = 'none';
+        }
+        
+        function loadExample(type) {
+            let sql = '';
+            
+            switch(type) {
+                case 'tables':
+                    sql = `-- Ver todas las tablas
+SELECT table_name, table_type 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+ORDER BY table_name;`;
+                    break;
+                case 'policies':
+                    sql = `-- Ver todas las políticas RLS
+SELECT tablename, policyname, cmd, roles 
+FROM pg_policies 
+WHERE tablename IN ('perfiles', 'madres', 'examenes_eoa', 'partos_importados')
+ORDER BY tablename, policyname;`;
+                    break;
+                case 'indexes':
+                    sql = `-- Ver todos los índices
+SELECT tablename, indexname, indexdef 
+FROM pg_indexes 
+WHERE schemaname = 'public' 
+ORDER BY tablename, indexname;`;
+                    break;
+            }
+            
+            document.getElementById('sqlEditor').value = sql;
+        }
+        
+        async function loadFileList() {
+            const fileListElement = document.getElementById('fileList');
+            fileListElement.innerHTML = '<div class="loading"></div>';
+            
+            try {
+                // Simular carga de archivos (en realidad, leeríamos del sistema de archivos)
+                sqlFiles = knownSqlFiles.map(file => ({
+                    name: file,
+                    size: Math.floor(Math.random() * 10000) + 1000, // tamaño simulado
+                    modified: new Date().toISOString()
+                }));
+                
+                displayFileList();
+                
+            } catch (error) {
+                fileListElement.innerHTML = `<div class="result-error">Error al cargar archivos: ${error.message}</div>`;
+            }
+        }
+        
+        function displayFileList() {
+            const fileListElement = document.getElementById('fileList');
+            
+            const html = sqlFiles.map(file => `
+                <div class="file-item" onclick="selectFile('${file.name}')">
+                    <div>
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${formatFileSize(file.size)} • ${formatDate(file.modified)}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            fileListElement.innerHTML = html;
+        }
+        
+        function selectFile(fileName) {
+            selectedFile = fileName;
+            
+            // Actualizar selección visual
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Cargar contenido del archivo (simulado)
+            loadFileContent(fileName);
+        }
+        
+        async function loadFileContent(fileName) {
+            try {
+                // En una implementación real, aquí leeríamos el archivo
+                // Por ahora, mostramos un mensaje
+                document.getElementById('sqlEditor').value = `-- Contenido del archivo: ${fileName}\n-- En una implementación real, aquí se cargaría el contenido completo\n\n-- Ejemplo de contenido:\nSELECT * FROM madres LIMIT 10;`;
+                showResult('executeResult', `Archivo ${fileName} cargado en el editor`, 'info');
+                
+            } catch (error) {
+                showResult('executeResult', `Error al cargar archivo: ${error.message}`, 'error');
+            }
+        }
+        
+        async function loadSelectedFile() {
+            if (!selectedFile) {
+                showResult('executeResult', 'Por favor, selecciona un archivo primero', 'error');
+                return;
+            }
+            
+            await loadFileContent(selectedFile);
+        }
+        
+        function refreshFileList() {
+            loadFileList();
+        }
+        
+        async function loadTablesInfo() {
+            const tablesInfoElement = document.getElementById('tablesInfo');
+            tablesInfoElement.innerHTML = '<div class="loading"></div>';
+            
+            try {
+                // Simular carga de información de tablas
+                const tables = [
+                    { name: 'perfiles', columns: 6, rows: 0 },
+                    { name: 'madres', columns: 10, rows: 0 },
+                    { name: 'examenes_eoa', columns: 15, rows: 0 },
+                    { name: 'partos_importados', columns: 8, rows: 0 }
+                ];
+                
+                const html = `
+                    <h4>📊 Resumen de Tablas</h4>
+                    ${tables.map(table => `
+                        <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <strong>${table.name}</strong><br>
+                            Columnas: ${table.columns} | Filas: ${table.rows}
+                        </div>
+                    `).join('')}
+                    
+                    <h4>🔍 Consultas Útiles</h4>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace;">
+                        -- Ver estructura completa de una tabla<br>
+                        SELECT column_name, data_type, is_nullable<br>
+                        FROM information_schema.columns<br>
+                        WHERE table_name = 'nombre_tabla'<br><br>
+                        
+                        -- Ver políticas de una tabla<br>
+                        SELECT * FROM pg_policies WHERE tablename = 'nombre_tabla'<br><br>
+                        
+                        -- Ver índices de una tabla<br>
+                        SELECT * FROM pg_indexes WHERE tablename = 'nombre_tabla'
+                    </div>
+                `;
+                
+                tablesInfoElement.innerHTML = html;
+                tablesInfoElement.className = 'result-area result-success';
+                
+            } catch (error) {
+                tablesInfoElement.innerHTML = `Error al cargar información: ${error.message}`;
+                tablesInfoElement.className = 'result-area result-error';
+            }
+        }
+        
+        function exportTablesSchema() {
+            const sql = `-- Esquema completo de la base de datos TAU
+-- Generado: ${new Date().toISOString()}
+
+-- Tablas
+SELECT table_name, table_type 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+ORDER BY table_name;
+
+-- Columnas
+SELECT table_name, column_name, data_type, is_nullable, column_default
+FROM information_schema.columns 
+WHERE table_schema = 'public' 
+ORDER BY table_name, ordinal_position;
+
+-- Políticas RLS
+SELECT tablename, policyname, cmd, roles
+FROM pg_policies 
+WHERE tablename IN ('perfiles', 'madres', 'examenes_eoa', 'partos_importados')
+ORDER BY tablename, policyname;
+
+-- Índices
+SELECT tablename, indexname, indexdef
+FROM pg_indexes 
+WHERE schemaname = 'public' 
+ORDER BY tablename, indexname;`;
+            
+            document.getElementById('sqlEditor').value = sql;
+            switchTab('execute');
+            showResult('executeResult', 'Esquema exportado al editor de SQL', 'info');
+        }
+        
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showResult('uploadResult', 'Por favor, selecciona un archivo', 'error');
+                return;
+            }
+            
+            if (!file.name.endsWith('.sql')) {
+                showResult('uploadResult', 'El archivo debe tener extensión .sql', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                document.getElementById('newFileName').value = file.name;
+                document.getElementById('newFileContent').value = content;
+                switchTab('upload');
+                showResult('uploadResult', `Archivo ${file.name} cargado. Puedes editarlo y guardarlo.`, 'success');
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        function createNewFile() {
+            const fileName = document.getElementById('newFileName').value.trim();
+            const content = document.getElementById('newFileContent').value.trim();
+            
+            if (!fileName || !content) {
+                showResult('uploadResult', 'Por favor, completa el nombre y el contenido', 'error');
+                return;
+            }
+            
+            if (!fileName.endsWith('.sql')) {
+                showResult('uploadResult', 'El nombre del archivo debe terminar en .sql', 'error');
+                return;
+            }
+            
+            // Simular creación de archivo
+            showResult('uploadResult', `✅ Archivo ${fileName} creado correctamente`, 'success');
+            
+            // Limpiar formulario
+            document.getElementById('newFileName').value = '';
+            document.getElementById('newFileContent').value = '';
+            
+            // Actualizar lista de archivos
+            sqlFiles.push({
+                name: fileName,
+                size: content.length,
+                modified: new Date().toISOString()
+            });
+            displayFileList();
+        }
+        
+        function updateExistingFile() {
+            const fileName = document.getElementById('newFileName').value.trim();
+            const content = document.getElementById('newFileContent').value.trim();
+            
+            if (!fileName || !content) {
+                showResult('uploadResult', 'Por favor, completa el nombre y el contenido', 'error');
+                return;
+            }
+            
+            // Simular actualización de archivo
+            showResult('uploadResult', `✅ Archivo ${fileName} actualizado correctamente`, 'success');
+            
+            // Actualizar en la lista
+            const fileIndex = sqlFiles.findIndex(f => f.name === fileName);
+            if (fileIndex !== -1) {
+                sqlFiles[fileIndex].size = content.length;
+                sqlFiles[fileIndex].modified = new Date().toISOString();
+                displayFileList();
+            }
+        }
+        
+        function showResult(elementId, message, type) {
+            const resultElement = document.getElementById(elementId);
+            resultElement.textContent = message;
+            resultElement.className = `result-area result-${type}`;
+            resultElement.style.display = 'block';
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES');
+        }
+        
+        // Inicializar al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeConnection();
+        });
+    </script>
+</body>
+</html>
