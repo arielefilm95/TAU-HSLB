@@ -55,9 +55,9 @@
                             <line x1="23" y1="11" x2="17" y2="11"></line>
                         </svg>
                     </div>
-                    <h3>Registrar Madre</h3>
-                    <p>Agregar nueva madre con su información de hospitalización</p>
-                    <button id="registrarMadreBtn" class="btn btn-primary">Registrar</button>
+                    <h3>Registro</h3>
+                    <p>Registrar nueva madre o bebé con su información</p>
+                    <button id="registrarBtn" class="btn btn-primary">Registrar</button>
                 </div>
                 
                 <div class="card">
@@ -69,8 +69,8 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                         </svg>
                     </div>
-                    <h3>Ver Madres Registradas</h3>
-                    <p>Lista de todas las madres y sus exámenes EOA</p>
+                    <h3>Lista de Usuarios</h3>
+                    <p>Lista de todos los usuarios registrados y sus exámenes EOA</p>
                     <button id="verMadresBtn" class="btn btn-primary">Ver Lista</button>
                 </div>
                 
@@ -110,65 +110,191 @@
             </div>
         </main>
         
-        <!-- Modal for Register Mother -->
+        <!-- Unified Registration Modal -->
         <div id="modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Registrar Nueva Madre</h3>
+                    <h3 id="modalTitle">Registrar</h3>
                     <button class="modal-close" onclick="closeModal()">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <form id="madreForm">
-                        <div class="form-group">
-                            <label for="nombreMadre">Nombre de la Madre</label>
-                            <input type="text" id="nombreMadre" name="nombreMadre" required placeholder="Nombre">
-                            <span class="error-message" id="nombreMadreError"></span>
+                    <!-- Selector inicial -->
+                    <div id="tipoRegistroSelector" class="form-section">
+                        <h4>¿Qué desea registrar?</h4>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="tipoRegistro" value="madre" required>
+                                <span class="radio-custom"></span>
+                                Madre
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="tipoRegistro" value="bebe" required>
+                                <span class="radio-custom"></span>
+                                Bebé (NEO)
+                            </label>
                         </div>
+                    </div>
 
-                        <div class="form-group">
-                            <label for="apellidoMadre">Apellido de la Madre</label>
-                            <input type="text" id="apellidoMadre" name="apellidoMadre" required placeholder="Apellido">
-                            <span class="error-message" id="apellidoMadreError"></span>
-                        </div>
+                    <!-- Formulario Madre -->
+                    <div id="madreFormContainer" style="display: none;">
+                        <form id="madreForm">
+                            <div class="form-section">
+                                <h4>Datos de la Madre</h4>
+                                <div class="form-group">
+                                    <label for="nombreMadre">Nombre de la Madre</label>
+                                    <input type="text" id="nombreMadre" name="nombreMadre" required placeholder="Nombre">
+                                    <span class="error-message" id="nombreMadreError"></span>
+                                </div>
 
-                        <div class="form-group">
-                            <label for="rut">RUT de la Madre</label>
-                            <input type="text" id="rut" name="rut" required placeholder="12345678-9" maxlength="10" inputmode="tel" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
-                            <span class="error-message" id="rutError"></span>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="numeroFicha">Número de Ficha</label>
-                            <input type="text" id="numeroFicha" name="numeroFicha" required placeholder="Número de ficha">
-                            <span class="error-message" id="numeroFichaError"></span>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="sala">Sala</label>
-                            <input type="text" id="sala" name="sala" required placeholder="Ej: Mater">
-                            <span class="error-message" id="salaError"></span>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="cama">Cama</label>
-                            <input type="text" id="cama" name="cama" required placeholder="Ej: 15">
-                            <span class="error-message" id="camaError"></span>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="cantidadHijos">Cantidad de Hijos</label>
-                            <input type="number" id="cantidadHijos" name="cantidadHijos" required min="1" step="1" placeholder="Ingrese número de hijos">
-                            <span class="error-message" id="cantidadHijosError"></span>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-                            <button type="submit" class="btn btn-primary" id="guardarMadreBtn">
-                                <span class="btn-text">Guardar</span>
-                                <span class="btn-loader" style="display: none;">Guardando...</span>
-                            </button>
-                        </div>
-                    </form>
+                                <div class="form-group">
+                                    <label for="apellidoMadre">Apellido de la Madre</label>
+                                    <input type="text" id="apellidoMadre" name="apellidoMadre" required placeholder="Apellido">
+                                    <span class="error-message" id="apellidoMadreError"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="rut">RUT de la Madre</label>
+                                    <input type="text" id="rut" name="rut" required placeholder="12345678-9" maxlength="10" inputmode="tel" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
+                                    <span class="error-message" id="rutError"></span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="numeroFicha">Número de Ficha</label>
+                                    <input type="text" id="numeroFicha" name="numeroFicha" required placeholder="Número de ficha">
+                                    <span class="error-message" id="numeroFichaError"></span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="sala">Sala</label>
+                                    <input type="text" id="sala" name="sala" required placeholder="Ej: Mater">
+                                    <span class="error-message" id="salaError"></span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="cama">Cama</label>
+                                    <input type="text" id="cama" name="cama" required placeholder="Ej: 15">
+                                    <span class="error-message" id="camaError"></span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="cantidadHijos">Cantidad de Hijos</label>
+                                    <input type="number" id="cantidadHijos" name="cantidadHijos" required min="1" step="1" placeholder="Ingrese número de hijos">
+                                    <span class="error-message" id="cantidadHijosError"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                                <button type="submit" class="btn btn-primary" id="guardarMadreBtn">
+                                    <span class="btn-text">Guardar Madre</span>
+                                    <span class="btn-loader" style="display: none;">Guardando...</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Formulario Bebé -->
+                    <div id="bebeFormContainer" style="display: none;">
+                        <form id="bebeForm">
+                            <div class="form-section">
+                                <h4>Datos del Bebé</h4>
+                                <div class="form-group">
+                                    <label for="nombreBebe">Nombre del Bebé</label>
+                                    <input type="text" id="nombreBebe" name="nombreBebe" required placeholder="Nombre del bebé">
+                                    <span class="error-message" id="nombreBebeError"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="apellidoBebe">Apellido del Bebé</label>
+                                    <input type="text" id="apellidoBebe" name="apellidoBebe" required placeholder="Apellido del bebé">
+                                    <span class="error-message" id="apellidoBebeError"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="rutBebe">RUT del Bebé</label>
+                                    <input type="text" id="rutBebe" name="rutBebe" required placeholder="12345678-9" maxlength="10" inputmode="tel" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
+                                    <span class="error-message" id="rutBebeError"></span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="numeroFichaBebe">Número de Ficha</label>
+                                    <input type="text" id="numeroFichaBebe" name="numeroFichaBebe" required placeholder="Número de ficha">
+                                    <span class="error-message" id="numeroFichaBebeError"></span>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fechaNacimientoBebe">Fecha de Nacimiento</label>
+                                        <input type="date" id="fechaNacimientoBebe" name="fechaNacimientoBebe" required>
+                                        <span class="error-message" id="fechaNacimientoBebeError"></span>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Sexo del Bebé</label>
+                                        <div class="radio-group">
+                                            <label class="radio-label">
+                                                <input type="radio" name="sexoBebe" value="MASCULINO" required>
+                                                <span class="radio-custom"></span>
+                                                Masculino
+                                            </label>
+                                            <label class="radio-label">
+                                                <input type="radio" name="sexoBebe" value="FEMENINO" required>
+                                                <span class="radio-custom"></span>
+                                                Femenino
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="semanasGestacionBebe">Semanas de Gestación</label>
+                                        <input type="number" id="semanasGestacionBebe" name="semanasGestacionBebe" min="20" max="42" required placeholder="Ej: 38">
+                                        <span class="error-message" id="semanasGestacionBebeError"></span>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Tipo de Parto</label>
+                                        <div class="radio-group">
+                                            <label class="radio-label">
+                                                <input type="radio" name="tipoPartoBebe" value="NORMAL" required>
+                                                <span class="radio-custom"></span>
+                                                Normal
+                                            </label>
+                                            <label class="radio-label">
+                                                <input type="radio" name="tipoPartoBebe" value="CESAREA" required>
+                                                <span class="radio-custom"></span>
+                                                Cesárea
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-section">
+                                <h4>Ubicación en NEO</h4>
+                                <div class="form-group">
+                                    <label for="salaNeo">Sala NEO</label>
+                                    <input type="text" id="salaNeo" name="salaNeo" required placeholder="Ej: NEO 1">
+                                    <span class="error-message" id="salaNeoError"></span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="cunaNeo">Cuna/Incubadora</label>
+                                    <input type="text" id="cunaNeo" name="cunaNeo" required placeholder="Ej: Cuna 5">
+                                    <span class="error-message" id="cunaNeoError"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                                <button type="submit" class="btn btn-primary" id="guardarBebeBtn">
+                                    <span class="btn-text">Guardar Bebé</span>
+                                    <span class="btn-loader" style="display: none;">Guardando...</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -177,7 +303,7 @@
         <div id="madresModal" class="modal" style="display: none;">
             <div class="modal-content modal-large">
                 <div class="modal-header">
-                    <h3>Madres Registradas</h3>
+                    <h3>Lista de Usuarios</h3>
                     <button class="modal-close" onclick="closeMadresModal()">&times;</button>
                 </div>
                 <div class="modal-body">
@@ -398,7 +524,9 @@
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/utils.js?v=202511071200"></script>
+    <script src="config/supabase-config.js?v=202511110000"></script>
+    <script src="js/auth.js?v=202511110000"></script>
+    <script src="js/utils.js?v=202511092000"></script>
     <script>
         // Configuración directa de Supabase
         const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
@@ -495,18 +623,18 @@
         function setupEventListenersManually() {
             console.log('🔧 Configurando event listeners manualmente...');
             
-            // Botón registrar madre
-            const registrarMadreBtn = document.getElementById('registrarMadreBtn');
-            if (registrarMadreBtn) {
+            // Botón registrar unificado
+            const registrarBtn = document.getElementById('registrarBtn');
+            if (registrarBtn) {
                 // Remover listeners anteriores para evitar duplicados
-                registrarMadreBtn.replaceWith(registrarMadreBtn.cloneNode(true));
-                const newBtn = document.getElementById('registrarMadreBtn');
+                registrarBtn.replaceWith(registrarBtn.cloneNode(true));
+                const newBtn = document.getElementById('registrarBtn');
                 
                 newBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    console.log('🖱️ Botón registrar madre clickeado');
+                    console.log('🖱️ Botón registrar clickeado');
                     
-                    // Abrir modal directamente
+                    // Abrir modal unificado
                     const modal = document.getElementById('modal');
                     if (modal) {
                         modal.style.display = 'flex';
@@ -514,25 +642,24 @@
                             modal.classList.add('show');
                         }, 10);
                         
-                        // Limpiar formulario
-                        if (typeof utils !== 'undefined' && utils.limpiarFormulario) {
-                            utils.limpiarFormulario('madreForm');
-                        }
-                        
-                        // Enfocar primer campo
-                        setTimeout(() => {
-                            const rutInput = document.getElementById('rut');
-                            if (rutInput) {
-                                rutInput.focus();
-                            }
-                        }, 100);
+                        // Resetear estado inicial
+                        window.resetModalState();
                     }
                 });
                 
-                console.log('✅ Event listener para botón registrar madre configurado');
+                console.log('✅ Event listener para botón registrar configurado');
             } else {
-                console.error('❌ No se encontró el botón registrarMadreBtn');
+                console.error('❌ No se encontró el botón registrarBtn');
             }
+            
+            // Event listeners para el selector de tipo de registro
+            const tipoRegistroRadios = document.querySelectorAll('input[name="tipoRegistro"]');
+            tipoRegistroRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const tipo = this.value;
+                    showFormulario(tipo);
+                });
+            });
             
             // Botón ver madres
             const verMadresBtn = document.getElementById('verMadresBtn');
@@ -768,7 +895,193 @@
                 
                 console.log('✅ Event listener para formulario madre configurado');
             }
+            
+            // Formulario de bebé
+            const bebeForm = document.getElementById('bebeForm');
+            if (bebeForm) {
+                bebeForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    console.log('📝 Formulario bebé enviado');
+                    
+                    // Validar formulario
+                    if (typeof utils !== 'undefined' && utils.validarFormulario) {
+                        if (!utils.validarFormulario('bebeForm')) {
+                            return;
+                        }
+                    }
+                    
+                    // Obtener datos del formulario
+                    const rutBebeInput = document.getElementById('rutBebe');
+                    const nombreBebe = document.getElementById('nombreBebe').value.trim();
+                    const apellidoBebe = document.getElementById('apellidoBebe').value.trim();
+                    const rutFormateado = (typeof utils !== 'undefined' && utils.formatearRUT)
+                        ? utils.formatearRUT(rutBebeInput.value.trim())
+                        : rutBebeInput.value.trim().replace(/\./g, '').toUpperCase();
+                    const rutNormalizado = rutFormateado.replace('-', '');
+
+                    // Validar RUT
+                    if (typeof utils !== 'undefined' && utils.validarRUT && !utils.validarRUT(rutFormateado)) {
+                        const errorElement = document.getElementById('rutBebeError');
+                        if (errorElement) {
+                            errorElement.textContent = 'RUT inválido';
+                        }
+                        rutBebeInput.classList.add('error');
+                        return;
+                    }
+
+                    const formData = {
+                        nombre: nombreBebe,
+                        apellido: apellidoBebe,
+                        rut: rutNormalizado,
+                        numero_ficha: document.getElementById('numeroFichaBebe').value.trim(),
+                        sala: document.getElementById('salaNeo').value.trim(),
+                        cama: document.getElementById('cunaNeo').value.trim(),
+                        cantidad_hijos: 1, // Para bebés NEO siempre es 1
+                        origen_registro: 'NEO', // Marcar como registro NEO
+                        // Datos adicionales del bebé
+                        fecha_nacimiento: document.getElementById('fechaNacimientoBebe').value,
+                        sexo_bebe: document.querySelector('input[name="sexoBebe"]:checked')?.value,
+                        tipo_parto: document.querySelector('input[name="tipoPartoBebe"]:checked')?.value,
+                        semanas_gestacion: parseInt(document.getElementById('semanasGestacionBebe').value, 10)
+                    };
+                    
+                    // Mostrar loader
+                    if (typeof utils !== 'undefined' && utils.toggleButtonLoader) {
+                        utils.toggleButtonLoader('guardarBebeBtn', true);
+                    }
+                    
+                    // Guardar en Supabase
+                    if (window.supabaseClient) {
+                        window.supabaseClient
+                            .from('madres')
+                            .insert([formData])
+                            .select()
+                            .then(({ data, error }) => {
+                                if (error) {
+                                    throw error;
+                                }
+                                
+                                // Éxito
+                                if (typeof utils !== 'undefined' && utils.showNotification) {
+                                    utils.showNotification('Bebé registrado exitosamente', 'success');
+                                }
+                                
+                                // Cerrar modal
+                                const modal = document.getElementById('modal');
+                                if (modal) {
+                                    modal.classList.remove('show');
+                                    setTimeout(() => {
+                                        modal.style.display = 'none';
+                                    }, 300);
+                                }
+                                
+                                // Recargar registros recientes
+                                if (typeof dashboard !== 'undefined' && dashboard.loadRecentMothers) {
+                                    dashboard.loadRecentMothers();
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error al registrar bebé:', error);
+                                if (typeof utils !== 'undefined' && utils.showNotification) {
+                                    if (error.code === '23505') {
+                                        utils.showNotification('El RUT ya está registrado', 'error');
+                                    } else {
+                                        utils.showNotification('Error al registrar bebé', 'error');
+                                    }
+                                }
+                            })
+                            .finally(() => {
+                                if (typeof utils !== 'undefined' && utils.toggleButtonLoader) {
+                                    utils.toggleButtonLoader('guardarBebeBtn', false);
+                                }
+                            });
+                    }
+                });
+                
+                // Agregar event listener para validación de RUT de bebé
+                const rutBebeInput = document.getElementById('rutBebe');
+                if (rutBebeInput) {
+                    rutBebeInput.addEventListener('input', function() {
+                        if (typeof utils !== 'undefined' && utils.formatearRUTInput) {
+                            utils.formatearRUTInput(this);
+                        }
+                    });
+                    
+                    rutBebeInput.addEventListener('blur', function() {
+                        const value = this.value.trim();
+                        if (value && typeof utils !== 'undefined' && utils.validarRUT && !utils.validarRUT(value)) {
+                            document.getElementById('rutBebeError').textContent = 'RUT inválido. Use formato: 12345678-9';
+                            this.classList.add('error');
+                        } else if (value) {
+                            document.getElementById('rutBebeError').textContent = '';
+                            this.classList.remove('error');
+                        }
+                    });
+                }
+                
+                console.log('✅ Event listener para formulario bebé configurado');
+            }
         }
+        
+        // Funciones globales para manejar el estado del modal unificado
+        function resetModalState() {
+            // Ocultar ambos formularios
+            document.getElementById('madreFormContainer').style.display = 'none';
+            document.getElementById('bebeFormContainer').style.display = 'none';
+            
+            // Mostrar selector
+            document.getElementById('tipoRegistroSelector').style.display = 'block';
+            
+            // Limpiar selecciones
+            const radios = document.querySelectorAll('input[name="tipoRegistro"]');
+            radios.forEach(radio => radio.checked = false);
+            
+            // Limpiar formularios
+            if (typeof utils !== 'undefined' && utils.limpiarFormulario) {
+                utils.limpiarFormulario('madreForm');
+                utils.limpiarFormulario('bebeForm');
+            }
+            
+            // Resetear título
+            document.getElementById('modalTitle').textContent = 'Registrar';
+        }
+        
+        function showFormulario(tipo) {
+            // Ocultar selector
+            document.getElementById('tipoRegistroSelector').style.display = 'none';
+            
+            if (tipo === 'madre') {
+                // Mostrar formulario madre
+                document.getElementById('madreFormContainer').style.display = 'block';
+                document.getElementById('bebeFormContainer').style.display = 'none';
+                document.getElementById('modalTitle').textContent = 'Registrar Nueva Madre';
+                
+                // Enfocar primer campo
+                setTimeout(() => {
+                    const rutInput = document.getElementById('rut');
+                    if (rutInput) {
+                        rutInput.focus();
+                    }
+                }, 100);
+            } else if (tipo === 'bebe') {
+                // Mostrar formulario bebé
+                document.getElementById('bebeFormContainer').style.display = 'block';
+                document.getElementById('madreFormContainer').style.display = 'none';
+                document.getElementById('modalTitle').textContent = 'Registrar Bebé (NEO)';
+                
+                // Enfocar primer campo
+                setTimeout(() => {
+                    const rutBebeInput = document.getElementById('rutBebe');
+                    if (rutBebeInput) {
+                        rutBebeInput.focus();
+                    }
+                }, 100);
+            }
+        }
+        
+        // Hacer funciones accesibles globalmente
+        window.resetModalState = resetModalState;
+        window.showFormulario = showFormulario;
         
         // Función para cargar datos iniciales del dashboard
         async function loadInitialData() {
@@ -969,6 +1282,9 @@
                     modal.style.display = 'none';
                 }, 300);
             }
+            
+            // Resetear estado del modal al cerrar
+            window.resetModalState();
         };
         
         window.closeMadresModal = function() {
@@ -990,6 +1306,7 @@
                 }, 300);
             }
         };
+        
         
         // Configurar service worker para GitHub Pages
         if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
