@@ -535,7 +535,7 @@
         // Inicializar Supabase directamente
         let supabase;
         
-        function initializeSupabase() {
+        function initializeeSupabase() {
             if (typeof window.supabase !== 'undefined') {
                 try {
                     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -560,7 +560,7 @@
                 }
             } else {
                 console.log('⏳ Esperando a Supabase...');
-                setTimeout(initializeSupabase, 100);
+                setTimeout(initializeeSupabase, 100);
             }
         }
         
@@ -1323,7 +1323,7 @@
 
                     function requestSkipWaiting(worker) {
                         if (!worker) return;
-                        worker.postMessage({ type: 'SKIP_WAITING' });
+                        worker.postMessage({ type: 'SKIP_WAITINGING' });
                     }
 
                     if (registration.waiting) {
@@ -1369,9 +1369,9 @@
 
         // Iniciar la carga después de que el DOM esté listo
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeSupabase);
+            document.addEventListener('DOMContentLoaded', initializeeSupabase);
         } else {
-            initializeSupabase();
+            initializeeSupabase();
         }
     </script>
 </body>
