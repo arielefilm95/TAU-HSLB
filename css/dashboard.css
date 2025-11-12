@@ -302,9 +302,11 @@
 }
 
 .recent-item-actions .btn-small {
-    padding: 4px 8px;
-    font-size: 0.7rem;
+    padding: 6px 10px;
+    font-size: 0.75rem;
     white-space: nowrap;
+    min-width: 100px;
+    text-align: center;
 }
 
 /* Indicador de expansión */
@@ -623,8 +625,12 @@
     
     .recent-item-actions .btn-small {
         width: 100%;
-        padding: 6px 10px;
-        font-size: 0.75rem;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .recent-item-expand {
@@ -686,8 +692,12 @@
     }
     
     .recent-item-actions .btn-small {
-        padding: 6px 8px;
-        font-size: 0.7rem;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .madre-item {
