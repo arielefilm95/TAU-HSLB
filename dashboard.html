@@ -1224,7 +1224,7 @@
                 
                 if (!recentMothersElement) return;
                 
-                if (!allMadresData || allMadresData.length === 0) {
+                if (!allPacientesData || allPacientesData.length === 0) {
                     recentMothersElement.innerHTML = '<p class="no-data">No hay registros recientes del día</p>';
                     console.log('📭 No hay registros recientes del día para mostrar');
                     return;
@@ -1232,7 +1232,7 @@
                 
                 // Filtrar usando el campo origen_registro (método preferido)
                 try {
-                    var data = allMadresData.filter(madre => madre.origen_registro === 'MANUAL');
+                    var data = allPacientesData.filter(paciente => paciente.origen_registro === 'MANUAL');
                     console.log('✅ Filtrado usando campo origen_registro');
                 } catch (error) {
                     console.warn('⚠️ Error al filtrar por origen_registro, usando método alternativo:', error);
@@ -1247,7 +1247,7 @@
                     if (importadosError) {
                         console.warn('⚠️ Error al obtener datos importados, mostrando todos:', importadosError);
                         // Si hay error con importados, mostrar todos los del día
-                        var data = allMadresData;
+                        var data = allPacientesData;
                     } else {
                         // Filtrar los que no son importados
                         const importadosIds = new Set((importadosData || []).map(i => i.madre_id));
@@ -1261,24 +1261,24 @@
                     return;
                 }
                 
-                const html = data.map(madre => `
-                    <div class="recent-item" data-madre-id="${madre.id}">
+                const html = data.map(paciente => `
+                    <div class="recent-item" data-madre-id="${paciente.id}">
                         <div class="recent-item-info">
-                            <div class="recent-item-rut">${window.utils ? window.utils.escapeHTML(window.utils.formatearRUT(madre.rut)) : madre.rut}</div>
+                            <div class="recent-item-rut">${window.utils ? window.utils.escapeHTML(window.utils.formatearRUT(paciente.rut)) : paciente.rut}</div>
                             <div class="recent-item-sala-cama">
-                                <div class="recent-item-sala">Sala: ${window.utils ? window.utils.escapeHTML(madre.sala) : madre.sala}</div>
-                                <div class="recent-item-cama">Cama: ${window.utils ? window.utils.escapeHTML(madre.cama) : madre.cama}</div>
+                                <div class="recent-item-sala">Sala: ${window.utils ? window.utils.escapeHTML(paciente.sala) : paciente.sala}</div>
+                                <div class="recent-item-cama">Cama: ${window.utils ? window.utils.escapeHTML(paciente.cama) : paciente.cama}</div>
                             </div>
                             <div class="recent-item-details">
-                                Ficha: ${window.utils ? window.utils.escapeHTML(madre.numero_ficha) : madre.numero_ficha} |
-                                Hijos: ${madre.cantidad_hijos ?? 'N/A'}
+                                Ficha: ${window.utils ? window.utils.escapeHTML(paciente.numero_ficha) : paciente.numero_ficha} |
+                                Hijos: ${paciente.cantidad_hijos ?? 'N/A'}
                             </div>
                         </div>
                         <div class="recent-item-date">
-                            ${window.utils ? window.utils.formatearFecha(madre.created_at) : new Date(madre.created_at).toLocaleDateString()}
+                            ${window.utils ? window.utils.formatearFecha(paciente.created_at) : new Date(paciente.created_at).toLocaleDateString()}
                         </div>
                         <div class="recent-item-actions">
-                            <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${madre.id}">
+                            <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${paciente.id}">
                                 Ver plantilla EOA
                             </button>
                         </div>

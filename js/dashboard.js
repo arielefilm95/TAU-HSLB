@@ -792,7 +792,7 @@ window.dashboard = {
     initDashboard,
     loadRecentPatients,
     loadPacientesList,
-    loadRecentMothers, // Mantener compatibilidad
+    loadRecentMothers: loadRecentPatients, // Mantener compatibilidad
     loadMadresList,    // Mantener compatibilidad
     openMadreModal,
     openMadresModal,
