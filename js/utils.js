@@ -30,8 +30,11 @@ function formatearRUTInput(input) {
         value = value.slice(0, 9);
     }
     
-    // Si hay al menos 9 caracteres, formatear como xxxxxxxx-x
-    if (value.length >= 9) {
+    // Si hay exactamente 8 dígitos, agregar automáticamente el guión
+    if (value.length === 8) {
+        input.value = value + '-';
+    } else if (value.length >= 9) {
+        // Si hay 9 caracteres (8 dígitos + dígito verificador), formatear como xxxxxxxx-x
         const numero = value.slice(0, 8);
         const dv = value.slice(8, 9);
         input.value = numero + '-' + dv.toUpperCase();

@@ -154,7 +154,7 @@
 
                                 <div class="form-group">
                                     <label for="rut">RUT de la Madre</label>
-                                    <input type="text" id="rut" name="rut" required placeholder="12345678-9" maxlength="10" inputmode="tel" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
+                                    <input type="text" id="rut" name="rut" required placeholder="12345678-9" maxlength="10" inputmode="text" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
                                     <span class="error-message" id="rutError"></span>
                                 </div>
                                 
@@ -212,7 +212,7 @@
 
                                 <div class="form-group">
                                     <label for="rutBebe">RUT del Bebé</label>
-                                    <input type="text" id="rutBebe" name="rutBebe" required placeholder="12345678-9" maxlength="10" inputmode="tel" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
+                                    <input type="text" id="rutBebe" name="rutBebe" required placeholder="12345678-9" maxlength="10" inputmode="text" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
                                     <span class="error-message" id="rutBebeError"></span>
                                 </div>
                                 
@@ -925,6 +925,27 @@
                             this.classList.add('error');
                         } else {
                             errorElement.textContent = '';
+                            this.classList.remove('error');
+                        }
+                    });
+                }
+                
+                // Agregar event listener para validación y formateo de RUT de madre
+                const rutInput = document.getElementById('rut');
+                if (rutInput) {
+                    rutInput.addEventListener('input', function() {
+                        if (typeof utils !== 'undefined' && utils.formatearRUTInput) {
+                            utils.formatearRUTInput(this);
+                        }
+                    });
+                    
+                    rutInput.addEventListener('blur', function() {
+                        const value = this.value.trim();
+                        if (value && typeof utils !== 'undefined' && utils.validarRUT && !utils.validarRUT(value)) {
+                            document.getElementById('rutError').textContent = 'RUT inválido. Use formato: 12345678-9';
+                            this.classList.add('error');
+                        } else if (value) {
+                            document.getElementById('rutError').textContent = '';
                             this.classList.remove('error');
                         }
                     });
