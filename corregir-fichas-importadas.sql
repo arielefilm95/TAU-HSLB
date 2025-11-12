@@ -6,7 +6,7 @@
 -- =====================================================
 
 -- 1. Actualizar registros que tienen ficha comenzando con "IMPORT-"
-UPDATE madres
+UPDATE pacientes
 SET numero_ficha = NULL
 WHERE origen_registro = 'IMPORTADO'
 AND numero_ficha LIKE 'IMPORT-%';
@@ -17,7 +17,7 @@ DECLARE
     count_actualizados INTEGER;
 BEGIN
     SELECT COUNT(*) INTO count_actualizados
-    FROM madres
+    FROM pacientes
     WHERE origen_registro = 'IMPORTADO'
     AND numero_ficha IS NULL;
     
@@ -33,7 +33,7 @@ SELECT
     numero_ficha,
     origen_registro,
     created_at
-FROM madres 
+FROM pacientes
 WHERE origen_registro = 'IMPORTADO'
 ORDER BY created_at DESC
 LIMIT 10;

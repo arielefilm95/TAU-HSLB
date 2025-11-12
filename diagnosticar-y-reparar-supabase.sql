@@ -59,7 +59,7 @@ BEGIN
     -- Verificar tablas principales
     RAISE NOTICE '📋 Verificando tablas principales...';
     
-    FOREACH tabla IN ARRAY ARRAY['perfiles', 'madres', 'examenes_eoa', 'partos_importados']
+    FOREACH tabla IN ARRAY ARRAY['perfiles', 'pacientes', 'examenes_eoa', 'partos_importados']
     LOOP
         IF NOT verificar_tabla(tabla) THEN
             problemas := problemas || '❌ Tabla ' || tabla || ' no existe' || E'\n';
@@ -89,19 +89,19 @@ BEGIN
         END IF;
     END LOOP;
     
-    -- Políticas para madres
+    -- Políticas para pacientes
     FOREACH politica IN ARRAY ARRAY[
-        'Usuarios autenticados pueden ver madres',
-        'Usuarios autenticados pueden insertar madres',
-        'Usuarios autenticados pueden actualizar madres',
-        'Usuarios autenticados pueden eliminar madres'
+        'Usuarios autenticados pueden ver pacientes',
+        'Usuarios autenticados pueden insertar pacientes',
+        'Usuarios autenticados pueden actualizar pacientes',
+        'Usuarios autenticados pueden eliminar pacientes'
     ]
     LOOP
-        IF NOT verificar_politica('madres', politica) THEN
-            problemas := problemas || '❌ Política faltante en madres: ' || politica || E'\n';
-            correcciones := correcciones || 'CREATE POLICY "' || politica || '" ON madres ...;' || E'\n';
+        IF NOT verificar_politica('pacientes', politica) THEN
+            problemas := problemas || '❌ Política faltante en pacientes: ' || politica || E'\n';
+            correcciones := correcciones || 'CREATE POLICY "' || politica || '" ON pacientes ...;' || E'\n';
         ELSE
-            RAISE NOTICE '✅ Política % en madres existe', politica;
+            RAISE NOTICE '✅ Política % en pacientes existe', politica;
         END IF;
     END LOOP;
     
@@ -127,11 +127,11 @@ BEGIN
     RAISE NOTICE '🔍 Verificando índices importantes...';
     
     FOREACH indice IN ARRAY ARRAY[
-        'idx_madres_rut_unique',
-        'idx_madres_rut',
-        'idx_madres_usuario_id',
-        'idx_madres_created_at',
-        'idx_examenes_madre_id',
+        'idx_pacientes_rut_unique',
+        'idx_pacientes_rut',
+        'idx_pacientes_usuario_id',
+        'idx_pacientes_created_at',
+        'idx_examenes_paciente_id',
         'idx_examenes_usuario_id',
         'idx_examenes_fecha_examen'
     ]
@@ -199,13 +199,13 @@ BEGIN
     END IF;
 END $$;
 
--- Reparar tabla madres si no existe
+-- Reparar tabla pacientes si no existe
 DO $$
 BEGIN
-    IF NOT verificar_tabla('madres') THEN
-        RAISE NOTICE '🔧 Creando tabla madres...';
+    IF NOT verificar_tabla('pacientes') THEN
+        RAISE NOTICE '🔧 Creando tabla pacientes...';
         EXECUTE '
-            CREATE TABLE madres (
+            CREATE TABLE pacientes (
                 id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
                 nombre VARCHAR(100) NOT NULL,
                 apellido VARCHAR(100) NOT NULL,
@@ -220,7 +220,7 @@ BEGIN
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         ';
-        RAISE NOTICE '✅ Tabla madres creada';
+        RAISE NOTICE '✅ Tabla pacientes creada';
     END IF;
 END $$;
 
@@ -232,7 +232,7 @@ BEGIN
         EXECUTE '
             CREATE TABLE examenes_eoa (
                 id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-                madre_id UUID REFERENCES madres(id) ON DELETE CASCADE,
+                paciente_id UUID REFERENCES pacientes(id) ON DELETE CASCADE,
                 od_resultado VARCHAR(10) NOT NULL CHECK (od_resultado IN (''PASA'', ''REFIERE'')),
                 oi_resultado VARCHAR(10) NOT NULL CHECK (oi_resultado IN (''PASA'', ''REFIERE'')),
                 observaciones TEXT,
@@ -267,7 +267,7 @@ BEGIN
                 nombre VARCHAR(100) NOT NULL,
                 apellido VARCHAR(100) NOT NULL,
                 fecha_parto DATE NOT NULL,
-                madre_id UUID REFERENCES madres(id) ON DELETE SET NULL,
+                paciente_id UUID REFERENCES pacientes(id) ON DELETE SET NULL,
                 archivo_origen VARCHAR(255),
                 fila_original INTEGER,
                 procesado BOOLEAN DEFAULT false,
@@ -288,7 +288,7 @@ DO $$
 DECLARE
     tabla TEXT;
 BEGIN
-    FOREACH tabla IN ARRAY ARRAY['perfiles', 'madres', 'examenes_eoa', 'partos_importados']
+    FOREACH tabla IN ARRAY ARRAY['perfiles', 'pacientes', 'examenes_eoa', 'partos_importados']
     LOOP
         IF verificar_tabla(tabla) THEN
             EXECUTE 'ALTER TABLE ' || tabla || ' ENABLE ROW LEVEL SECURITY';
@@ -324,35 +324,35 @@ BEGIN
     END IF;
 END $$;
 
--- Crear políticas para madres
+-- Crear políticas para pacientes
 DO $$
 BEGIN
-    IF verificar_tabla('madres') THEN
+    IF verificar_tabla('pacientes') THEN
         -- Eliminar políticas existentes
-        EXECUTE 'DROP POLICY IF EXISTS "Usuarios autenticados pueden ver madres" ON madres';
-        EXECUTE 'DROP POLICY IF EXISTS "Usuarios autenticados pueden insertar madres" ON madres';
-        EXECUTE 'DROP POLICY IF EXISTS "Usuarios autenticados pueden actualizar madres" ON madres';
-        EXECUTE 'DROP POLICY IF EXISTS "Usuarios autenticados pueden eliminar madres" ON madres';
-        
+        EXECUTE 'DROP POLICY IF EXISTS "Usuarios autenticados pueden ver pacientes" ON pacientes';
+        EXECUTE 'DROP POLICY IF EXISTS "Usuarios autenticados pueden insertar pacientes" ON pacientes';
+        EXECUTE 'DROP POLICY IF EXISTS "Usuarios autenticados pueden actualizar pacientes" ON pacientes';
+        EXECUTE 'DROP POLICY IF EXISTS "Usuarios autenticados pueden eliminar pacientes" ON pacientes';
+
         -- Crear políticas corregidas
         EXECUTE '
-            CREATE POLICY "Usuarios autenticados pueden ver madres" ON madres
+            CREATE POLICY "Usuarios autenticados pueden ver pacientes" ON pacientes
             FOR SELECT USING (auth.role() = ''authenticated'')
         ';
         EXECUTE '
-            CREATE POLICY "Usuarios autenticados pueden insertar madres" ON madres
+            CREATE POLICY "Usuarios autenticados pueden insertar pacientes" ON pacientes
             FOR INSERT WITH CHECK (auth.role() = ''authenticated'')
         ';
         EXECUTE '
-            CREATE POLICY "Usuarios autenticados pueden actualizar madres" ON madres
+            CREATE POLICY "Usuarios autenticados pueden actualizar pacientes" ON pacientes
             FOR UPDATE USING (auth.role() = ''authenticated'')
         ';
         EXECUTE '
-            CREATE POLICY "Usuarios autenticados pueden eliminar madres" ON madres
+            CREATE POLICY "Usuarios autenticados pueden eliminar pacientes" ON pacientes
             FOR DELETE USING (auth.role() = ''authenticated'')
         ';
         
-        RAISE NOTICE '✅ Políticas de madres creadas';
+        RAISE NOTICE '✅ Políticas de pacientes creadas';
     END IF;
 END $$;
 
@@ -392,25 +392,25 @@ END $$;
 -- 5. REPARAR ÍNDICES IMPORTANTES
 -- =====================================================
 
--- Crear índices para madres
+-- Crear índices para pacientes
 DO $$
 BEGIN
-    IF verificar_tabla('madres') THEN
+    IF verificar_tabla('pacientes') THEN
         -- Índice único para RUT
-        IF NOT verificar_indice('idx_madres_rut_unique') THEN
-            EXECUTE 'CREATE UNIQUE INDEX idx_madres_rut_unique ON madres(rut)';
-            RAISE NOTICE '✅ Índice único para RUT en madres creado';
+        IF NOT verificar_indice('idx_pacientes_rut_unique') THEN
+            EXECUTE 'CREATE UNIQUE INDEX idx_pacientes_rut_unique ON pacientes(rut)';
+            RAISE NOTICE '✅ Índice único para RUT en pacientes creado';
         END IF;
         
         -- Otros índices importantes
-        IF NOT verificar_indice('idx_madres_usuario_id') THEN
-            EXECUTE 'CREATE INDEX idx_madres_usuario_id ON madres(usuario_id)';
-            RAISE NOTICE '✅ Índice usuario_id en madres creado';
+        IF NOT verificar_indice('idx_pacientes_usuario_id') THEN
+            EXECUTE 'CREATE INDEX idx_pacientes_usuario_id ON pacientes(usuario_id)';
+            RAISE NOTICE '✅ Índice usuario_id en pacientes creado';
         END IF;
-        
-        IF NOT verificar_indice('idx_madres_created_at') THEN
-            EXECUTE 'CREATE INDEX idx_madres_created_at ON madres(created_at)';
-            RAISE NOTICE '✅ Índice created_at en madres creado';
+
+        IF NOT verificar_indice('idx_pacientes_created_at') THEN
+            EXECUTE 'CREATE INDEX idx_pacientes_created_at ON pacientes(created_at)';
+            RAISE NOTICE '✅ Índice created_at en pacientes creado';
         END IF;
     END IF;
 END $$;
@@ -484,14 +484,14 @@ BEGIN
     -- Contar tablas
     RAISE NOTICE 'Tablas creadas: %', (
         SELECT COUNT(*) FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name IN ('perfiles', 'madres', 'examenes_eoa', 'partos_importados')
+        WHERE table_schema = 'public'
+        AND table_name IN ('perfiles', 'pacientes', 'examenes_eoa', 'partos_importados')
     );
     
     -- Contar políticas
     RAISE NOTICE 'Políticas RLS creadas: %', (
-        SELECT COUNT(*) FROM pg_policies 
-        WHERE tablename IN ('perfiles', 'madres', 'examenes_eoa', 'partos_importados')
+        SELECT COUNT(*) FROM pg_policies
+        WHERE tablename IN ('perfiles', 'pacientes', 'examenes_eoa', 'partos_importados')
     );
     
     -- Contar índices

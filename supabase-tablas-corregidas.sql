@@ -115,7 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_madres_origen_registro ON madres(origen_registro)
 -- Crear tabla de exámenes EOA con campos corregidos
 CREATE TABLE IF NOT EXISTS examenes_eoa (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  madre_id UUID REFERENCES madres(id) ON DELETE CASCADE,
+  paciente_id UUID REFERENCES pacientes(id) ON DELETE CASCADE,
   od_resultado VARCHAR(10) NOT NULL CHECK (od_resultado IN ('PASA', 'REFIERE')),
   oi_resultado VARCHAR(10) NOT NULL CHECK (oi_resultado IN ('PASA', 'REFIERE')),
   observaciones TEXT,
@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS partos_importados (
   nombre VARCHAR(100) NOT NULL,
   apellido VARCHAR(100) NOT NULL,
   fecha_parto DATE NOT NULL,
-  madre_id UUID REFERENCES madres(id) ON DELETE SET NULL,
+  paciente_id UUID REFERENCES pacientes(id) ON DELETE SET NULL,
   archivo_origen VARCHAR(255),
   fila_original INTEGER,
   procesado BOOLEAN DEFAULT false,
@@ -268,17 +268,17 @@ SELECT
   p.nombre_usuario as examinador,
   e.created_at
 FROM examenes_eoa e
-JOIN madres m ON e.madre_id = m.id
-LEFT JOIN perfiles p ON e.usuario_id = p.id;
+JOIN pacientes p ON e.paciente_id = p.id
+LEFT JOIN perfiles perf ON e.usuario_id = perf.id;
 
 -- Vista para estadísticas
 CREATE OR REPLACE VIEW vista_estadisticas AS
 SELECT
-  'madres' as tabla,
+  'pacientes' as tabla,
   COUNT(*) as total,
   COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as ultimos_7_dias,
   COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as ultimos_30_dias
-FROM madres
+FROM pacientes
 UNION ALL
 SELECT
   'examenes_eoa' as tabla,
@@ -343,8 +343,8 @@ SELECT
     (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'perfiles' AND table_schema = 'public') as created
 UNION ALL
 SELECT
-    'madres' as table_name,
-    (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'madres' AND table_schema = 'public') as created
+    'pacientes' as table_name,
+    (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'pacientes' AND table_schema = 'public') as created
 UNION ALL
 SELECT
     'examenes_eoa' as table_name,
@@ -361,7 +361,7 @@ SELECT
     cmd,
     '✅ POLÍTICA CREADA' as status
 FROM pg_policies
-WHERE tablename IN ('perfiles', 'madres', 'examenes_eoa', 'partos_importados')
+WHERE tablename IN ('perfiles', 'pacientes', 'examenes_eoa', 'partos_importados')
 ORDER BY tablename, policyname;
 
 -- Mostrar triggers creados
@@ -378,7 +378,7 @@ WHERE trigger_name = 'on_auth_user_created';
 DO $$
 BEGIN
     RAISE NOTICE '=== CONFIGURACIÓN COMPLETADA CORRECTAMENTE ===';
-    RAISE NOTICE 'Tablas creadas: perfiles, madres, examenes_eoa, partos_importados';
+    RAISE NOTICE 'Tablas creadas: perfiles, pacientes, examenes_eoa, partos_importados';
     RAISE NOTICE 'Políticas RLS configuradas para todas las tablas';
     RAISE NOTICE 'Trigger automático para perfiles creado';
     RAISE NOTICE 'Vistas útiles creadas: vista_examenes_completos, vista_estadisticas';

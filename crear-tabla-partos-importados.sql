@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS partos_importados (
     archivo_origen VARCHAR(255) NOT NULL, -- Nombre del archivo Excel de origen
     fecha_importacion TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     procesado BOOLEAN DEFAULT FALSE, -- Si ya fue cruzado con registros manuales
-    madre_id UUID REFERENCES madres(id), -- Referencia a la madre registrada manualmente
+    paciente_id UUID REFERENCES pacientes(id), -- Referencia al paciente registrado manualmente
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

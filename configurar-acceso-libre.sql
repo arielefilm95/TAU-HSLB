@@ -15,14 +15,14 @@ DROP POLICY IF EXISTS "Permitir inserción de perfiles a usuarios autenticados" 
 DROP POLICY IF EXISTS "Permitir actualización de perfiles propios" ON perfiles;
 DROP POLICY IF EXISTS "Permitir inserción de perfil propio" ON perfiles;
 
-DROP POLICY IF EXISTS "Usuarios autenticados pueden ver madres" ON madres;
-DROP POLICY IF EXISTS "Usuarios autenticados pueden insertar madres" ON madres;
-DROP POLICY IF EXISTS "Usuarios autenticados pueden actualizar madres" ON madres;
-DROP POLICY IF EXISTS "Usuarios autenticados pueden eliminar madres" ON madres;
-DROP POLICY IF EXISTS "Permitir lectura de madres a usuarios autenticados" ON madres;
-DROP POLICY IF EXISTS "Permitir inserción de madres a usuarios autenticados" ON madres;
-DROP POLICY IF EXISTS "Permitir actualización de madres a usuarios autenticados" ON madres;
-DROP POLICY IF EXISTS "Permitir eliminación de madres a usuarios autenticados" ON madres;
+DROP POLICY IF EXISTS "Usuarios autenticados pueden ver pacientes" ON pacientes;
+DROP POLICY IF EXISTS "Usuarios autenticados pueden insertar pacientes" ON pacientes;
+DROP POLICY IF EXISTS "Usuarios autenticados pueden actualizar pacientes" ON pacientes;
+DROP POLICY IF EXISTS "Usuarios autenticados pueden eliminar pacientes" ON pacientes;
+DROP POLICY IF EXISTS "Permitir lectura de pacientes a usuarios autenticados" ON pacientes;
+DROP POLICY IF EXISTS "Permitir inserción de pacientes a usuarios autenticados" ON pacientes;
+DROP POLICY IF EXISTS "Permitir actualización de pacientes a usuarios autenticados" ON pacientes;
+DROP POLICY IF EXISTS "Permitir eliminación de pacientes a usuarios autenticados" ON pacientes;
 
 DROP POLICY IF EXISTS "Usuarios autenticados pueden ver exámenes EOA" ON examenes_eoa;
 DROP POLICY IF EXISTS "Usuarios autenticados pueden insertar exámenes EOA" ON examenes_eoa;
@@ -47,17 +47,17 @@ CREATE POLICY "Permitir inserción de perfiles sin autenticación" ON perfiles
 CREATE POLICY "Permitir actualización de perfiles sin autenticación" ON perfiles
   FOR UPDATE USING (true);
 
--- Madres (acceso libre)
-CREATE POLICY "Permitir lectura de madres sin autenticación" ON madres
+-- Pacientes (acceso libre)
+CREATE POLICY "Permitir lectura de pacientes sin autenticación" ON pacientes
   FOR SELECT USING (true);
 
-CREATE POLICY "Permitir inserción de madres sin autenticación" ON madres
+CREATE POLICY "Permitir inserción de pacientes sin autenticación" ON pacientes
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Permitir actualización de madres sin autenticación" ON madres
+CREATE POLICY "Permitir actualización de pacientes sin autenticación" ON pacientes
   FOR UPDATE USING (true);
 
-CREATE POLICY "Permitir eliminación de madres sin autenticación" ON madres
+CREATE POLICY "Permitir eliminación de pacientes sin autenticación" ON pacientes
   FOR DELETE USING (true);
 
 -- Exámenes EOA (acceso libre)
@@ -84,12 +84,12 @@ CREATE POLICY "Permitir ver archivos sin autenticación" ON storage.objects
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 
--- Modificar la tabla madres para eliminar la restricción de usuario_id
-ALTER TABLE madres DROP CONSTRAINT IF EXISTS madres_usuario_id_fkey;
+-- Modificar la tabla pacientes para eliminar la restricción de usuario_id
+ALTER TABLE pacientes DROP CONSTRAINT IF EXISTS pacientes_usuario_id_fkey;
 ALTER TABLE examenes_eoa DROP CONSTRAINT IF EXISTS examenes_eoa_usuario_id_fkey;
 
 -- Opcional: Eliminar las columnas usuario_id si no se van a usar
--- ALTER TABLE madres DROP COLUMN IF EXISTS usuario_id;
+-- ALTER TABLE pacientes DROP COLUMN IF EXISTS usuario_id;
 -- ALTER TABLE examenes_eoa DROP COLUMN IF EXISTS usuario_id;
 
 -- =====================================================

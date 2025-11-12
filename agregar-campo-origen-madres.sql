@@ -5,16 +5,16 @@
 -- fue creado manualmente o importado desde Excel
 -- =====================================================
 
--- 1. Agregar columna de origen a la tabla madres
-ALTER TABLE madres 
-ADD COLUMN IF NOT EXISTS origen_registro VARCHAR(20) DEFAULT 'MANUAL' 
+-- 1. Agregar columna de origen a la tabla pacientes
+ALTER TABLE pacientes
+ADD COLUMN IF NOT EXISTS origen_registro VARCHAR(20) DEFAULT 'MANUAL'
 CHECK (origen_registro IN ('MANUAL', 'IMPORTADO', 'SISTEMA'));
 
 -- 2. Crear índice para mejorar el rendimiento
-CREATE INDEX IF NOT EXISTS idx_madres_origen_registro ON madres(origen_registro);
+CREATE INDEX IF NOT EXISTS idx_pacientes_origen_registro ON pacientes(origen_registro);
 
 -- 3. Actualizar registros existentes que tengan referencia en partos_importados
-UPDATE madres 
+UPDATE pacientes
 SET origen_registro = 'IMPORTADO'
 WHERE id IN (
     SELECT DISTINCT madre_id 
@@ -35,16 +35,16 @@ CREATE POLICY "Control de origen de registro" ON madres
 SELECT 
     origen_registro,
     COUNT(*) as cantidad,
-    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM madres), 2) as porcentaje
-FROM madres 
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM pacientes), 2) as porcentaje
+FROM pacientes
 GROUP BY origen_registro 
 ORDER BY cantidad DESC;
 
 -- =====================================================
 -- COMENTARIOS
 -- =====================================================
-COMMENT ON COLUMN madres.origen_registro IS 'Origen del registro: MANUAL (registrado por usuario), IMPORTADO (desde Excel), SISTEMA (creado automáticamente)';
-COMMENT ON INDEX idx_madres_origen_registro IS 'Índice para filtrar por origen de registro';
+COMMENT ON COLUMN pacientes.origen_registro IS 'Origen del registro: MANUAL (registrado por usuario), IMPORTADO (desde Excel), SISTEMA (creado automáticamente)';
+COMMENT ON INDEX idx_pacientes_origen_registro IS 'Índice para filtrar por origen de registro';
 
 -- =====================================================
 -- INSTRUCCIONES

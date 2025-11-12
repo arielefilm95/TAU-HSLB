@@ -42,41 +42,43 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- =====================================================
--- 2. TABLA DE MADRES
+-- 2. TABLA DE PACIENTES
 -- =====================================================
 
--- Crear tabla de madres
-CREATE TABLE madres (  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+-- Crear tabla de pacientes
+CREATE TABLE pacientes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
   apellido VARCHAR(100) NOT NULL,
   rut VARCHAR(12) NOT NULL UNIQUE,
   numero_ficha VARCHAR(20) NOT NULL,
   sala VARCHAR(10) NOT NULL,
   cama VARCHAR(10) NOT NULL,
+  tipo_paciente VARCHAR(10) NOT NULL DEFAULT 'MADRE' CHECK (tipo_paciente IN ('MADRE', 'BEBE', 'NEO')),
   usuario_id UUID REFERENCES perfiles(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Crear política de seguridad para madres
-ALTER TABLE madres ENABLE ROW LEVEL SECURITY;
+-- Crear política de seguridad para pacientes
+ALTER TABLE pacientes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Usuarios autenticados pueden ver madres" ON madres
+CREATE POLICY "Usuarios autenticados pueden ver pacientes" ON pacientes
   FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuarios autenticados pueden insertar madres" ON madres
+CREATE POLICY "Usuarios autenticados pueden insertar pacientes" ON pacientes
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuarios autenticados pueden actualizar madres" ON madres
+CREATE POLICY "Usuarios autenticados pueden actualizar pacientes" ON pacientes
   FOR UPDATE USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuarios autenticados pueden eliminar madres" ON madres
+CREATE POLICY "Usuarios autenticados pueden eliminar pacientes" ON pacientes
   FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Crear índices para mejor rendimiento
-CREATE INDEX idx_madres_rut ON madres(rut);
-CREATE INDEX idx_madres_usuario_id ON madres(usuario_id);
-CREATE INDEX idx_madres_created_at ON madres(created_at);
+CREATE INDEX idx_pacientes_rut ON pacientes(rut);
+CREATE INDEX idx_pacientes_usuario_id ON pacientes(usuario_id);
+CREATE INDEX idx_pacientes_created_at ON pacientes(created_at);
 
 -- =====================================================
 -- 3. TABLA DE EXÁMENES EOA
@@ -87,7 +89,7 @@ CREATE TABLE examenes_eoa (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
   apellido VARCHAR(100) NOT NULL,
-  madre_id UUID REFERENCES madres(id) ON DELETE CASCADE,
+  paciente_id UUID REFERENCES pacientes(id) ON DELETE CASCADE,
   od_resultado VARCHAR(10) NOT NULL CHECK (od_resultado IN ('PASA', 'REFIERE')),
   oi_resultado VARCHAR(10) NOT NULL CHECK (oi_resultado IN ('PASA', 'REFIERE')),
   observaciones TEXT,
@@ -123,7 +125,7 @@ CREATE POLICY "Usuarios autenticados pueden eliminar exámenes EOA" ON examenes_
   FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Crear índices para mejor rendimiento
-CREATE INDEX idx_examenes_madre_id ON examenes_eoa(madre_id);
+CREATE INDEX idx_examenes_paciente_id ON examenes_eoa(paciente_id);
 CREATE INDEX idx_examenes_usuario_id ON examenes_eoa(usuario_id);
 CREATE INDEX idx_examenes_fecha_examen ON examenes_eoa(fecha_examen);
 
@@ -145,7 +147,7 @@ CREATE POLICY "Usuarios autenticados pueden ver archivos" ON storage.objects
 -- 5. VISTAS ÚTILES (OPCIONAL)
 -- =====================================================
 
--- Vista para ver exámenes con datos de la madre
+-- Vista para ver exámenes con datos del paciente
 CREATE VIEW vista_examenes_completos AS
 SELECT
   e.id,
@@ -163,15 +165,16 @@ SELECT
   e.madre_fumo,
   e.madre_alcohol,
   e.madre_drogas,
-  m.rut,
-  m.numero_ficha,
-  m.sala,
-  m.cama,
-  p.nombre_usuario as examinador,
+  p.rut,
+  p.numero_ficha,
+  p.sala,
+  p.cama,
+  p.tipo_paciente,
+  perf.nombre_usuario as examinador,
   e.created_at
 FROM examenes_eoa e
-JOIN madres m ON e.madre_id = m.id
-JOIN perfiles p ON e.usuario_id = p.id;
+JOIN pacientes p ON e.paciente_id = p.id
+JOIN perfiles perf ON e.usuario_id = perf.id;
 
 -- Nota: Las vistas heredan los permisos de las tablas subyacentes
 -- No se necesitan políticas adicionales para la vista

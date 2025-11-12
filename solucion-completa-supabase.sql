@@ -45,7 +45,7 @@ CREATE TABLE examenes_eoa (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
   apellido VARCHAR(100) NOT NULL,
-  madre_id UUID REFERENCES madres(id) ON DELETE CASCADE,
+  paciente_id UUID REFERENCES pacientes(id) ON DELETE CASCADE,
   od_resultado VARCHAR(10) NOT NULL CHECK (od_resultado IN ('PASA', 'REFIERE')),
   oi_resultado VARCHAR(10) NOT NULL CHECK (oi_resultado IN ('PASA', 'REFIERE')),
   observaciones TEXT,
@@ -73,18 +73,18 @@ CREATE POLICY "Permitir inserción de perfil propio" ON perfiles
 
 -- 6. CONFIGURAR POLÍTICAS DE SEGURIDAD (RLS) PARA MADRES
 -- =====================================================
-ALTER TABLE madres ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pacientes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Permitir lectura de madres a usuarios autenticados" ON madres
+CREATE POLICY "Permitir lectura de pacientes a usuarios autenticados" ON pacientes
   FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Permitir inserción de madres a usuarios autenticados" ON madres
+CREATE POLICY "Permitir inserción de pacientes a usuarios autenticados" ON pacientes
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Permitir actualización de madres a usuarios autenticados" ON madres
+CREATE POLICY "Permitir actualización de pacientes a usuarios autenticados" ON pacientes
   FOR UPDATE USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Permitir eliminación de madres a usuarios autenticados" ON madres
+CREATE POLICY "Permitir eliminación de pacientes a usuarios autenticados" ON pacientes
   FOR DELETE USING (auth.role() = 'authenticated');
 
 -- 7. CONFIGURAR POLÍTICAS DE SEGURIDAD (RLS) PARA EXÁMENES EOA
@@ -123,9 +123,9 @@ CREATE TRIGGER on_auth_user_created
 
 -- 9. CREAR ÍNDICES PARA MEJOR RENDIMIENTO
 -- =====================================================
-CREATE INDEX idx_madres_rut ON madres(rut);
-CREATE INDEX idx_madres_usuario_id ON madres(usuario_id);
-CREATE INDEX idx_madres_created_at ON madres(created_at);
+CREATE INDEX idx_pacientes_rut ON pacientes(rut);
+CREATE INDEX idx_pacientes_usuario_id ON pacientes(usuario_id);
+CREATE INDEX idx_pacientes_created_at ON pacientes(created_at);
 
 CREATE INDEX idx_examenes_madre_id ON examenes_eoa(madre_id);
 CREATE INDEX idx_examenes_usuario_id ON examenes_eoa(usuario_id);
@@ -144,8 +144,8 @@ SELECT
     (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'perfiles' AND table_schema = 'public') as created
 UNION ALL
 SELECT
-    'madres' as table_name,
-    (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'madres' AND table_schema = 'public') as created
+    'pacientes' as table_name,
+    (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'pacientes' AND table_schema = 'public') as created
 UNION ALL
 SELECT
     'examenes_eoa' as table_name,
@@ -158,7 +158,7 @@ SELECT
     cmd,
     '✅ POLÍTICA CREADA' as status
 FROM pg_policies
-WHERE tablename IN ('perfiles', 'madres', 'examenes_eoa')
+WHERE tablename IN ('perfiles', 'pacientes', 'examenes_eoa')
 ORDER BY tablename, policyname;
 
 -- Mostrar triggers creados

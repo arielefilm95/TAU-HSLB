@@ -191,10 +191,10 @@ END $$;
 
 /*
 -- Ejecutar una consulta SELECT
-SELECT * FROM execute_sql('SELECT * FROM madres LIMIT 5');
+SELECT * FROM execute_sql('SELECT * FROM pacientes LIMIT 5');
 
 -- Ejecutar una consulta INSERT
-SELECT * FROM execute_sql('INSERT INTO madres (nombre, apellido, rut) VALUES (''Test'', ''User'', ''12345678-9'')');
+SELECT * FROM execute_sql('INSERT INTO pacientes (nombre, apellido, rut) VALUES (''Test'', ''User'', ''12345678-9'')');
 
 -- Obtener información de tablas
 SELECT * FROM get_table_info();
