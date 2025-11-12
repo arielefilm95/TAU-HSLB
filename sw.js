@@ -1,16 +1,14 @@
 // Service Worker para TAU - Tamizaje Auditivo Universal
 
-const CACHE_NAME = 'tau-v1.0.8';
+const CACHE_NAME = 'tau-v1.0.9';
 
 // URLs relativas para funcionar en cualquier dominio o subdirectorio
 const urlsToCache = [
     './',
     './index.html',
-    './signup.html',
     './dashboard.html',
     './test-auth-flow.html',
     './css/styles.css',
-    './css/auth.css',
     './css/dashboard.css',
     './js/utils.js',
     './js/auth.js',
@@ -37,7 +35,20 @@ self.addEventListener('install', function(event) {
         caches.open(CACHE_NAME)
             .then(function(cache) {
                 console.log('Service Worker: Cacheando archivos');
-                return cache.addAll(urlsToCache);
+                return cache.addAll(urlsToCache)
+                    .catch(function(error) {
+                        console.warn('Service Worker: Algunos archivos no pudieron ser cacheados:', error);
+                        // Intentar cachear archivos individualmente para evitar que falle toda la instalación
+                        return Promise.all(
+                            urlsToCache.map(function(url) {
+                                return cache.add(url).catch(function(err) {
+                                    console.warn('Service Worker: No se pudo cachear', url, ':', err);
+                                    // Continuar con los demás archivos aunque este falle
+                                    return Promise.resolve();
+                                });
+                            })
+                        );
+                    });
             })
             .then(function() {
                 console.log('Service Worker: Instalación completada');

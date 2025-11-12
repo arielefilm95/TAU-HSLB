@@ -244,7 +244,7 @@ function displayRecentPatients() {
             </div>
             <div class="recent-item-actions">
                 <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${paciente.id}">
-                    Ver plantilla EOA
+                    Realizar EOA
                 </button>
             </div>
         </div>
@@ -253,13 +253,13 @@ function displayRecentPatients() {
     
     recentPatientsElement.innerHTML = html;
     
-    // Agregar listeners para abrir la plantilla EOA (sin expansión)
+    // Agregar listeners para abrir el formulario EOA (sin expansión)
     const recentItems = recentPatientsElement.querySelectorAll('.recent-item');
     recentItems.forEach(item => {
         const pacienteId = item.getAttribute('data-madre-id');
         if (!pacienteId) return;
         
-        // Listener para abrir la plantilla EOA
+        // Listener para abrir el formulario EOA
         const actionButton = item.querySelector('button[data-action="abrir-eoa"]');
         if (actionButton) {
             actionButton.addEventListener('click', async function(e) {
