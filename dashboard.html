@@ -299,11 +299,11 @@
             </div>
         </div>
         
-        <!-- Mothers List Modal -->
+        <!-- Patients List Modal -->
         <div id="madresModal" class="modal" style="display: none;">
             <div class="modal-content modal-large">
                 <div class="modal-header">
-                    <h3>Lista de Usuarios</h3>
+                    <h3>Lista de Pacientes</h3>
                     <button class="modal-close" onclick="closeMadresModal()">&times;</button>
                 </div>
                 <div class="modal-body">
@@ -597,7 +597,7 @@
                 
                 // Usar una consulta más simple y robusta
                 const { data, error } = await supabase
-                    .from('madres')
+                    .from('pacientes')
                     .select('id')
                     .limit(1);
                 
@@ -864,7 +864,7 @@
                     // Guardar en Supabase
                     if (window.supabaseClient) {
                         window.supabaseClient
-                            .from('madres')
+                            .from('pacientes')
                             .insert([formData])
                             .select()
                             .then(({ data, error }) => {
@@ -990,7 +990,7 @@
                     // Guardar en Supabase
                     if (window.supabaseClient) {
                         window.supabaseClient
-                            .from('madres')
+                            .from('pacientes')
                             .insert([formData])
                             .select()
                             .then(({ data, error }) => {
@@ -1210,15 +1210,16 @@
                 });
                 
                 // Primero obtener todos los registros del día
-                const { data: allMadresData, error: madresError } = await window.supabaseClient
-                    .from('madres')
+                const { data: allPacientesData, error: pacientesError } = await window.supabaseClient
+                    .from('pacientes')
                     .select('*')
+                    .eq('tipo_paciente', 'MADRE') // Solo madres para compatibilidad
                     .gte('created_at', startOfDayISO)
                     .lt('created_at', endOfDayISO)
                     .order('created_at', { ascending: false });
                 
-                if (madresError) {
-                    throw madresError;
+                if (pacientesError) {
+                    throw pacientesError;
                 }
                 
                 if (!recentMothersElement) return;
@@ -1237,11 +1238,11 @@
                     console.warn('⚠️ Error al filtrar por origen_registro, usando método alternativo:', error);
                     
                     // Método alternativo: obtener los IDs de registros importados para excluirlos
-                    const madresIds = allMadresData.map(m => m.id);
+                    const pacientesIds = allPacientesData.map(p => p.id);
                     const { data: importadosData, error: importadosError } = await window.supabaseClient
                         .from('partos_importados')
                         .select('madre_id')
-                        .in('madre_id', madresIds);
+                        .in('madre_id', pacientesIds);
                     
                     if (importadosError) {
                         console.warn('⚠️ Error al obtener datos importados, mostrando todos:', importadosError);
@@ -1250,7 +1251,7 @@
                     } else {
                         // Filtrar los que no son importados
                         const importadosIds = new Set((importadosData || []).map(i => i.madre_id));
-                        var data = allMadresData.filter(madre => !importadosIds.has(madre.id));
+                        var data = allPacientesData.filter(paciente => !importadosIds.has(paciente.id));
                     }
                 }
                 

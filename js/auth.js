@@ -82,7 +82,7 @@ async function testSupabaseConnection() {
         
         // Intentar una consulta simple para verificar conexión
         const { data, error } = await supabaseClient
-            .from('madres')
+            .from('pacientes')
             .select('count')
             .limit(1);
         

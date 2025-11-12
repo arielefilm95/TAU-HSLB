@@ -313,7 +313,7 @@
         <!-- Tab: Ejecutar SQL -->
         <div id="execute-tab" class="tab-content active">
             <h3>Ejecutar Consulta SQL</h3>
-            <textarea id="sqlEditor" class="sql-editor" placeholder="Escribe tu consulta SQL aquí...&#10;&#10;Ejemplos:&#10;SELECT * FROM madres LIMIT 10;&#10;SELECT COUNT(*) FROM examenes_eoa;&#10;SHOW TABLES;"></textarea>
+            <textarea id="sqlEditor" class="sql-editor" placeholder="Escribe tu consulta SQL aquí...&#10;&#10;Ejemplos:&#10;SELECT * FROM pacientes LIMIT 10;&#10;SELECT COUNT(*) FROM examenes_eoa;&#10;SHOW TABLES;"></textarea>
             
             <div class="button-group">
                 <button onclick="executeSQL()">
@@ -402,7 +402,7 @@
             'diagnosticar-y-reparar-supabase.sql',
             'verificar-tablas.sql',
             'crear-tabla-partos-importados.sql',
-            'agregar-campo-origen-madres.sql',
+            'agregar-campo-origen-pacientes.sql',
             'corregir-fichas-importadas.sql',
             'corregir-politicas-perfiles.sql',
             'reparar-trigger.sql',
@@ -430,7 +430,7 @@
                 
                 // Probar conexión
                 const { data, error } = await supabaseClient
-                    .from('madres')
+                    .from('pacientes')
                     .select('count')
                     .limit(1);
                 
@@ -602,7 +602,7 @@
                     // Modo limitado: solo consultas SELECT con el método estándar
                     if (sql.trim().toLowerCase().startsWith('select')) {
                         const { data, error } = await supabaseClient
-                            .from('madres') // Esto es un truco, en realidad ejecutaremos la consulta
+                            .from('pacientes') // Esto es un truco, en realidad ejecutaremos la consulta
                             .select('*');
                         
                         if (error) {
@@ -641,8 +641,8 @@ ORDER BY table_name;`;
                 case 'policies':
                     sql = `-- Ver todas las políticas RLS
 SELECT tablename, policyname, cmd, roles 
-FROM pg_policies 
-WHERE tablename IN ('perfiles', 'madres', 'examenes_eoa', 'partos_importados')
+FROM pg_policies
+WHERE tablename IN ('perfiles', 'pacientes', 'examenes_eoa', 'partos_importados')
 ORDER BY tablename, policyname;`;
                     break;
                 case 'indexes':
@@ -708,7 +708,7 @@ ORDER BY tablename, indexname;`;
             try {
                 // En una implementación real, aquí leeríamos el archivo
                 // Por ahora, mostramos un mensaje
-                document.getElementById('sqlEditor').value = `-- Contenido del archivo: ${fileName}\n-- En una implementación real, aquí se cargaría el contenido completo\n\n-- Ejemplo de contenido:\nSELECT * FROM madres LIMIT 10;`;
+                document.getElementById('sqlEditor').value = `-- Contenido del archivo: ${fileName}\n-- En una implementación real, aquí se cargaría el contenido completo\n\n-- Ejemplo de contenido:\nSELECT * FROM pacientes LIMIT 10;`;
                 showResult('executeResult', `Archivo ${fileName} cargado en el editor`, 'info');
                 
             } catch (error) {
@@ -737,7 +737,7 @@ ORDER BY tablename, indexname;`;
                 // Simular carga de información de tablas
                 const tables = [
                     { name: 'perfiles', columns: 6, rows: 0 },
-                    { name: 'madres', columns: 10, rows: 0 },
+                    { name: 'pacientes', columns: 11, rows: 0 },
                     { name: 'examenes_eoa', columns: 15, rows: 0 },
                     { name: 'partos_importados', columns: 8, rows: 0 }
                 ];
@@ -793,8 +793,8 @@ ORDER BY table_name, ordinal_position;
 
 -- Políticas RLS
 SELECT tablename, policyname, cmd, roles
-FROM pg_policies 
-WHERE tablename IN ('perfiles', 'madres', 'examenes_eoa', 'partos_importados')
+FROM pg_policies
+WHERE tablename IN ('perfiles', 'pacientes', 'examenes_eoa', 'partos_importados')
 ORDER BY tablename, policyname;
 
 -- Índices

@@ -138,7 +138,7 @@
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 
                 const { data, error } = await supabase
-                    .from('madres')
+                    .from('pacientes')
                     .select('count')
                     .limit(1);
                 
@@ -160,13 +160,13 @@
                 log('🔄 Verificando campo origen_registro...');
                 
                 const { data, error } = await supabase
-                    .from('madres')
+                    .from('pacientes')
                     .select('origen_registro')
                     .limit(1);
                 
                 if (error) {
                     if (error.message.includes('column') && error.message.includes('origen_registro')) {
-                        showResult('origenResult', '❌ El campo origen_registro no existe. Ejecuta el script agregar-campo-origen-madres.sql', 'error');
+                        showResult('origenResult', '❌ El campo origen_registro no existe. Ejecuta el script agregar-campo-origen-pacientes.sql', 'error');
                         log('❌ Campo origen_registro no encontrado');
                     } else {
                         throw error;
@@ -198,7 +198,7 @@
                 
                 // Probar consulta con filtro de fecha y origen
                 const { data, error } = await supabase
-                    .from('madres')
+                    .from('pacientes')
                     .select('*')
                     .eq('origen_registro', 'MANUAL')
                     .gte('created_at', startOfDayISO)
@@ -250,11 +250,12 @@
                     sala: 'TEST',
                     cama: '01',
                     cantidad_hijos: 1,
-                    origen_registro: 'MANUAL'
+                    origen_registro: 'MANUAL',
+                    tipo_paciente: 'MADRE'
                 };
                 
                 const { data, error } = await supabase
-                    .from('madres')
+                    .from('pacientes')
                     .insert([testMadre])
                     .select()
                     .single();
@@ -286,7 +287,7 @@
                 
                 // Obtener registros manuales del día
                 const { data: manuales, error: errorManuales } = await supabase
-                    .from('madres')
+                    .from('pacientes')
                     .select('*')
                     .eq('origen_registro', 'MANUAL')
                     .gte('created_at', startOfDayISO)
@@ -294,7 +295,7 @@
                 
                 // Obtener registros importados del día
                 const { data: importados, error: errorImportados } = await supabase
-                    .from('madres')
+                    .from('pacientes')
                     .select('*')
                     .eq('origen_registro', 'IMPORTADO')
                     .gte('created_at', startOfDayISO)

@@ -1,19 +1,19 @@
 // Funcionalidad específica para la gestión de exámenes EOA
 
 // Variables globales
-let currentMadreEOA = null;
+let currentPacienteEOA = null;
 let currentExamenEOA = null;
-let currentMadreExamenes = [];
-let currentMadreExamenCount = 0;
+let currentPacienteExamenes = [];
+let currentPacienteExamenCount = 0;
 let eoaFormPristine = true;
 const EOA_FORM_STORAGE_PREFIX = 'tau_eoa_form_state_';
 
-function getEoaFormStorageKey(madreId) {
-    return `${EOA_FORM_STORAGE_PREFIX}${madreId}`;
+function getEoaFormStorageKey(pacienteId) {
+    return `${EOA_FORM_STORAGE_PREFIX}${pacienteId}`;
 }
 
-function guardarEstadoFormularioEOA(madreId, examen) {
-    if (!madreId || !examen) {
+function guardarEstadoFormularioEOA(pacienteId, examen) {
+    if (!pacienteId || !examen) {
         return;
     }
 
@@ -22,19 +22,19 @@ function guardarEstadoFormularioEOA(madreId, examen) {
             savedAt: new Date().toISOString(),
             data: examen
         };
-        localStorage.setItem(getEoaFormStorageKey(madreId), JSON.stringify(payload));
+        localStorage.setItem(getEoaFormStorageKey(pacienteId), JSON.stringify(payload));
     } catch (error) {
         console.warn('No se pudo guardar el estado del formulario EOA:', error);
     }
 }
 
-function obtenerEstadoFormularioEOA(madreId) {
-    if (!madreId) {
+function obtenerEstadoFormularioEOA(pacienteId) {
+    if (!pacienteId) {
         return null;
     }
 
     try {
-        const raw = localStorage.getItem(getEoaFormStorageKey(madreId));
+        const raw = localStorage.getItem(getEoaFormStorageKey(pacienteId));
         if (!raw) {
             return null;
         }
@@ -46,8 +46,8 @@ function obtenerEstadoFormularioEOA(madreId) {
     }
 }
 
-function restaurarFormularioEOADesdeLocal(madreId) {
-    const data = obtenerEstadoFormularioEOA(madreId);
+function restaurarFormularioEOADesdeLocal(pacienteId) {
+    const data = obtenerEstadoFormularioEOA(pacienteId);
     if (data) {
         prefillFormularioEOA(data);
         currentExamenEOA = data;
@@ -55,23 +55,27 @@ function restaurarFormularioEOADesdeLocal(madreId) {
 }
 
 // Función para abrir modal de EOA
-function openEoaModal(madre) {
-    currentMadreEOA = madre;
-    currentMadreExamenes = [];
-    currentMadreExamenCount = 0;
+function openEoaModal(paciente) {
+    currentPacienteEOA = paciente;
+    currentPacienteExamenes = [];
+    currentPacienteExamenCount = 0;
     eoaFormPristine = true;
     
     const modal = document.getElementById('eoaModal');
     if (modal) {
-        // Actualizar información de la madre en el modal
-        const madreInfo = document.getElementById('madreInfo');
-        if (madreInfo) {
-            madreInfo.innerHTML = `
-                <strong>Madre:</strong> ${utils.escapeHTML([madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado')} | 
-                <strong>RUT:</strong> ${utils.escapeHTML(utils.formatearRUT(madre.rut))} | 
-                <strong>Ficha:</strong> ${utils.escapeHTML(madre.numero_ficha)} | 
-                <strong>Sala:</strong> ${utils.escapeHTML(madre.sala)} | 
-                <strong>Cama:</strong> ${utils.escapeHTML(madre.cama)}
+        // Actualizar información del paciente en el modal
+        const pacienteInfo = document.getElementById('madreInfo');
+        if (pacienteInfo) {
+            const tipoPaciente = paciente.tipo_paciente || 'MADRE';
+            const etiquetaTipo = tipoPaciente === 'MADRE' ? 'Madre' : (tipoPaciente === 'BEBE' ? 'Bebé' : 'Neo');
+            
+            pacienteInfo.innerHTML = `
+                <strong>${etiquetaTipo}:</strong> ${utils.escapeHTML([paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado')} |
+                <strong>RUT:</strong> ${utils.escapeHTML(utils.formatearRUT(paciente.rut))} |
+                <strong>Ficha:</strong> ${utils.escapeHTML(paciente.numero_ficha)} |
+                <strong>Sala:</strong> ${utils.escapeHTML(paciente.sala)} |
+                <strong>Cama:</strong> ${utils.escapeHTML(paciente.cama)}
+                ${paciente.tipo_paciente === 'MADRE' && paciente.cantidad_hijos ? ` | <strong>Hijos:</strong> ${paciente.cantidad_hijos}` : ''}
             `;
         }
         
@@ -79,7 +83,7 @@ function openEoaModal(madre) {
         limpiarFormularioEOA();
 
         // Intentar restaurar el último examen guardado localmente
-        restaurarFormularioEOADesdeLocal(madre.id);
+        restaurarFormularioEOADesdeLocal(paciente.id);
         
         // Mostrar modal
         modal.style.display = 'flex';
@@ -88,7 +92,7 @@ function openEoaModal(madre) {
         }, 10);
         
         // Cargar exámenes anteriores si existen
-        cargarExamenesAnteriores(madre.id);
+        cargarExamenesAnteriores(paciente.id);
     }
 }
 
@@ -102,15 +106,15 @@ function closeEoaModal() {
         }, 300);
     }
     
-    currentMadreEOA = null;
+    currentPacienteEOA = null;
     currentExamenEOA = null;
-    currentMadreExamenes = [];
-    currentMadreExamenCount = 0;
+    currentPacienteExamenes = [];
+    currentPacienteExamenCount = 0;
     eoaFormPristine = true;
 }
 
-// Función para cargar exámenes anteriores de una madre
-async function cargarExamenesAnteriores(madreId) {
+// Función para cargar exámenes anteriores de un paciente
+async function cargarExamenesAnteriores(pacienteId) {
     try {
         if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
@@ -120,7 +124,7 @@ async function cargarExamenesAnteriores(madreId) {
         const { data, error, count } = await window.supabaseClient
             .from('examenes_eoa')
             .select('*', { count: 'exact' })
-            .eq('madre_id', madreId)
+            .eq('paciente_id', pacienteId)
             .order('fecha_examen', { ascending: false })
             .limit(5);
         
@@ -130,8 +134,8 @@ async function cargarExamenesAnteriores(madreId) {
 
         const examenesDesc = data || [];
         const examenesAsc = examenesDesc.slice().sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
-        currentMadreExamenes = examenesAsc;
-        currentMadreExamenCount = typeof count === 'number' ? count : examenesAsc.length;
+        currentPacienteExamenes = examenesAsc;
+        currentPacienteExamenCount = typeof count === 'number' ? count : examenesAsc.length;
         
         // Mostrar exámenes anteriores si existen
         if (examenesDesc.length > 0) {
@@ -140,7 +144,7 @@ async function cargarExamenesAnteriores(madreId) {
             // Mantener referencia al último examen
             currentExamenEOA = examenesDesc[0];
             prefillFormularioEOA(examenesDesc[0]);
-            guardarEstadoFormularioEOA(examenesDesc[0].madre_id, examenesDesc[0]);
+            guardarEstadoFormularioEOA(examenesDesc[0].paciente_id, examenesDesc[0]);
         }
         
     } catch (error) {
@@ -190,7 +194,7 @@ function mostrarExamenesAnteriores(examenes) {
 async function registrarExamenEOA(examenData) {
     try {
         // Validar datos
-        if (!examenData.madre_id || !examenData.od_resultado || !examenData.oi_resultado) {
+        if (!examenData.paciente_id || !examenData.od_resultado || !examenData.oi_resultado) {
             throw new Error('Todos los campos obligatorios deben ser completados');
         }
         
@@ -219,13 +223,13 @@ async function registrarExamenEOA(examenData) {
         }
         
         // Preparar datos para inserción
-        const madreNombre = (examenData.madre_nombre || '').trim() || 'SIN REGISTRO';
-        const madreApellido = (examenData.madre_apellido || '').trim() || 'SIN REGISTRO';
+        const pacienteNombre = (examenData.paciente_nombre || '').trim() || 'SIN REGISTRO';
+        const pacienteApellido = (examenData.paciente_apellido || '').trim() || 'SIN REGISTRO';
 
         const dataToInsert = {
-            madre_id: examenData.madre_id,
-            nombre: madreNombre,
-            apellido: madreApellido,
+            paciente_id: examenData.paciente_id,
+            nombre: pacienteNombre,
+            apellido: pacienteApellido,
             od_resultado: examenData.od_resultado,
             oi_resultado: examenData.oi_resultado,
             fecha_nacimiento: examenData.fecha_nacimiento,
@@ -260,15 +264,15 @@ async function registrarExamenEOA(examenData) {
         
     } catch (error) {
         console.error('Error al registrar examen EOA:', error);
-        return { 
-            success: false, 
-            error: error.message || 'Error al registrar examen' 
+        return {
+            success: false,
+            error: error.message || 'Error al registrar examen'
         };
     }
 }
 
-// Función para obtener exámenes de una madre
-async function obtenerExamenesMadre(madreId, limit = 10) {
+// Función para obtener exámenes de un paciente
+async function obtenerExamenesPaciente(pacienteId, limit = 10) {
     try {
         if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
@@ -277,7 +281,7 @@ async function obtenerExamenesMadre(madreId, limit = 10) {
         const { data, error } = await window.supabaseClient
             .from('examenes_eoa')
             .select('*')
-            .eq('madre_id', madreId)
+            .eq('paciente_id', pacienteId)
             .order('fecha_examen', { ascending: false })
             .limit(limit);
         
@@ -289,11 +293,16 @@ async function obtenerExamenesMadre(madreId, limit = 10) {
         
     } catch (error) {
         console.error('Error al obtener exámenes:', error);
-        return { 
-            success: false, 
-            error: error.message || 'Error al obtener exámenes' 
+        return {
+            success: false,
+            error: error.message || 'Error al obtener exámenes'
         };
     }
+}
+
+// Función para obtener exámenes de una madre (mantener compatibilidad)
+async function obtenerExamenesMadre(madreId, limit = 10) {
+    return obtenerExamenesPaciente(madreId, limit);
 }
 
 // Función para obtener todos los exámenes
@@ -307,11 +316,12 @@ async function obtenerTodosExamenes(limit = 50) {
             .from('examenes_eoa')
             .select(`
                 *,
-                madres (
+                pacientes (
                     rut,
                     numero_ficha,
                     sala,
-                    cama
+                    cama,
+                    tipo_paciente
                 )
             `)
             .order('fecha_examen', { ascending: false })
@@ -325,9 +335,9 @@ async function obtenerTodosExamenes(limit = 50) {
         
     } catch (error) {
         console.error('Error al obtener todos los exámenes:', error);
-        return { 
-            success: false, 
-            error: error.message || 'Error al obtener exámenes' 
+        return {
+            success: false,
+            error: error.message || 'Error al obtener exámenes'
         };
     }
 }
@@ -479,16 +489,17 @@ async function exportarExamenesCSV() {
         
         // Crear CSV
         const headers = [
-            'RUT Madre', 'Número de Ficha', 'Sala', 'Cama', 
+            'RUT Paciente', 'Tipo Paciente', 'Número de Ficha', 'Sala', 'Cama',
             'Resultado OD', 'Resultado OI', 'Observaciones', 'Fecha Examen'
         ];
         const csvContent = [
             headers.join(','),
             ...examenes.map(examen => [
-                utils.formatearRUT(examen.madres.rut),
-                examen.madres.numero_ficha,
-                examen.madres.sala,
-                examen.madres.cama,
+                utils.formatearRUT(examen.pacientes.rut),
+                examen.pacientes.tipo_paciente || 'MADRE',
+                examen.pacientes.numero_ficha,
+                examen.pacientes.sala,
+                examen.pacientes.cama,
                 examen.od_resultado,
                 examen.oi_resultado,
                 examen.observaciones ? `"${examen.observaciones.replace(/"/g, '""')}"` : '',
@@ -611,9 +622,9 @@ function construirPayloadExamenDesdeFormulario() {
     const semanasGestacion = semanasGestacionValue ? parseInt(semanasGestacionValue, 10) : null;
 
     return {
-        madre_id: currentMadreEOA ? currentMadreEOA.id : null,
-        madre_nombre: currentMadreEOA ? currentMadreEOA.nombre : null,
-        madre_apellido: currentMadreEOA ? currentMadreEOA.apellido : null,
+        paciente_id: currentPacienteEOA ? currentPacienteEOA.id : null,
+        paciente_nombre: currentPacienteEOA ? currentPacienteEOA.nombre : null,
+        paciente_apellido: currentPacienteEOA ? currentPacienteEOA.apellido : null,
         od_resultado: odResultadoInput.value,
         oi_resultado: oiResultadoInput.value,
         fecha_nacimiento: document.getElementById('fechaNacimiento').value,
@@ -886,8 +897,8 @@ function descargarTextoEvolucion(nombreArchivo, contenido) {
 }
 
 function exportarEvolucionDesdeFormulario() {
-    if (!currentMadreEOA) {
-        utils.showNotification('Seleccione una madre antes de exportar la evoluci\u00f3n', 'error');
+    if (!currentPacienteEOA) {
+        utils.showNotification('Seleccione un paciente antes de exportar la evoluci\u00f3n', 'error');
         return;
     }
 
@@ -902,13 +913,13 @@ function exportarEvolucionDesdeFormulario() {
     }
 
     const esReimpresion = eoaFormPristine &&
-        currentMadreExamenCount > 0 &&
+        currentPacienteExamenCount > 0 &&
         currentExamenEOA &&
         sonExamenesIguales(examenPayload, currentExamenEOA);
 
     const numeroExamen = esReimpresion
-        ? currentMadreExamenCount
-        : currentMadreExamenCount + 1;
+        ? currentPacienteExamenCount
+        : currentPacienteExamenCount + 1;
 
     const texto = generarTextoEvolucion(examenPayload, numeroExamen);
 
@@ -917,8 +928,8 @@ function exportarEvolucionDesdeFormulario() {
         return;
     }
 
-    const madreIdentificador = currentMadreEOA.rut || currentMadreEOA.id || 'madre';
-    const safeName = madreIdentificador.toString().replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const pacienteIdentificador = currentPacienteEOA.rut || currentPacienteEOA.id || 'paciente';
+    const safeName = pacienteIdentificador.toString().replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
     const fileName = `evolucion_${safeName}_${new Date().toISOString().split('T')[0]}.txt`;
     descargarTextoEvolucion(fileName, texto);
     utils.showNotification('Evoluci\u00f3n exportada en TXT', 'success');
@@ -952,8 +963,8 @@ function initializeEoaEventHandlers() {
             return;
         }
         
-        if (!currentMadreEOA) {
-            utils.showNotification('Error: no se ha seleccionado una madre', 'error');
+        if (!currentPacienteEOA) {
+            utils.showNotification('Error: no se ha seleccionado un paciente', 'error');
             return;
         }
         
@@ -974,21 +985,21 @@ function initializeEoaEventHandlers() {
                     
                     if (result.data) {
                         currentExamenEOA = result.data;
-                        currentMadreExamenes.push(result.data);
-                        currentMadreExamenes.sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
-                        currentMadreExamenCount += 1;
-                        guardarEstadoFormularioEOA(result.data.madre_id || (currentMadreEOA && currentMadreEOA.id), result.data);
+                        currentPacienteExamenes.push(result.data);
+                        currentPacienteExamenes.sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
+                        currentPacienteExamenCount += 1;
+                        guardarEstadoFormularioEOA(result.data.paciente_id || (currentPacienteEOA && currentPacienteEOA.id), result.data);
                     }
 
                     if (typeof dashboard !== 'undefined' && typeof dashboard.markMadreConExamen === 'function') {
-                        dashboard.markMadreConExamen(currentMadreEOA.id, result.data);
+                        dashboard.markMadreConExamen(currentPacienteEOA.id, result.data);
                     }
                     
                     closeEoaModal();
                     
                     // Recargar registros recientes si estamos en el dashboard
-                    if (typeof dashboard !== 'undefined' && dashboard.loadRecentMothers) {
-                    await dashboard.loadRecentMothers();
+                    if (typeof dashboard !== 'undefined' && dashboard.loadRecentPatients) {
+                    await dashboard.loadRecentPatients();
                 }
             } else {
                 utils.showNotification(result.error, 'error');
@@ -1050,7 +1061,8 @@ window.eoa = {
     openEoaModal,
     closeEoaModal,
     registrarExamenEOA,
-    obtenerExamenesMadre,
+    obtenerExamenesPaciente,
+    obtenerExamenesMadre, // Mantener compatibilidad
     obtenerTodosExamenes,
     actualizarExamenEOA,
     eliminarExamenEOA,
@@ -1059,6 +1071,7 @@ window.eoa = {
     exportarEvolucionDesdeFormulario,
     validarFormularioEOA,
     limpiarFormularioEOA,
-    getCurrentMadre: () => currentMadreEOA,
+    getCurrentPaciente: () => currentPacienteEOA,
+    getCurrentMadre: () => currentPacienteEOA, // Mantener compatibilidad
     getCurrentExamen: () => currentExamenEOA
 };

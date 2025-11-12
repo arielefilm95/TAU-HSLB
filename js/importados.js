@@ -18,23 +18,24 @@ async function cargarDatos() {
         mostrarCarga();
         
         // Cargar datos en paralelo
-        const [partosResult, madresResult, eoaResult] = await Promise.all([
+        const [partosResult, pacientesResult, eoaResult] = await Promise.all([
             window.supabaseClient
                 .from('partos_importados')
                 .select('*')
                 .order('fecha_importacion', { ascending: false }),
-            
+           
             window.supabaseClient
-                .from('madres')
-                .select('*'),
-            
+                .from('pacientes')
+                .select('*')
+                .eq('tipo_paciente', 'MADRE'), // Solo madres para compatibilidad
+           
             window.supabaseClient
                 .from('examenes_eoa')
-                .select('id,madre_id,od_resultado,oi_resultado,fecha_examen')
+                .select('id,paciente_id,od_resultado,oi_resultado,fecha_examen')
         ]);
         
         if (partosResult.error) throw partosResult.error;
-        if (madresResult.error) throw madresResult.error;
+        if (pacientesResult.error) throw pacientesResult.error;
         if (eoaResult.error) throw eoaResult.error;
         
         // Procesar datos
@@ -43,17 +44,17 @@ async function cargarDatos() {
         
         // Crear mapas para búsqueda rápida
         datosMadres.clear();
-        (madresResult.data || []).forEach(madre => {
-            const rutNormalizado = madre.rut.replace('-', '').toUpperCase();
-            datosMadres.set(rutNormalizado, madre);
+        (pacientesResult.data || []).forEach(paciente => {
+            const rutNormalizado = paciente.rut.replace('-', '').toUpperCase();
+            datosMadres.set(rutNormalizado, paciente);
         });
         
         datosEOA.clear();
         (eoaResult.data || []).forEach(eoa => {
-            if (!datosEOA.has(eoa.madre_id)) {
-                datosEOA.set(eoa.madre_id, []);
+            if (!datosEOA.has(eoa.paciente_id)) {
+                datosEOA.set(eoa.paciente_id, []);
             }
-            datosEOA.get(eoa.madre_id).push(eoa);
+            datosEOA.get(eoa.paciente_id).push(eoa);
         });
         
         // Actualizar estadísticas
@@ -106,7 +107,7 @@ function mostrarDatos() {
 
     const rowsHtml = datosFiltrados.map(item => {
         const rutNormalizado = item.rut.replace('-', '').toUpperCase();
-        const madre = datosMadres.get(rutNormalizado);
+        const paciente = datosMadres.get(rutNormalizado);
         const examenes = item.madre_id && datosEOA.has(item.madre_id)
             ? datosEOA.get(item.madre_id).sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen))
             : [];
@@ -162,7 +163,7 @@ function mostrarDatos() {
                 <td>
                     ${window.utils ? window.utils.escapeHTML(nombreCompleto) : nombreCompleto}
                 </td>
-                <td>${madre ? window.utils.escapeHTML(madre.numero_ficha || '') : ''}</td>
+                <td>${paciente ? window.utils.escapeHTML(paciente.numero_ficha || '') : ''}</td>
                 <td>${window.utils ? window.utils.escapeHTML(window.utils.formatearRUT(item.rut)) : item.rut}</td>
                 <td>${window.utils ? window.utils.formatearFecha(item.fecha_parto) : new Date(item.fecha_parto).toLocaleDateString()}</td>
                 <td>${renderExamen(primerExamen, '1er examen', item.id)}</td>
@@ -293,12 +294,12 @@ window.eliminarExamenEoa = async function(examenId) {
         }
 
         // Eliminar del mapa de datos
-        datosEOA.forEach((examenes, madreId) => {
+        datosEOA.forEach((examenes, pacienteId) => {
             const index = examenes.findIndex(e => e.id === examenId);
             if (index !== -1) {
                 examenes.splice(index, 1);
                 if (examenes.length === 0) {
-                    datosEOA.delete(madreId);
+                    datosEOA.delete(pacienteId);
                 }
             }
         });
@@ -342,13 +343,13 @@ async function guardarExamenDesdeImportados(event) {
     try {
         window.utils?.toggleButtonLoader('guardarEoaImportadosBtn', true);
 
-        const madreId = await asegurarMadreParaImportado(registroEoaSeleccionado);
-        if (!madreId) {
-            throw new Error('No fue posible asociar una madre al registro');
+        const pacienteId = await asegurarPacienteParaImportado(registroEoaSeleccionado);
+        if (!pacienteId) {
+            throw new Error('No fue posible asociar un paciente al registro');
         }
 
         const payload = {
-            madre_id: madreId,
+            paciente_id: pacienteId,
             od_resultado: od.value,
             oi_resultado: oi.value,
             fecha_examen: fecha,
@@ -372,10 +373,10 @@ async function guardarExamenDesdeImportados(event) {
             
             if (!error) {
                 // Actualizar en el mapa de datos
-                if (datosEOA.has(madreId)) {
-                    const index = datosEOA.get(madreId).findIndex(e => e.id === registroEoaSeleccionado.examenId);
+                if (datosEOA.has(pacienteId)) {
+                    const index = datosEOA.get(pacienteId).findIndex(e => e.id === registroEoaSeleccionado.examenId);
                     if (index !== -1) {
-                        datosEOA.get(madreId)[index] = data;
+                        datosEOA.get(pacienteId)[index] = data;
                     }
                 }
             }
@@ -431,42 +432,42 @@ function formatearRutCompleto(rut) {
     return `${cuerpo}-${dv}`;
 }
 
-async function asegurarMadreParaImportado(registro) {
+async function asegurarPacienteParaImportado(registro) {
     if (!registro) {
         return null;
     }
 
     const rutNormalizado = normalizarRutValor(registro.rut);
-    const madreExistente = datosMadres.get(rutNormalizado);
+    const pacienteExistente = datosMadres.get(rutNormalizado);
 
-    if (madreExistente) {
+    if (pacienteExistente) {
         if (!registro.madre_id) {
             await window.supabaseClient
                 .from('partos_importados')
-                .update({ madre_id: madreExistente.id })
+                .update({ madre_id: pacienteExistente.id })
                 .eq('id', registro.id);
-            registro.madre_id = madreExistente.id;
+            registro.madre_id = pacienteExistente.id;
         }
-        return madreExistente.id;
+        return pacienteExistente.id;
     }
 
-    // Solo crear nueva madre si no existe y si no tiene madre_id asociado
-    // Esto evita crear madres duplicadas innecesariamente
+    // Solo crear nuevo paciente si no existe y si no tiene madre_id asociado
+    // Esto evita crear pacientes duplicados innecesariamente
     if (registro.madre_id) {
         // Si ya tiene madre_id, verificar que exista en la base de datos
-        const { data: madreVerificada } = await window.supabaseClient
-            .from('madres')
+        const { data: pacienteVerificado } = await window.supabaseClient
+            .from('pacientes')
             .select('id')
             .eq('id', registro.madre_id)
             .single();
         
-        if (madreVerificada) {
+        if (pacienteVerificado) {
             return registro.madre_id;
         }
     }
 
-    // Crear nueva madre solo si es absolutamente necesario
-    const nuevaMadre = {
+    // Crear nuevo paciente solo si es absolutamente necesario
+    const nuevoPaciente = {
         nombre: registro.nombre || 'SIN',
         apellido: registro.apellido || 'REGISTRO',
         rut: formatearRutCompleto(registro.rut),
@@ -474,17 +475,18 @@ async function asegurarMadreParaImportado(registro) {
         sala: 'PEND',
         cama: 'PEND',
         cantidad_hijos: 1,
+        tipo_paciente: 'MADRE', // Por defecto es madre para compatibilidad
         origen_registro: 'IMPORTADO' // Marcar como importado
     };
 
     const { data, error } = await window.supabaseClient
-        .from('madres')
-        .insert([nuevaMadre])
+        .from('pacientes')
+        .insert([nuevoPaciente])
         .select()
         .single();
 
     if (error) {
-        console.error('Error creando madre desde importado:', error);
+        console.error('Error creando paciente desde importado:', error);
         throw error;
     }
 
@@ -497,6 +499,11 @@ async function asegurarMadreParaImportado(registro) {
 
     registro.madre_id = data.id;
     return data.id;
+}
+
+// Mantener compatibilidad con función anterior
+async function asegurarMadreParaImportado(registro) {
+    return asegurarPacienteParaImportado(registro);
 }
 // Función para mostrar estado de carga
 function mostrarCarga() {
@@ -573,7 +580,7 @@ function verDetalles(id) {
     if (!item) return;
     
     const rutNormalizado = item.rut.replace('-', '').toUpperCase();
-    const madre = datosMadres.get(rutNormalizado);
+    const paciente = datosMadres.get(rutNormalizado);
     const tieneEOA = item.madre_id && datosEOA.has(item.madre_id);
     const examenesEOA = tieneEOA ? datosEOA.get(item.madre_id) : [];
     
@@ -598,26 +605,31 @@ function verDetalles(id) {
                 </div>
             </div>
             
-            ${madre ? `
+            ${paciente ? `
                 <div class="detalle-section">
                     <h4>Registro Manual</h4>
                     <div class="detalle-item">
-                        <strong>Ficha:</strong> ${window.utils ? window.utils.escapeHTML(madre.numero_ficha) : madre.numero_ficha}
+                        <strong>Tipo:</strong> ${paciente.tipo_paciente || 'MADRE'}
                     </div>
                     <div class="detalle-item">
-                        <strong>Sala:</strong> ${window.utils ? window.utils.escapeHTML(madre.sala) : madre.sala}
+                        <strong>Ficha:</strong> ${window.utils ? window.utils.escapeHTML(paciente.numero_ficha) : paciente.numero_ficha}
                     </div>
                     <div class="detalle-item">
-                        <strong>Cama:</strong> ${window.utils ? window.utils.escapeHTML(madre.cama) : madre.cama}
+                        <strong>Sala:</strong> ${window.utils ? window.utils.escapeHTML(paciente.sala) : paciente.sala}
                     </div>
                     <div class="detalle-item">
-                        <strong>Hijos:</strong> ${madre.cantidad_hijos || 'N/A'}
+                        <strong>Cama:</strong> ${window.utils ? window.utils.escapeHTML(paciente.cama) : paciente.cama}
                     </div>
+                    ${paciente.tipo_paciente === 'MADRE' ? `
+                    <div class="detalle-item">
+                        <strong>Hijos:</strong> ${paciente.cantidad_hijos || 'N/A'}
+                    </div>
+                    ` : ''}
                 </div>
             ` : `
                 <div class="detalle-section">
                     <h4>Registro Manual</h4>
-                    <p class="no-data">No se encontró registro manual para esta madre</p>
+                    <p class="no-data">No se encontró registro manual para este paciente</p>
                 </div>
             `}
             
@@ -686,9 +698,9 @@ function realizarExportacion() {
         // Preparar datos para exportación
         const datosExport = datosFiltrados.map(item => {
             const rutNormalizado = item.rut.replace('-', '').toUpperCase();
-            const madre = datosMadres.get(rutNormalizado);
+            const paciente = datosMadres.get(rutNormalizado);
             const tieneEOA = item.madre_id && datosEOA.has(item.madre_id);
-            
+           
             return {
                 'RUT': window.utils ? window.utils.formatearRUT(item.rut) : item.rut,
                 'Nombre': item.nombre,
@@ -697,9 +709,10 @@ function realizarExportacion() {
                 'Archivo Origen': item.archivo_origen,
                 'Fecha Importación': item.fecha_importacion,
                 'Con Registro Manual': item.madre_id ? 'Sí' : 'No',
-                'Ficha': madre ? madre.numero_ficha : '',
-                'Sala': madre ? madre.sala : '',
-                'Cama': madre ? madre.cama : '',
+                'Tipo Paciente': paciente ? (paciente.tipo_paciente || 'MADRE') : '',
+                'Ficha': paciente ? paciente.numero_ficha : '',
+                'Sala': paciente ? paciente.sala : '',
+                'Cama': paciente ? paciente.cama : '',
                 'EOA Realizado': tieneEOA ? 'Sí' : 'No'
             };
         });

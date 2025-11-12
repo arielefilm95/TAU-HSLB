@@ -34,13 +34,14 @@ function compilarObservaciones(examenes) {
 
 async function fetchReportesData() {
     const { data, error } = await reportesSupabase
-        .from('madres')
+        .from('pacientes')
         .select(`
             id,
             nombre,
             apellido,
             rut,
             numero_ficha,
+            tipo_paciente,
             examenes_eoa (
                 od_resultado,
                 oi_resultado,
@@ -48,14 +49,15 @@ async function fetchReportesData() {
                 fecha_examen
             )
         `)
+        .eq('tipo_paciente', 'MADRE') // Solo madres para compatibilidad
         .order('created_at', { ascending: true });
 
     if (error) {
         throw error;
     }
 
-    return (data || []).map(madre => {
-        const examenesOrdenados = (madre.examenes_eoa || [])
+    return (data || []).map(paciente => {
+        const examenesOrdenados = (paciente.examenes_eoa || [])
             .slice()
             .sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
 
@@ -63,9 +65,10 @@ async function fetchReportesData() {
         const segundoExamen = examenesOrdenados[1] || null;
 
         return {
-            ficha: madre.numero_ficha || '',
-            rut: utils.formatearRUT(madre.rut),
-            nombre: [madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado',
+            ficha: paciente.numero_ficha || '',
+            rut: utils.formatearRUT(paciente.rut),
+            nombre: [paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado',
+            tipo_paciente: paciente.tipo_paciente || 'MADRE',
             primerExamen: describirExamen(primerExamen),
             segundoExamen: describirExamen(segundoExamen),
             observaciones: compilarObservaciones(examenesOrdenados)
@@ -82,7 +85,7 @@ function renderReportesTable(rows) {
     if (!rows.length) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align: center;">No hay registros disponibles.</td>
+                <td colspan="7" style="text-align: center;">No hay registros disponibles.</td>
             </tr>
         `;
         return;
@@ -93,6 +96,7 @@ function renderReportesTable(rows) {
             <td>${utils.escapeHTML(row.ficha)}</td>
             <td>${utils.escapeHTML(row.rut)}</td>
             <td>${utils.escapeHTML(row.nombre)}</td>
+            <td>${utils.escapeHTML(row.tipo_paciente || 'MADRE')}</td>
             <td>${utils.escapeHTML(row.primerExamen)}</td>
             <td>${utils.escapeHTML(row.segundoExamen)}</td>
             <td>${utils.escapeHTML(row.observaciones || '')}</td>
@@ -109,11 +113,12 @@ async function exportarReportesExcel() {
 
         utils.toggleButtonLoader(buttonId, true);
 
-        const headers = ['N° Ficha', 'RUT', 'Nombre de la Madre', 'Primer Examen', 'Segundo Examen', 'Observaciones'];
+        const headers = ['N° Ficha', 'RUT', 'Nombre del Paciente', 'Tipo Paciente', 'Primer Examen', 'Segundo Examen', 'Observaciones'];
         const data = reportesRows.map(row => [
             row.ficha,
             row.rut,
             row.nombre,
+            row.tipo_paciente || 'MADRE',
             row.primerExamen,
             row.segundoExamen,
             row.observaciones
@@ -162,7 +167,7 @@ async function initReportes() {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center;">${utils.escapeHTML(error.message || 'Error al cargar reportes')}</td>
+                    <td colspan="7" style="text-align: center;">${utils.escapeHTML(error.message || 'Error al cargar reportes')}</td>
                 </tr>
             `;
         }

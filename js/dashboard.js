@@ -1,8 +1,8 @@
 // Funcionalidad del Dashboard
 
 // Variables globales
-let recentMothers = [];
-const madresResumenExamen = new Map();
+let recentPatients = [];
+const pacientesResumenExamen = new Map();
 let midnightCleanupInterval = null;
 
 function resultadoRefiere(examen) {
@@ -16,13 +16,13 @@ function mergeResumenExamenes(resumenMap) {
     if (!(resumenMap instanceof Map)) {
         return;
     }
-    resumenMap.forEach((resumen, madreId) => {
-        madresResumenExamen.set(madreId, resumen);
+    resumenMap.forEach((resumen, pacienteId) => {
+        pacientesResumenExamen.set(pacienteId, resumen);
     });
 }
 
-async function obtenerResumenExamenes(madreIds = []) {
-    if (!Array.isArray(madreIds) || madreIds.length === 0) {
+async function obtenerResumenExamenes(pacienteIds = []) {
+    if (!Array.isArray(pacienteIds) || pacienteIds.length === 0) {
         return new Map();
     }
 
@@ -30,15 +30,15 @@ async function obtenerResumenExamenes(madreIds = []) {
         return new Map();
     }
 
-    const uniqueIds = [...new Set(madreIds.filter(Boolean))];
+    const uniqueIds = [...new Set(pacienteIds.filter(Boolean))];
     if (uniqueIds.length === 0) {
         return new Map();
     }
 
     const { data, error } = await window.supabaseClient
         .from('examenes_eoa')
-        .select('id,madre_id,od_resultado,oi_resultado,fecha_examen')
-        .in('madre_id', uniqueIds)
+        .select('id,paciente_id,od_resultado,oi_resultado,fecha_examen')
+        .in('paciente_id', uniqueIds)
         .order('fecha_examen', { ascending: true });
 
     if (error) {
@@ -47,10 +47,10 @@ async function obtenerResumenExamenes(madreIds = []) {
 
     const agrupados = new Map();
     (data || []).forEach(examen => {
-        if (!agrupados.has(examen.madre_id)) {
-            agrupados.set(examen.madre_id, []);
+        if (!agrupados.has(examen.paciente_id)) {
+            agrupados.set(examen.paciente_id, []);
         }
-        agrupados.get(examen.madre_id).push(examen);
+        agrupados.get(examen.paciente_id).push(examen);
     });
 
     const resumenMap = new Map();
@@ -87,7 +87,7 @@ async function obtenerResumenExamenes(madreIds = []) {
 async function initDashboard() {
     try {
         // Cargar registros recientes
-        await loadRecentMothers();
+        await loadRecentPatients();
         
         // Configurar event listeners
         setupEventListeners();
@@ -103,13 +103,13 @@ async function initDashboard() {
 
 
 // Función para cargar registros recientes
-async function loadRecentMothers() {
+async function loadRecentPatients() {
     try {
         if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
-            const recentMothersElement = document.getElementById('recentMothers');
-            if (recentMothersElement) {
-                recentMothersElement.innerHTML = '<p class="no-data">Error de conexión</p>';
+            const recentPatientsElement = document.getElementById('recentMothers');
+            if (recentPatientsElement) {
+                recentPatientsElement.innerHTML = '<p class="no-data">Error de conexión</p>';
             }
             return;
         }
@@ -128,11 +128,12 @@ async function loadRecentMothers() {
             endOfDay: endOfDayISO
         });
         
-        // Consultar solo registros manuales del día actual
+        // Consultar solo registros manuales del día actual (solo madres)
         // Usamos el campo origen_registro para filtrar más eficientemente
         const { data, error } = await window.supabaseClient
-            .from('madres')
+            .from('pacientes')
             .select('*')
+            .eq('tipo_paciente', 'MADRE') // Solo madres para mantener compatibilidad
             .eq('origen_registro', 'MANUAL') // Solo registros manuales
             .gte('created_at', startOfDayISO)
             .lt('created_at', endOfDayISO)
@@ -143,8 +144,9 @@ async function loadRecentMothers() {
             console.error('Error en consulta principal:', error);
             // Si falla la consulta con origen_registro, intentar con el método anterior
             const { data: fallbackData, error: fallbackError } = await window.supabaseClient
-                .from('madres')
+                .from('pacientes')
                 .select('*')
+                .eq('tipo_paciente', 'MADRE') // Solo madres
                 .gte('created_at', startOfDayISO)
                 .lt('created_at', endOfDayISO)
                 .order('created_at', { ascending: false })
@@ -155,59 +157,59 @@ async function loadRecentMothers() {
             }
             
             // Filtrar manualmente los que no son importados (método de respaldo)
-            const madresIds = fallbackData.map(m => m.id);
+            const pacientesIds = fallbackData.map(p => p.id);
             const { data: importadosData } = await window.supabaseClient
                 .from('partos_importados')
                 .select('madre_id')
-                .in('madre_id', madresIds);
+                .in('madre_id', pacientesIds);
             
             const importadosIds = new Set((importadosData || []).map(i => i.madre_id));
-            const madresData = (fallbackData || []).filter(madre =>
-                !importadosIds.has(madre.id) && madre.origen_registro !== 'IMPORTADO'
+            const pacientesData = (fallbackData || []).filter(paciente =>
+                !importadosIds.has(paciente.id) && paciente.origen_registro !== 'IMPORTADO'
             );
             
-            const resumenMap = await obtenerResumenExamenes(madresData.map(madre => madre.id));
+            const resumenMap = await obtenerResumenExamenes(pacientesData.map(paciente => paciente.id));
             mergeResumenExamenes(resumenMap);
             
-            recentMothers = madresData.slice();
-            displayRecentMothers();
+            recentPatients = pacientesData.slice();
+            displayRecentPatients();
             return;
         }
         
-        const madresData = data || [];
+        const pacientesData = data || [];
         try {
-            const resumenMap = await obtenerResumenExamenes(madresData.map(madre => madre.id));
+            const resumenMap = await obtenerResumenExamenes(pacientesData.map(paciente => paciente.id));
             mergeResumenExamenes(resumenMap);
         } catch (statusError) {
             console.warn('No se pudo obtener estado de exámenes EOA para recientes:', statusError);
         }
 
-        recentMothers = madresData.slice();
-        displayRecentMothers();
+        recentPatients = pacientesData.slice();
+        displayRecentPatients();
         
     } catch (error) {
         console.error('Error al cargar registros recientes:', error);
-        const recentMothersElement = document.getElementById('recentMothers');
-        if (recentMothersElement) {
-            recentMothersElement.innerHTML = '<p class="no-data">Error al cargar registros</p>';
+        const recentPatientsElement = document.getElementById('recentMothers');
+        if (recentPatientsElement) {
+            recentPatientsElement.innerHTML = '<p class="no-data">Error al cargar registros</p>';
         }
     }
 }
 
 // Función para mostrar registros recientes
-function displayRecentMothers() {
-    const recentMothersElement = document.getElementById('recentMothers');
+function displayRecentPatients() {
+    const recentPatientsElement = document.getElementById('recentMothers');
     
-    if (!recentMothersElement) return;
+    if (!recentPatientsElement) return;
     
-    if (recentMothers.length === 0) {
-        recentMothersElement.innerHTML = '<p class="no-data">No hay registros recientes</p>';
+    if (recentPatients.length === 0) {
+        recentPatientsElement.innerHTML = '<p class="no-data">No hay registros recientes</p>';
         return;
     }
     
-    const html = recentMothers.map(madre => {
-        const nombreCompleto = [madre.nombre, madre.apellido].filter(Boolean).join(' ');
-        const estado = obtenerEstadoEOAVisual(madre.id);
+    const html = recentPatients.map(paciente => {
+        const nombreCompleto = [paciente.nombre, paciente.apellido].filter(Boolean).join(' ');
+        const estado = obtenerEstadoEOAVisual(paciente.id);
         const itemClasses = ['recent-item'];
         if (estado.containerClass) {
             itemClasses.push(estado.containerClass);
@@ -216,31 +218,32 @@ function displayRecentMothers() {
         const statusText = estado.pillText;
         
         return `
-        <div class="${itemClasses.join(' ')}" data-madre-id="${madre.id}">
+        <div class="${itemClasses.join(' ')}" data-madre-id="${paciente.id}">
             <div class="recent-item-info">
                 <div class="recent-item-basic">
                     <div class="recent-item-name">${utils.escapeHTML(nombreCompleto)}</div>
                     <div class="recent-item-sala-cama">
-                        <div class="recent-item-sala">Sala: ${utils.escapeHTML(madre.sala)}</div>
-                        <div class="recent-item-cama">Cama: ${utils.escapeHTML(madre.cama)}</div>
+                        <div class="recent-item-sala">Sala: ${utils.escapeHTML(paciente.sala)}</div>
+                        <div class="recent-item-cama">Cama: ${utils.escapeHTML(paciente.cama)}</div>
                     </div>
                 </div>
                 <div class="recent-item-expand">▼</div>
                 <div class="recent-item-details">
-                    <div><strong>RUT:</strong> ${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
-                    <div><strong>Ficha:</strong> ${utils.escapeHTML(madre.numero_ficha)}</div>
-                    <div><strong>Hijos:</strong> ${utils.escapeHTML((madre.cantidad_hijos ?? 'N/A').toString())}</div>
-                    <div><strong>Registro:</strong> ${utils.formatearFecha(madre.created_at)}</div>
+                    <div><strong>RUT:</strong> ${utils.escapeHTML(utils.formatearRUT(paciente.rut))}</div>
+                    <div><strong>Ficha:</strong> ${utils.escapeHTML(paciente.numero_ficha)}</div>
+                    <div><strong>Tipo:</strong> ${utils.escapeHTML(paciente.tipo_paciente || 'MADRE')}</div>
+                    ${paciente.tipo_paciente === 'MADRE' ? `<div><strong>Hijos:</strong> ${utils.escapeHTML((paciente.cantidad_hijos ?? 'N/A').toString())}</div>` : ''}
+                    <div><strong>Registro:</strong> ${utils.formatearFecha(paciente.created_at)}</div>
                     <div class="recent-item-status">
                         <span class="${statusClass}">${statusText}</span>
                     </div>
                 </div>
                 <div class="recent-item-date">
-                    ${utils.formatearFecha(madre.created_at)}
+                    ${utils.formatearFecha(paciente.created_at)}
                 </div>
             </div>
             <div class="recent-item-actions">
-                <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${madre.id}">
+                <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${paciente.id}">
                     Ver plantilla EOA
                 </button>
             </div>
@@ -248,13 +251,13 @@ function displayRecentMothers() {
     `;
     }).join('');
     
-    recentMothersElement.innerHTML = html;
+    recentPatientsElement.innerHTML = html;
     
     // Agregar listeners para abrir la plantilla EOA (sin expansión)
-    const recentItems = recentMothersElement.querySelectorAll('.recent-item');
+    const recentItems = recentPatientsElement.querySelectorAll('.recent-item');
     recentItems.forEach(item => {
-        const madreId = item.getAttribute('data-madre-id');
-        if (!madreId) return;
+        const pacienteId = item.getAttribute('data-madre-id');
+        if (!pacienteId) return;
         
         // Listener para abrir la plantilla EOA
         const actionButton = item.querySelector('button[data-action="abrir-eoa"]');
@@ -263,15 +266,15 @@ function displayRecentMothers() {
                 e.stopPropagation();
                 e.preventDefault();
                 if (window.dashboard && typeof window.dashboard.selectMadre === 'function') {
-                    await window.dashboard.selectMadre(madreId);
+                    await window.dashboard.selectMadre(pacienteId);
                 }
             });
         }
     });
 }
 
-function obtenerEstadoEOAVisual(madreId) {
-    const resumen = madresResumenExamen.get(madreId);
+function obtenerEstadoEOAVisual(pacienteId) {
+    const resumen = pacientesResumenExamen.get(pacienteId);
     if (!resumen || resumen.examCount === 0) {
         return {
             containerClass: '',
@@ -369,22 +372,27 @@ async function openMadresModal() {
     }
 }
 
-// Función para cargar lista de madres
-async function loadMadresList(searchTerm = '') {
+// Función para cargar lista de pacientes
+async function loadPacientesList(searchTerm = '', tipoPaciente = null) {
     try {
         if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
-            const madresListElement = document.getElementById('madresList');
-            if (madresListElement) {
-                madresListElement.innerHTML = '<p class="loading">Error de conexión</p>';
+            const pacientesListElement = document.getElementById('madresList');
+            if (pacientesListElement) {
+                pacientesListElement.innerHTML = '<p class="loading">Error de conexión</p>';
             }
             return;
         }
         
         let query = window.supabaseClient
-            .from('madres')
+            .from('pacientes')
             .select('*')
             .order('created_at', { ascending: false });
+        
+        // Filtrar por tipo de paciente si se especifica
+        if (tipoPaciente) {
+            query = query.eq('tipo_paciente', tipoPaciente.toUpperCase());
+        }
         
         // Aplicar filtro de búsqueda si existe
         if (searchTerm) {
@@ -397,76 +405,86 @@ async function loadMadresList(searchTerm = '') {
             throw error;
         }
         
-        const madresData = data || [];
+        const pacientesData = data || [];
         try {
-            const resumenMap = await obtenerResumenExamenes(madresData.map(madre => madre.id));
+            const resumenMap = await obtenerResumenExamenes(pacientesData.map(paciente => paciente.id));
             mergeResumenExamenes(resumenMap);
         } catch (statusError) {
             console.warn('No se pudo obtener estado de exámenes para la lista completa:', statusError);
         }
         
-        displayMadresList(madresData);
+        displayPacientesList(pacientesData);
         
     } catch (error) {
-        console.error('Error al cargar lista de madres:', error);
-        const madresListElement = document.getElementById('madresList');
-        if (madresListElement) {
-            madresListElement.innerHTML = '<p class="loading">Error al cargar datos</p>';
+        console.error('Error al cargar lista de pacientes:', error);
+        const pacientesListElement = document.getElementById('madresList');
+        if (pacientesListElement) {
+            pacientesListElement.innerHTML = '<p class="loading">Error al cargar datos</p>';
         }
     }
 }
 
-// Función para mostrar lista de madres
-function displayMadresList(madres) {
-    const madresListElement = document.getElementById('madresList');
+// Función para cargar lista de madres (mantener compatibilidad)
+async function loadMadresList(searchTerm = '') {
+    return loadPacientesList(searchTerm, 'MADRE');
+}
+
+// Función para mostrar lista de pacientes
+function displayPacientesList(pacientes) {
+    const pacientesListElement = document.getElementById('madresList');
     
-    if (!madresListElement) return;
+    if (!pacientesListElement) return;
     
-    if (madres.length === 0) {
-        madresListElement.innerHTML = '<p class="no-data">No se encontraron registros</p>';
+    if (pacientes.length === 0) {
+        pacientesListElement.innerHTML = '<p class="no-data">No se encontraron registros</p>';
         return;
     }
     
-    const html = madres.map(madre => {
-        const estado = obtenerEstadoEOAVisual(madre.id);
+    const html = pacientes.map(paciente => {
+        const estado = obtenerEstadoEOAVisual(paciente.id);
         const itemClasses = ['madre-item'];
         if (estado.containerClass) {
             itemClasses.push(estado.containerClass);
         }
         const statusClass = `status-pill ${estado.pillTheme}`;
         const statusText = estado.pillText;
-        const nombreCompletoPlano = [madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado';
+        const nombreCompletoPlano = [paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado';
         const nombreConfirm = nombreCompletoPlano.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
 
         return `
-        <div class="${itemClasses.join(' ')}" data-madre-id="${madre.id}" onclick="selectMadre('${madre.id}')">
+        <div class="${itemClasses.join(' ')}" data-madre-id="${paciente.id}" onclick="selectMadre('${paciente.id}')">
             <div class="madre-item-header">
-                <div class="madre-item-rut">${utils.escapeHTML([madre.nombre, madre.apellido].filter(Boolean).join(' ') || 'Nombre no registrado')}</div>
-                <div class="madre-item-identificacion">${utils.escapeHTML(utils.formatearRUT(madre.rut))}</div>
-                <div class="madre-item-ficha">Ficha: ${utils.escapeHTML(madre.numero_ficha)}</div>
+                <div class="madre-item-rut">${utils.escapeHTML([paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Nombre no registrado')}</div>
+                <div class="madre-item-identificacion">${utils.escapeHTML(utils.formatearRUT(paciente.rut))}</div>
+                <div class="madre-item-ficha">Ficha: ${utils.escapeHTML(paciente.numero_ficha)}</div>
             </div>
             <div class="madre-item-status">
                 <span class="${statusClass}">${statusText}</span>
             </div>
             <div class="madre-item-details">
                 <div class="madre-item-detail">
-                    <strong>Sala:</strong> ${utils.escapeHTML(madre.sala)}
+                    <strong>Tipo:</strong> ${utils.escapeHTML(paciente.tipo_paciente || 'MADRE')}
                 </div>
                 <div class="madre-item-detail">
-                    <strong>Cama:</strong> ${utils.escapeHTML(madre.cama)}
+                    <strong>Sala:</strong> ${utils.escapeHTML(paciente.sala)}
                 </div>
                 <div class="madre-item-detail">
-                    <strong>Hijos:</strong> ${utils.escapeHTML((madre.cantidad_hijos ?? 'N/A').toString())}
+                    <strong>Cama:</strong> ${utils.escapeHTML(paciente.cama)}
                 </div>
+                ${paciente.tipo_paciente === 'MADRE' ? `
                 <div class="madre-item-detail">
-                    <strong>Registro:</strong> ${utils.formatearFecha(madre.created_at)}
+                    <strong>Hijos:</strong> ${utils.escapeHTML((paciente.cantidad_hijos ?? 'N/A').toString())}
+                </div>
+                ` : ''}
+                <div class="madre-item-detail">
+                    <strong>Registro:</strong> ${utils.formatearFecha(paciente.created_at)}
                 </div>
             </div>
             <div class="madre-item-actions">
-                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); selectMadre('${madre.id}')">
+                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); selectMadre('${paciente.id}')">
                     Realizar EOA
                 </button>
-                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); dashboard.confirmarEliminacionMadre('${madre.id}', '${nombreConfirm}')">
+                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); dashboard.confirmarEliminacionMadre('${paciente.id}', '${nombreConfirm}')">
                     Eliminar
                 </button>
             </div>
@@ -474,7 +492,12 @@ function displayMadresList(madres) {
     `;
     }).join('');
     
-    madresListElement.innerHTML = html;
+    pacientesListElement.innerHTML = html;
+}
+
+// Función para mostrar lista de madres (mantener compatibilidad)
+function displayMadresList(madres) {
+    return displayPacientesList(madres);
 }
 
 function actualizarEstadoVisualMadre(madreId) {
@@ -523,13 +546,13 @@ function actualizarEstadoVisualMadre(madreId) {
     }
 }
 
-function markMadreConExamen(madreId, examenData = null) {
-    if (!madreId) {
+function markMadreConExamen(pacienteId, examenData = null) {
+    if (!pacienteId) {
         return;
     }
 
     if (examenData) {
-        let resumen = madresResumenExamen.get(madreId);
+        let resumen = pacientesResumenExamen.get(pacienteId);
         if (!resumen) {
             resumen = {
                 examenes: [],
@@ -547,11 +570,11 @@ function markMadreConExamen(madreId, examenData = null) {
         resumen.lastExam = resumen.examenes[resumen.examenes.length - 1];
         resumen.firstExamRefiere = resultadoRefiere(resumen.firstExam);
         resumen.lastExamRefiere = resultadoRefiere(resumen.lastExam);
-        madresResumenExamen.set(madreId, resumen);
+        pacientesResumenExamen.set(pacienteId, resumen);
     }
 
-    recentMothers = recentMothers.map(madre => madre.id === madreId ? { ...madre } : madre);
-    actualizarEstadoVisualMadre(madreId);
+    recentPatients = recentPatients.map(paciente => paciente.id === pacienteId ? { ...paciente } : paciente);
+    actualizarEstadoVisualMadre(pacienteId);
 }
 
 async function confirmarEliminacionMadre(madreId, madreNombre = '') {
@@ -589,8 +612,8 @@ async function confirmarEliminacionMadre(madreId, madreNombre = '') {
     }
 }
 
-// Función para seleccionar una madre
-async function selectMadre(madreId) {
+// Función para seleccionar un paciente
+async function selectMadre(pacienteId) {
     try {
         if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
@@ -598,11 +621,11 @@ async function selectMadre(madreId) {
             return;
         }
         
-        // Cargar datos de la madre
+        // Cargar datos del paciente
         const { data, error } = await window.supabaseClient
-            .from('madres')
+            .from('pacientes')
             .select('*')
-            .eq('id', madreId)
+            .eq('id', pacienteId)
             .single();
         
         if (error) {
@@ -612,12 +635,12 @@ async function selectMadre(madreId) {
         // Cerrar modal de madres
         closeMadresModal();
         
-        // Abrir modal de EOA con los datos de la madre
+        // Abrir modal de EOA con los datos del paciente
         openEoaModal(data);
         
     } catch (error) {
-        console.error('Error al seleccionar madre:', error);
-        utils.showNotification('Error al cargar datos de la madre', 'error');
+        console.error('Error al seleccionar paciente:', error);
+        utils.showNotification('Error al cargar datos del paciente', 'error');
     }
 }
 
@@ -707,15 +730,15 @@ function setupMidnightCleanup() {
 
 // Función para limpiar la visualización de registros recientes
 function clearRecentMothersDisplay() {
-    const recentMothersElement = document.getElementById('recentMothers');
-    if (recentMothersElement) {
-        recentMothersElement.innerHTML = '<p class="no-data">No hay registros recientes del día</p>';
+    const recentPatientsElement = document.getElementById('recentMothers');
+    if (recentPatientsElement) {
+        recentPatientsElement.innerHTML = '<p class="no-data">No hay registros recientes del día</p>';
         console.log('✅ Visualización de registros recientes limpiada');
     }
     
     // Limpiar también el array de datos
-    recentMothers = [];
-    madresResumenExamen.clear();
+    recentPatients = [];
+    pacientesResumenExamen.clear();
 }
 
 // Función para detener la limpieza automática (útil para pruebas)
@@ -767,8 +790,10 @@ bindReportesButton();
 // Exportar funciones para uso en otros módulos
 window.dashboard = {
     initDashboard,
-    loadRecentMothers,
-    loadMadresList,
+    loadRecentPatients,
+    loadPacientesList,
+    loadRecentMothers, // Mantener compatibilidad
+    loadMadresList,    // Mantener compatibilidad
     openMadreModal,
     openMadresModal,
     selectMadre,

@@ -127,7 +127,7 @@
                 
                 // Probar conexión simple
                 const { data, error } = await window.supabaseClient
-                    .from('madres')
+                    .from('pacientes')
                     .select('count')
                     .limit(1);
                 

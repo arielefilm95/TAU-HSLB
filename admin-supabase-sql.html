@@ -278,7 +278,7 @@
         <!-- Tab: Ejecutar SQL -->
         <div id="execute-tab" class="tab-content active">
             <h3>Ejecutar Consulta SQL</h3>
-            <textarea id="sqlEditor" class="sql-editor" placeholder="Escribe tu consulta SQL aquí...&#10;&#10;Ejemplos:&#10;SELECT * FROM madres LIMIT 10;&#10;SELECT COUNT(*) FROM examenes_eoa;&#10;SHOW TABLES;"></textarea>
+            <textarea id="sqlEditor" class="sql-editor" placeholder="Escribe tu consulta SQL aquí...&#10;&#10;Ejemplos:&#10;SELECT * FROM pacientes LIMIT 10;&#10;SELECT COUNT(*) FROM examenes_eoa;&#10;SHOW TABLES;"></textarea>
             
             <div class="button-group">
                 <button onclick="executeSQL()">
@@ -366,7 +366,7 @@
             'diagnosticar-y-reparar-supabase.sql',
             'verificar-tablas.sql',
             'crear-tabla-partos-importados.sql',
-            'agregar-campo-origen-madres.sql',
+            'agregar-campo-origen-pacientes.sql',
             'corregir-fichas-importadas.sql',
             'corregir-politicas-perfiles.sql',
             'reparar-trigger.sql',
@@ -393,7 +393,7 @@
                 
                 // Probar conexión
                 const { data, error } = await supabaseClient
-                    .from('madres')
+                    .from('pacientes')
                     .select('count')
                     .limit(1);
                 

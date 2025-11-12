@@ -450,20 +450,21 @@ async function cruzarDatosConRegistros() {
             return { message: 'No hay datos importados pendientes de procesar' };
         }
         
-        // Obtener todas las madres registradas manualmente
-        const { data: madresRegistradas, error: errorMadres } = await window.supabaseClient
-            .from('madres')
-            .select('*');
+        // Obtener todos los pacientes registrados manualmente (solo madres para compatibilidad)
+        const { data: pacientesRegistrados, error: errorPacientes } = await window.supabaseClient
+            .from('pacientes')
+            .select('*')
+            .eq('tipo_paciente', 'MADRE');
         
-        if (errorMadres) {
-            throw errorMadres;
+        if (errorPacientes) {
+            throw errorPacientes;
         }
         
-        // Crear mapa de RUT a ID de madre para búsqueda rápida
-        const mapaRutMadre = new Map();
-        madresRegistradas.forEach(madre => {
-            const rutNormalizado = madre.rut.replace('-', '').toUpperCase();
-            mapaRutMadre.set(rutNormalizado, madre.id);
+        // Crear mapa de RUT a ID de paciente para búsqueda rápida
+        const mapaRutPaciente = new Map();
+        pacientesRegistrados.forEach(paciente => {
+            const rutNormalizado = paciente.rut.replace('-', '').toUpperCase();
+            mapaRutPaciente.set(rutNormalizado, paciente.id);
         });
         
         // Cruzar datos
@@ -472,13 +473,13 @@ async function cruzarDatosConRegistros() {
         
         partosImportados.forEach(parto => {
             const rutNormalizado = parto.rut.replace('-', '').toUpperCase();
-            const madreId = mapaRutMadre.get(rutNormalizado);
+            const pacienteId = mapaRutPaciente.get(rutNormalizado);
             
-            if (madreId) {
+            if (pacienteId) {
                 // Se encontró coincidencia
                 actualizaciones.push({
                     id: parto.id,
-                    madre_id: madreId,
+                    madre_id: pacienteId, // Mantener madre_id para compatibilidad con examenes_eoa
                     procesado: true
                 });
             } else {
@@ -559,8 +560,8 @@ async function importarArchivoPartos(file) {
         }
         
         // Recargar dashboard para mostrar nuevos datos
-        if (window.dashboard && window.dashboard.loadRecentMothers) {
-            await window.dashboard.loadRecentMothers();
+        if (window.dashboard && window.dashboard.loadRecentPatients) {
+            await window.dashboard.loadRecentPatients();
         }
         
         return {

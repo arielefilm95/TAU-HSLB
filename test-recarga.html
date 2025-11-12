@@ -138,7 +138,7 @@
                     }
                 }
                 
-                const { data, error } = await supabase.from('madres').select('count').limit(1);
+                const { data, error } = await supabase.from('pacientes').select('count').limit(1);
                 
                 if (error) {
                     throw error;
@@ -176,7 +176,7 @@
                 };
                 
                 const { data, error } = await supabase
-                    .from('madres')
+                    .from('pacientes')
                     .insert([testData])
                     .select();
                 
@@ -215,7 +215,7 @@
                 }
                 
                 const { data, error } = await supabase
-                    .from('madres')
+                    .from('pacientes')
                     .select('*')
                     .order('created_at', { ascending: false })
                     .limit(10);
@@ -229,15 +229,15 @@
                     return;
                 }
                 
-                const html = data.map(madre => `
+                const html = data.map(paciente => `
                     <div class="registro-item">
-                        <strong>ID:</strong> ${madre.id}<br>
-                        <strong>RUT:</strong> ${madre.rut}<br>
-                        <strong>Ficha:</strong> ${madre.numero_ficha}<br>
-                        <strong>Sala:</strong> ${madre.sala}<br>
-                        <strong>Cama:</strong> ${madre.cama}<br>
-                        <strong>Hijos:</strong> ${madre.cantidad_hijos}<br>
-                        <strong>Creado:</strong> ${new Date(madre.created_at).toLocaleString()}
+                        <strong>ID:</strong> ${paciente.id}<br>
+                        <strong>RUT:</strong> ${paciente.rut}<br>
+                        <strong>Ficha:</strong> ${paciente.numero_ficha}<br>
+                        <strong>Sala:</strong> ${paciente.sala}<br>
+                        <strong>Cama:</strong> ${paciente.cama}<br>
+                        <strong>Hijos:</strong> ${paciente.cantidad_hijos}<br>
+                        <strong>Creado:</strong> ${new Date(paciente.created_at).toLocaleString()}
                     </div>
                 `).join('');
                 

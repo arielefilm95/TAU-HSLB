@@ -239,17 +239,17 @@
                     log('✓ Tabla perfiles accesible', 'success');
                 }
                 
-                // Verificar tabla madres
-                const { data: madresData, error: madresError } = await supabase
-                    .from('madres')
+                // Verificar tabla pacientes
+                const { data: pacientesData, error: pacientesError } = await supabase
+                    .from('pacientes')
                     .select('count')
                     .limit(1);
                 
-                if (madresError) {
-                    log(`✗ Error al acceder a tabla madres: ${madresError.message}`, 'error');
-                    log(`Detalles: ${JSON.stringify(madresError, null, 2)}`, 'error');
+                if (pacientesError) {
+                    log(`✗ Error al acceder a tabla pacientes: ${pacientesError.message}`, 'error');
+                    log(`Detalles: ${JSON.stringify(pacientesError, null, 2)}`, 'error');
                 } else {
-                    log('✓ Tabla madres accesible', 'success');
+                    log('✓ Tabla pacientes accesible', 'success');
                 }
                 
                 // Verificar tabla examenes_eoa

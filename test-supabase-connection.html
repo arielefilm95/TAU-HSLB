@@ -249,7 +249,7 @@
                 
                 // Probar conexión simple
                 const { data, error } = await supabaseClient
-                    .from('madres')
+                    .from('pacientes')
                     .select('count')
                     .limit(1);
                 
@@ -276,7 +276,7 @@
             document.getElementById('testTablesBtn').disabled = true;
             
             try {
-                const tables = ['madres', 'examenes_eoa', 'perfiles'];
+                const tables = ['pacientes', 'examenes_eoa', 'perfiles'];
                 let allTablesOk = true;
                 
                 for (const table of tables) {
@@ -335,7 +335,7 @@
                 
                 log('Insertando registro de prueba...');
                 const { data: insertData, error: insertError } = await supabaseClient
-                    .from('madres')
+                    .from('pacientes')
                     .insert([testRecord])
                     .select();
                 
@@ -349,7 +349,7 @@
                 // Consultar el registro
                 log('Consultando registro insertado...');
                 const { data: selectData, error: selectError } = await supabaseClient
-                    .from('madres')
+                    .from('pacientes')
                     .select('*')
                     .eq('id', insertedId)
                     .single();
@@ -363,7 +363,7 @@
                 // Eliminar el registro de prueba
                 log('Eliminando registro de prueba...');
                 const { error: deleteError } = await supabaseClient
-                    .from('madres')
+                    .from('pacientes')
                     .delete()
                     .eq('id', insertedId);
                 

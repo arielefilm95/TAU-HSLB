@@ -89,7 +89,7 @@
             <ul>
                 <li>✅ Todos los registros de la tabla <code>partos_importados</code></li>
                 <li>✅ Todos los exámenes EOA relacionados con registros importados</li>
-                <li>✅ Todas las madres con <code>origen_registro = 'IMPORTADO'</code></li>
+                <li>✅ Todos los pacientes con <code>origen_registro = 'IMPORTADO'</code></li>
             </ul>
             <p><strong>Esta acción no se puede deshacer.</strong></p>
         </div>
@@ -140,7 +140,7 @@
                 'Esta acción eliminará permanentemente:\n' +
                 '• Todos los registros importados\n' +
                 '• Todos los exámenes EOA relacionados\n' +
-                '• Todas las madres importadas\n\n' +
+                '• Todos los pacientes importados\n\n' +
                 'ESTA ACCIÓN NO SE PUEDE DESHACER\n\n' +
                 'Escribe "ELIMINAR" para confirmar:'
             );
@@ -176,15 +176,15 @@
                     -- 1. Eliminar todos los registros de partos_importados
                     DELETE FROM partos_importados;
                     
-                    -- 2. Eliminar exámenes EOA de madres importadas
-                    WITH madres_a_eliminar AS (
-                        SELECT id FROM madres WHERE origen_registro = 'IMPORTADO'
+                    -- 2. Eliminar exámenes EOA de pacientes importados
+                    WITH pacientes_a_eliminar AS (
+                        SELECT id FROM pacientes WHERE origen_registro = 'IMPORTADO'
                     )
-                    DELETE FROM examenes_eoa 
-                    WHERE madre_id IN (SELECT id FROM madres_a_eliminar);
-                    
-                    -- 3. Eliminar todas las madres con origen_registro = 'IMPORTADO'
-                    DELETE FROM madres WHERE origen_registro = 'IMPORTADO';
+                    DELETE FROM examenes_eoa
+                    WHERE paciente_id IN (SELECT id FROM pacientes_a_eliminar);
+ 
+                    -- 3. Eliminar todos los pacientes con origen_registro = 'IMPORTADO'
+                    DELETE FROM pacientes WHERE origen_registro = 'IMPORTADO';
                     
                     -- Confirmar la transacción
                     COMMIT;
@@ -219,8 +219,8 @@
             
             try {
                 // Contar registros restantes
-                const { data: madresData, error: madresError } = await supabase
-                    .from('madres')
+                const { data: pacientesData, error: pacientesError } = await supabase
+                    .from('pacientes')
                     .select('origen_registro')
                     .eq('origen_registro', 'IMPORTADO');
 
@@ -228,7 +228,7 @@
                     .from('partos_importados')
                     .select('id');
 
-                const totalMadresImportadas = madresData ? madresData.length : 0;
+                const totalPacientesImportados = pacientesData ? pacientesData.length : 0;
                 const totalImportados = importadosData ? importadosData.length : 0;
 
                 if (totalMadresImportadas === 0 && totalImportados === 0) {
