@@ -72,20 +72,34 @@ self.addEventListener('activate', function(event) {
     );
 });
 
-// Estrategia de cache simplificada para GitHub Pages
+// Estrategia de cache mejorada para GitHub Pages
 self.addEventListener('fetch', function(event) {
     const requestUrl = new URL(event.request.url);
     
-    // Ignorar peticiones a Supabase (API) - ir directamente a red
-    if (requestUrl.hostname.includes('supabase.co')) {
-        event.respondWith(fetch(event.request));
+    // Ignorar peticiones a APIs externas (Supabase, CDNs) - ir directamente a red
+    if (requestUrl.hostname.includes('supabase.co') ||
+        requestUrl.hostname.includes('cdn.jsdelivr.net') ||
+        requestUrl.hostname.includes('github.io')) {
+        event.respondWith(
+            fetch(event.request).catch(error => {
+                console.warn('Service Worker: Error en petición externa:', error);
+                return new Response('Error de conexión', {
+                    status: 503,
+                    statusText: 'Service Unavailable'
+                });
+            })
+        );
         return;
     }
     
     // Evitar cachear scripts y estilos para obtener siempre la versión más reciente
     if (event.request.destination === 'script' || event.request.destination === 'style') {
         event.respondWith(
-            fetch(event.request).catch(() => caches.match(event.request))
+            fetch(event.request)
+                .catch(error => {
+                    console.warn('Service Worker: Error cargando script/estilo, intentando cache:', error);
+                    return caches.match(event.request);
+                })
         );
         return;
     }
@@ -95,13 +109,27 @@ self.addEventListener('fetch', function(event) {
         event.respondWith(
             fetch(event.request)
                 .then(response => {
-                    const responseClone = response.clone();
-                    caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, responseClone);
-                    });
+                    // Solo cachear respuestas exitosas
+                    if (response.status === 200) {
+                        const responseClone = response.clone();
+                        caches.open(CACHE_NAME).then(cache => {
+                            cache.put(event.request, responseClone).catch(error => {
+                                console.warn('Service Worker: Error al cachear respuesta:', error);
+                            });
+                        });
+                    }
                     return response;
                 })
-                .catch(() => caches.match(event.request))
+                .catch(error => {
+                    console.warn('Service Worker: Error en network-first, intentando cache:', error);
+                    return caches.match(event.request).then(cachedResponse => {
+                        if (cachedResponse) {
+                            return cachedResponse;
+                        }
+                        // Si no hay cache, devolver página principal
+                        return caches.match('./dashboard.html');
+                    });
+                })
         );
         return;
     }
@@ -122,17 +150,24 @@ self.addEventListener('fetch', function(event) {
                         if (response.status === 200) {
                             const responseToCache = response.clone();
                             caches.open(CACHE_NAME).then(function(cache) {
-                                cache.put(event.request, responseToCache);
+                                cache.put(event.request, responseToCache).catch(error => {
+                                    console.warn('Service Worker: Error al cachear:', error);
+                                });
                             });
                         }
                         return response;
+                    }).catch(error => {
+                        console.warn('Service Worker: Error en petición GET:', error);
+                        // Para recursos estáticos, devolver error controlado
+                        if (event.request.destination === 'image' ||
+                            event.request.destination === 'font') {
+                            return new Response('', { status: 404 });
+                        }
+                        return new Response('Error de conexión', {
+                            status: 503,
+                            statusText: 'Service Unavailable'
+                        });
                     });
-                })
-                .catch(function() {
-                    // Si falla todo, devolver página principal para navegación
-                    if (event.request.destination === 'document') {
-                        return caches.match('./dashboard.html');
-                    }
                 })
         );
     } else {
@@ -285,11 +320,18 @@ self.addEventListener('notificationclick', function(event) {
 self.addEventListener('message', function(event) {
     console.log('Service Worker: Mensaje recibido:', event.data);
     
-    // Función para responder de forma segura
+    // Función para responder de forma segura con timeout
     function safeResponse(response) {
         try {
             if (event.ports && event.ports[0]) {
-                event.ports[0].postMessage(response);
+                // Usar setTimeout para evitar errores de canal cerrado
+                setTimeout(() => {
+                    try {
+                        event.ports[0].postMessage(response);
+                    } catch (error) {
+                        console.warn('Service Worker: Canal cerrado, respuesta no enviada:', error.message);
+                    }
+                }, 0);
             }
         } catch (error) {
             console.error('Service Worker: Error al enviar respuesta:', error);

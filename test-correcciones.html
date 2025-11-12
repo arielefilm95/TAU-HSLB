@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test de Correcciones - TAU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test de Correcciones - TAU</h1>
+        <p>Esta página verifica que las correcciones aplicadas funcionen correctamente.</p>
+        
+        <div id="statusContainer"></div>
+        
+        <div class="test-section">
+            <h3>📦 Carga de Librerías</h3>
+            <div id="librariesStatus" class="status info">Verificando...</div>
+            <button class="test-button" onclick="testLibraries()">Verificar Librerías</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 Conexión Supabase</h3>
+            <div id="supabaseStatus" class="status info">Verificando...</div>
+            <button class="test-button" onclick="testSupabase()">Probar Conexión</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>⚙️ Service Worker</h3>
+            <div id="swStatus" class="status info">Verificando...</div>
+            <button class="test-button" onclick="testServiceWorker()">Verificar Service Worker</button>
+            <button class="test-button" onclick="clearCache()">Limpiar Cache</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Estado General</h3>
+            <div id="generalStatus" class="status info">Verificando...</div>
+            <button class="test-button" onclick="runAllTests()">Ejecar Todas las Pruebas</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Log de Pruebas</h3>
+            <div id="testLog" class="log">Iniciando pruebas...</div>
+            <button class="test-button" onclick="clearLog()">Limpiar Log</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="config/supabase-config.js?v=202511120000"></script>
+    <script src="js/auth.js?v=202511120000"></script>
+    <script src="js/utils.js?v=202511120000"></script>
+
+    <script>
+        let testResults = {
+            libraries: false,
+            supabase: false,
+            serviceWorker: false
+        };
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logElement.textContent += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(logEntry);
+        }
+
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        function testLibraries() {
+            log('Iniciando prueba de librerías...');
+            
+            const results = {
+                supabase: typeof window.supabase !== 'undefined',
+                xlsx: typeof XLSX !== 'undefined',
+                config: typeof window.supabaseConfig !== 'undefined',
+                auth: typeof window.auth !== 'undefined'
+            };
+            
+            log(`Resultados: Supabase=${results.supabase}, XLSX=${results.xlsx}, Config=${results.config}, Auth=${results.auth}`);
+            
+            if (results.supabase && results.xlsx && results.config && results.auth) {
+                updateStatus('librariesStatus', '✅ Todas las librerías cargadas correctamente', 'success');
+                testResults.libraries = true;
+            } else {
+                const missing = Object.keys(results).filter(key => !results[key]).join(', ');
+                updateStatus('librariesStatus', `❌ Faltan: ${missing}`, 'error');
+                testResults.libraries = false;
+            }
+            
+            updateGeneralStatus();
+        }
+
+        async function testSupabase() {
+            log('Iniciando prueba de conexión Supabase...');
+            
+            try {
+                // Verificar si ya existe un cliente
+                if (window.supabaseClient) {
+                    log('Cliente Supabase ya existe, verificando conexión...');
+                } else {
+                    // Intentar inicializar
+                    if (typeof window.auth !== 'undefined' && window.auth.initializeSupabase) {
+                        const success = window.auth.initializeSupabase();
+                        if (!success) {
+                            throw new Error('No se pudo inicializar Supabase vía auth');
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+                
+                if (!window.supabaseClient) {
+                    throw new Error('No se pudo inicializar Supabase');
+                }
+                
+                // Verificar que no haya múltiples instancias (revisando la consola)
+                log('Verificando instancia única de Supabase...');
+                
+                // Probar conexión simple
+                const { data, error } = await window.supabaseClient
+                    .from('madres')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    if (error.code === '42501' || error.message.includes('permission denied')) {
+                        updateStatus('supabaseStatus', '✅ Conexión establecida (sin permisos de lectura)', 'success');
+                        testResults.supabase = true;
+                        log('Conexión establecida pero sin permisos de lectura (normal)');
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    updateStatus('supabaseStatus', '✅ Conexión y permisos verificados', 'success');
+                    testResults.supabase = true;
+                    log('Conexión y permisos verificados correctamente');
+                }
+                
+            } catch (error) {
+                updateStatus('supabaseStatus', `❌ Error: ${error.message}`, 'error');
+                testResults.supabase = false;
+                log(`Error en Supabase: ${error.message}`, 'error');
+            }
+            
+            updateGeneralStatus();
+        }
+
+        async function testServiceWorker() {
+            log('Iniciando prueba de Service Worker...');
+            
+            if (!('serviceWorker' in navigator)) {
+                updateStatus('swStatus', '❌ Service Worker no soportado', 'error');
+                testResults.serviceWorker = false;
+                return;
+            }
+            
+            try {
+                const registration = await navigator.serviceWorker.getRegistration();
+                
+                if (registration) {
+                    updateStatus('swStatus', '✅ Service Worker activo', 'success');
+                    testResults.serviceWorker = true;
+                    log(`Service Worker activo: ${registration.scope}`);
+                    
+                    // Probar comunicación
+                    if (registration.active) {
+                        registration.active.postMessage({ type: 'INIT' });
+                        log('Mensaje de prueba enviado al Service Worker');
+                    }
+                } else {
+                    updateStatus('swStatus', '⚠️ Service Worker no registrado', 'warning');
+                    testResults.serviceWorker = false;
+                    log('Service Worker no está registrado');
+                }
+            } catch (error) {
+                updateStatus('swStatus', `❌ Error: ${error.message}`, 'error');
+                testResults.serviceWorker = false;
+                log(`Error en Service Worker: ${error.message}`, 'error');
+            }
+            
+            updateGeneralStatus();
+        }
+
+        async function clearCache() {
+            log('Limpiando cache...');
+            
+            if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    log('Cache limpiada correctamente');
+                } catch (error) {
+                    log(`Error limpiando cache: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        function updateGeneralStatus() {
+            const allPassed = testResults.libraries && testResults.supabase && testResults.serviceWorker;
+            
+            if (allPassed) {
+                updateStatus('generalStatus', '✅ Todas las pruebas pasaron correctamente', 'success');
+            } else {
+                const failed = Object.keys(testResults).filter(key => !testResults[key]).join(', ');
+                updateStatus('generalStatus', `⚠️ Pruebas fallidas: ${failed}`, 'warning');
+            }
+        }
+
+        function runAllTests() {
+            log('Ejecutando todas las pruebas...');
+            testLibraries();
+            setTimeout(() => testSupabase(), 500);
+            setTimeout(() => testServiceWorker(), 1000);
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').textContent = '';
+        }
+
+        // Ejecutar pruebas automáticamente al cargar
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>

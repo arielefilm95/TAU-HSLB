@@ -216,15 +216,29 @@
         function initializeSupabase() {
             if (typeof window.supabase !== 'undefined' && typeof window.supabaseConfig !== 'undefined') {
                 try {
-                    // Usar la configuración del archivo supabase-config.js
-                    const SUPABASE_URL = window.supabaseConfig.getSupabaseUrl();
-                    const SUPABASE_ANON_KEY = window.supabaseConfig.getSupabaseAnonKey();
-                    
-                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    console.log('✅ Supabase inicializado correctamente');
-                    
-                    // Hacer supabase disponible globalmente para otros scripts
-                    window.supabaseClient = supabase;
+                    // Verificar si ya existe un cliente global para evitar múltiples instancias
+                    if (window.supabaseClient) {
+                        supabase = window.supabaseClient;
+                        console.log('✅ Usando cliente Supabase existente (evitando múltiples instancias)');
+                    } else {
+                        // Si no existe, inicializar a través del módulo auth
+                        if (window.auth && window.auth.initializeSupabase) {
+                            const success = window.auth.initializeSupabase();
+                            if (success) {
+                                supabase = window.supabaseClient;
+                                console.log('✅ Supabase inicializado vía módulo auth (única instancia)');
+                            } else {
+                                throw new Error('No se pudo inicializar Supabase vía auth');
+                            }
+                        } else {
+                            // Último recurso: crear instancia directa
+                            const SUPABASE_URL = window.supabaseConfig.getSupabaseUrl();
+                            const SUPABASE_ANON_KEY = window.supabaseConfig.getSupabaseAnonKey();
+                            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                            window.supabaseClient = supabase;
+                            console.log('⚠️ Supabase inicializado directamente (se recomienda usar auth.js)');
+                        }
+                    }
                     
                     // Cargar scripts después de verificar conexión
                     loadImportadosScripts();

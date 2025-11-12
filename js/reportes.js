@@ -136,19 +136,14 @@ async function exportarReportesExcel() {
 
 async function initReportes() {
     try {
-        if (!window.supabase) {
-            throw new Error('Supabase SDK no disponible');
+        // Usar la instancia global de Supabase para evitar múltiples instancias de GoTrueClient
+        if (!window.supabaseClient) {
+            throw new Error('Cliente de Supabase no disponible. Asegúrese de que auth.js esté cargado primero.');
         }
-
-        // Usar la configuración centralizada de Supabase
-        if (!window.supabaseConfig) {
-            throw new Error('Configuración de Supabase no disponible');
-        }
-
-        const supabaseUrl = window.supabaseConfig.getSupabaseUrl();
-        const supabaseAnonKey = window.supabaseConfig.getSupabaseAnonKey();
         
-        reportesSupabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        // Usar la instancia global existente
+        reportesSupabase = window.supabaseClient;
+        console.log('✅ Reportes usando instancia global de Supabase (evitando múltiples instancias)');
 
         reportesRows = await fetchReportesData();
         renderReportesTable(reportesRows);

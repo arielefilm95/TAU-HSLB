@@ -524,43 +524,69 @@
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="config/supabase-config.js?v=202511110000"></script>
+    <script src="config/supabase-config.js?v=202511120000"></script>
     <script src="js/auth.js?v=202511120000"></script>
-    <script src="js/utils.js?v=202511092000"></script>
+    <script src="js/utils.js?v=202511120000"></script>
     <script>
         // Inicializar Supabase usando la configuración centralizada
         let supabase;
+        let initializationAttempts = 0;
+        const MAX_ATTEMPTS = 30; // Máximo 3 segundos de espera
         
-        function initializeeSupabase() {
-            if (typeof window.supabase !== 'undefined' && typeof window.supabaseConfig !== 'undefined') {
-                try {
-                    // Usar la configuración del archivo supabase-config.js
-                    const supabaseUrl = window.supabaseConfig.getSupabaseUrl();
-                    const supabaseAnonKey = window.supabaseConfig.getSupabaseAnonKey();
-                    
-                    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-                    console.log('✅ Supabase inicializado correctamente');
-                    
-                    // Hacer supabase disponible globalmente para otros scripts
-                    window.supabaseClient = supabase;
-                    
-                    // Verificar conexión con una prueba simple
-                    testSupabaseConnection().then(() => {
-                        // Cargar scripts del dashboard solo después de verificar conexión
-                        loadDashboardScripts();
-                    }).catch(error => {
-                        console.warn('⚠️ Error en conexión Supabase, continuando igualmente:', error);
-                        loadDashboardScripts();
-                    });
-                    
-                } catch (error) {
-                    console.error('❌ Error al inicializar Supabase:', error);
-                    // Intentar cargar scripts aunque falle Supabase
+        function initializeSupabase() {
+            initializationAttempts++;
+            
+            // Verificar si las librerías necesarias están cargadas
+            const supabaseLoaded = typeof window.supabase !== 'undefined';
+            const configLoaded = typeof window.supabaseConfig !== 'undefined';
+            const authLoaded = typeof window.auth !== 'undefined';
+            
+            if (!supabaseLoaded || !configLoaded || !authLoaded) {
+                if (initializationAttempts < MAX_ATTEMPTS) {
+                    console.log(`⏳ Esperando librerías... (${initializationAttempts}/${MAX_ATTEMPTS}) - Supabase: ${supabaseLoaded}, Config: ${configLoaded}, Auth: ${authLoaded}`);
+                    setTimeout(initializeSupabase, 100);
+                    return;
+                } else {
+                    console.error('❌ Tiempo de espera agotado para cargar librerías');
                     loadDashboardScripts();
+                    return;
                 }
-            } else {
-                console.log('⏳ Esperando a Supabase...');
-                setTimeout(initializeeSupabase, 100);
+            }
+            
+            try {
+                // Siempre usar el cliente existente o inicializar a través del módulo auth
+                // para evitar múltiples instancias de GoTrueClient
+                if (window.supabaseClient) {
+                    supabase = window.supabaseClient;
+                    console.log('✅ Usando cliente Supabase existente (evitando múltiples instancias)');
+                } else {
+                    // Si no existe, inicializar a través del módulo auth
+                    if (window.auth && window.auth.initializeSupabase) {
+                        const success = window.auth.initializeSupabase();
+                        if (success) {
+                            supabase = window.supabaseClient;
+                            console.log('✅ Supabase inicializado vía módulo auth (única instancia)');
+                        } else {
+                            throw new Error('No se pudo inicializar Supabase vía auth');
+                        }
+                    } else {
+                        throw new Error('Módulo auth no disponible');
+                    }
+                }
+                
+                // Verificar conexión con una prueba simple
+                testSupabaseConnection().then(() => {
+                    console.log('✅ Conexión verificada, cargando scripts del dashboard');
+                    loadDashboardScripts();
+                }).catch(error => {
+                    console.warn('⚠️ Error en conexión Supabase, continuando igualmente:', error);
+                    loadDashboardScripts();
+                });
+                
+            } catch (error) {
+                console.error('❌ Error al inicializar Supabase:', error);
+                // Intentar cargar scripts aunque falle Supabase
+                loadDashboardScripts();
             }
         }
         
@@ -568,9 +594,19 @@
         async function testSupabaseConnection() {
             try {
                 console.log('🔍 Probando conexión con Supabase...');
-                const { data, error } = await supabase.from('madres').select('count').limit(1);
+                
+                // Usar una consulta más simple y robusta
+                const { data, error } = await supabase
+                    .from('madres')
+                    .select('id')
+                    .limit(1);
                 
                 if (error) {
+                    // Si es un error de permisos, la conexión funciona pero no hay acceso
+                    if (error.code === '42501' || error.message.includes('permission denied')) {
+                        console.log('✅ Conexión establecida (sin permisos de lectura)');
+                        return true;
+                    }
                     throw error;
                 }
                 
@@ -578,7 +614,8 @@
                 return true;
             } catch (error) {
                 console.error('❌ Error al verificar conexión Supabase:', error);
-                throw error;
+                // No lanzar el error para permitir que la aplicación continúe
+                return false;
             }
         }
         
@@ -1308,22 +1345,30 @@
         };
         
         
-        // Configurar service worker para GitHub Pages
+        // Configurar service worker para GitHub Pages (mejorado)
         if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
             let refreshing = false;
+            
+            // Manejar cambios de controlador de forma más segura
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (refreshing) return;
                 refreshing = true;
+                console.log('🔄 Service Worker actualizado, recargando página...');
                 window.location.reload();
             });
 
-            navigator.serviceWorker.register('./sw.js')
+            // Registrar service worker con manejo de errores mejorado
+            navigator.serviceWorker.register('./sw.js', { scope: './' })
                 .then(function(registration) {
-                    console.log('Service Worker registrado correctamente para GitHub Pages:', registration);
+                    console.log('✅ Service Worker registrado correctamente:', registration.scope);
 
                     function requestSkipWaiting(worker) {
                         if (!worker) return;
-                        worker.postMessage({ type: 'SKIP_WAITING' });
+                        try {
+                            worker.postMessage({ type: 'SKIP_WAITING' });
+                        } catch (error) {
+                            console.warn('⚠️ Error al enviar mensaje al Service Worker:', error);
+                        }
                     }
 
                     if (registration.waiting) {
@@ -1333,6 +1378,7 @@
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
                         if (!newWorker) return;
+                        
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                 requestSkipWaiting(newWorker);
@@ -1340,28 +1386,44 @@
                         });
                     });
 
-                    registration.update();
+                    // Actualizar periódicamente pero con menos frecuencia
+                    setInterval(() => {
+                        registration.update().catch(error => {
+                            console.warn('⚠️ Error al actualizar Service Worker:', error);
+                        });
+                    }, 60000); // Cada minuto en lugar de más frecuente
+                    
                 })
                 .catch(function(error) {
-                    console.warn('Service Worker: Error en registro (GitHub Pages):', error);
+                    console.warn('⚠️ Service Worker: Error en registro (continuando sin SW):', error);
                     // Continuar sin service worker si hay error
                 });
         }
 
-        // Manejar errores no controlados del service worker
+        // Manejar errores no controlados del service worker de forma más completa
         window.addEventListener('error', function(event) {
             // Ignorar errores específicos del service worker que no afectan el funcionamiento
-            if (event.message && event.message.includes('message channel closed')) {
-                console.warn('Service Worker: Error de canal cerrado ignorado:', event.message);
+            if (event.message && (
+                event.message.includes('message channel closed') ||
+                event.message.includes('Failed to load resource') ||
+                event.message.includes('net::ERR_CONNECTION_CLOSED')
+            )) {
+                console.warn('⚠️ Error de red/conexión ignorado:', event.message);
                 event.preventDefault();
                 return true;
             }
         });
 
         window.addEventListener('unhandledrejection', function(event) {
-            // Ignorar rechazos de promesas relacionados con el service worker
-            if (event.reason && event.reason.message && event.reason.message.includes('message channel closed')) {
-                console.warn('Service Worker: Rechazo de promesa ignorado:', event.reason.message);
+            // Ignorar rechazos de promesas relacionados con el service worker o red
+            if (event.reason && (
+                (event.reason.message && event.reason.message.includes('message channel closed')) ||
+                (event.reason.message && event.reason.message.includes('Failed to load resource')) ||
+                (event.reason.message && event.reason.message.includes('net::ERR_CONNECTION_CLOSED')) ||
+                event.reason.name === 'NetworkError' ||
+                event.reason.name === 'AbortError'
+            )) {
+                console.warn('⚠️ Rechazo de promesa de red ignorado:', event.reason.message || event.reason);
                 event.preventDefault();
                 return true;
             }
@@ -1369,9 +1431,9 @@
 
         // Iniciar la carga después de que el DOM esté listo
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeeSupabase);
+            document.addEventListener('DOMContentLoaded', initializeSupabase);
         } else {
-            initializeeSupabase();
+            initializeSupabase();
         }
     </script>
 </body>

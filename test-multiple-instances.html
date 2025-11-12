@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Múltiples Instancias de Supabase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .log-container {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .log-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .log-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .log-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test - Múltiples Instancias de Supabase</h1>
+    <p>Esta página verifica que no se creen múltiples instancias de GoTrueClient al cargar diferentes módulos.</p>
+    
+    <div class="test-section">
+        <h2>Estado de la Conexión</h2>
+        <div id="connectionStatus">Verificando...</div>
+        <button onclick="testConnection()">Probar Conexión</button>
+        <button onclick="clearLogs()">Limpiar Logs</button>
+    </div>
+    
+    <div class="log-container" id="logContainer">
+        <div class="log-entry log-info">Iniciando prueba de múltiples instancias de Supabase...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Resultados</h2>
+        <div id="testResults">
+            <p>Ejecutando pruebas...</p>
+        </div>
+    </div>
+
+    <!-- Scripts en el orden correcto -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config/supabase-config.js?v=202511120000"></script>
+    <script src="js/auth.js?v=202511120000"></script>
+    <script src="js/utils.js?v=202511120000"></script>
+    
+    <script>
+        let logContainer = document.getElementById('logContainer');
+        let connectionStatus = document.getElementById('connectionStatus');
+        let testResults = document.getElementById('testResults');
+        
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Función para limpiar logs
+        function clearLogs() {
+            logContainer.innerHTML = '';
+            addLog('Logs limpiados', 'info');
+        }
+        
+        // Función para probar la conexión
+        async function testConnection() {
+            addLog('Iniciando prueba de conexión...', 'info');
+            
+            try {
+                // Verificar que exista el cliente global
+                if (!window.supabaseClient) {
+                    addLog('❌ No existe cliente Supabase global', 'error');
+                    connectionStatus.innerHTML = '<span style="color: red;">❌ Error: No hay cliente Supabase</span>';
+                    return;
+                }
+                
+                addLog('✅ Cliente Supabase global encontrado', 'success');
+                
+                // Probar conexión simple
+                const { data, error } = await window.supabaseClient
+                    .from('madres')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    if (error.code === '42501' || error.message.includes('permission denied')) {
+                        addLog('✅ Conexión establecida (sin permisos de lectura)', 'success');
+                        connectionStatus.innerHTML = '<span style="color: green;">✅ Conexión OK (sin permisos)</span>';
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    addLog('✅ Conexión establecida y funcionando correctamente', 'success');
+                    connectionStatus.innerHTML = '<span style="color: green;">✅ Conexión OK</span>';
+                }
+                
+                // Verificar que no haya advertencias de múltiples instancias
+                setTimeout(() => {
+                    checkForMultipleInstancesWarning();
+                }, 2000);
+                
+            } catch (error) {
+                addLog(`❌ Error en conexión: ${error.message}`, 'error');
+                connectionStatus.innerHTML = `<span style="color: red;">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        // Función para verificar advertencias de múltiples instancias
+        function checkForMultipleInstancesWarning() {
+            addLog('Verificando advertencias de múltiples instancias...', 'info');
+            
+            // Capturar cualquier warning que aparezca en la consola
+            const originalWarn = console.warn;
+            let multipleInstancesWarning = false;
+            
+            console.warn = function(...args) {
+                const message = args.join(' ');
+                if (message.includes('Multiple GoTrueClient instances detected')) {
+                    multipleInstancesWarning = true;
+                    addLog('❌ ADVERTENCIA: Múltiples instancias de GoTrueClient detectadas', 'error');
+                }
+                originalWarn.apply(console, args);
+            };
+            
+            // Restaurar console.warn después de un tiempo
+            setTimeout(() => {
+                console.warn = originalWarn;
+                
+                if (!multipleInstancesWarning) {
+                    addLog('✅ No se detectaron advertencias de múltiples instancias', 'success');
+                    testResults.innerHTML = '<p style="color: green;">✅ Test exitoso: No hay múltiples instancias de GoTrueClient</p>';
+                } else {
+                    testResults.innerHTML = '<p style="color: red;">❌ Test fallido: Se detectaron múltiples instancias</p>';
+                }
+            }, 1000);
+        }
+        
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('DOM cargado, iniciando pruebas...', 'info');
+            
+            // Esperar un poco a que se carguen los scripts
+            setTimeout(() => {
+                addLog('Verificando estado inicial...', 'info');
+                
+                // Verificar que los módulos necesarios estén cargados
+                if (typeof window.supabase === 'undefined') {
+                    addLog('❌ Librería Supabase no cargada', 'error');
+                    return;
+                }
+                
+                if (typeof window.supabaseConfig === 'undefined') {
+                    addLog('❌ Configuración Supabase no cargada', 'error');
+                    return;
+                }
+                
+                if (typeof window.auth === 'undefined') {
+                    addLog('❌ Módulo auth no cargado', 'error');
+                    return;
+                }
+                
+                addLog('✅ Todos los módulos necesarios cargados', 'success');
+                
+                // Verificar estado del cliente
+                if (window.supabaseClient) {
+                    addLog('✅ Cliente Supabase global ya existe', 'success');
+                } else {
+                    addLog('⚠️ Cliente Supabase global no existe, intentando inicializar...', 'warning');
+                    
+                    if (window.auth && window.auth.initializeSupabase) {
+                        const success = window.auth.initializeSupabase();
+                        if (success) {
+                            addLog('✅ Cliente Supabase inicializado correctamente', 'success');
+                        } else {
+                            addLog('❌ Error al inicializar cliente Supabase', 'error');
+                        }
+                    }
+                }
+                
+                // Ejecutar prueba de conexión automáticamente
+                setTimeout(() => {
+                    testConnection();
+                }, 1000);
+                
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

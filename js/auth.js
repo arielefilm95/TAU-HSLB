@@ -30,6 +30,13 @@ let supabaseClient = null;
 // Función para inicializar Supabase
 function initializeSupabase() {
     try {
+        // Si ya existe un cliente global, usarlo y no crear uno nuevo
+        if (window.supabaseClient) {
+            console.log('✅ Usando cliente Supabase existente (evitando múltiples instancias)');
+            supabaseClient = window.supabaseClient;
+            return true;
+        }
+        
         // Cargar configuración antes de inicializar
         const { SUPABASE_URL, SUPABASE_ANON_KEY } = getSupabaseConfig();
         
@@ -45,6 +52,7 @@ function initializeSupabase() {
                 }
             } : {};
             
+            // Crear cliente solo si no existe globalmente
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, options);
             
             // Hacer disponible globalmente
@@ -261,18 +269,22 @@ async function updateProfile(updates) {
 document.addEventListener('DOMContentLoaded', function() {
     // Esperar un poco a que la librería de Supabase se cargue
     setTimeout(() => {
-        if (!initializeSupabase()) {
-            console.warn('⚠️ No se pudo inicializar Supabase, reintentando...');
-            // Reintentar después de un segundo
-            setTimeout(initializeSupabase, 1000);
+        if (!supabaseClient) {
+            if (!initializeSupabase()) {
+                console.warn('⚠️ No se pudo inicializar Supabase, reintentando...');
+                // Reintentar después de un segundo
+                setTimeout(() => {
+                    if (!supabaseClient) {
+                        initializeSupabase();
+                    }
+                }, 1000);
+            }
         }
     }, 500);
 });
 
 // También intentar inicializar inmediatamente por si el DOM ya está cargado
-if (document.readyState === 'loading') {
-    // El DOM aún está cargando, esperar al evento
-} else {
+if (document.readyState !== 'loading') {
     // El DOM ya está cargado, intentar inicializar ahora
     setTimeout(() => {
         if (!supabaseClient) {
