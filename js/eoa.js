@@ -912,14 +912,33 @@ function exportarEvolucionDesdeFormulario() {
         return;
     }
 
-    const esReimpresion = eoaFormPristine &&
-        currentPacienteExamenCount > 0 &&
-        currentExamenEOA &&
-        sonExamenesIguales(examenPayload, currentExamenEOA);
-
-    const numeroExamen = esReimpresion
-        ? currentPacienteExamenCount
-        : currentPacienteExamenCount + 1;
+    // Determinar el número de examen correcto
+    // Si el paciente ya tiene exámenes guardados, usar el conteo real
+    // Si no tiene exámenes guardados, siempre será el primer examen
+    let numeroExamen;
+    
+    if (currentPacienteExamenCount > 0) {
+        // El paciente ya tiene exámenes guardados
+        // Verificar si este examen ya existe en la base de datos
+        const examenYaGuardado = currentPacienteExamenes.some(examenGuardado =>
+            sonExamenesIguales(examenPayload, examenGuardado)
+        );
+        
+        if (examenYaGuardado) {
+            // Es una reimpresión de un examen existente
+            // Buscar el número real de este examen
+            const indiceExamen = currentPacienteExamenes.findIndex(examen =>
+                sonExamenesIguales(examenPayload, examen)
+            );
+            numeroExamen = indiceExamen + 1; // +1 porque los índices empiezan en 0
+        } else {
+            // Es un nuevo examen (segunda evaluación o posterior)
+            numeroExamen = currentPacienteExamenCount + 1;
+        }
+    } else {
+        // No hay exámenes guardados, siempre es el primero
+        numeroExamen = 1;
+    }
 
     const texto = generarTextoEvolucion(examenPayload, numeroExamen);
 
