@@ -514,6 +514,40 @@
             </div>
         </div>
         
+        <!-- Modal de selección de tipo de examen EOA -->
+        <div id="tipoExamenModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Seleccionar Tipo de Examen EOA</h3>
+                    <button class="modal-close" onclick="closeTipoExamenModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-section">
+                        <h4>¿Qué tipo de examen desea realizar?</h4>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="tipoExamen" value="primero" required>
+                                <span class="radio-custom"></span>
+                                Primer Examen EOA
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="tipoExamen" value="repetición" required>
+                                <span class="radio-custom"></span>
+                                Repetición de EOA
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeTipoExamenModal()">Cancelar</button>
+                        <button type="button" class="btn btn-primary" onclick="continuarConEOA()">
+                            Continuar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Notification -->
         <div id="notification" class="notification" style="display: none;">
             <span id="notificationMessage"></span>
@@ -1300,7 +1334,7 @@
                         </div>
                         <div class="recent-item-actions">
                             <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${paciente.id}">
-                                Ver plantilla EOA
+                                Realizar EOA
                             </button>
                         </div>
                     </div>
@@ -1315,7 +1349,15 @@
                     button.addEventListener('click', function(e) {
                         e.stopPropagation();
                         const madreId = this.getAttribute('data-madre-id');
-                        if (madreId && typeof selectMadre === 'function') {
+                        
+                        // Buscar los datos del paciente
+                        const paciente = data.find(p => p.id == madreId);
+                        
+                        if (paciente) {
+                            // Abrir modal de selección de tipo de examen
+                            abrirTipoExamenModal(paciente);
+                        } else if (madreId && typeof selectMadre === 'function') {
+                            // Fallback al comportamiento anterior
                             selectMadre(madreId);
                         }
                     });
@@ -1331,6 +1373,65 @@
                 }
             }
         }
+        
+        // Variables globales para el manejo del tipo de examen
+        let currentPacienteParaEOA = null;
+        let tipoExamenSeleccionado = null;
+        
+        // Función para abrir el modal de selección de tipo de examen
+        function abrirTipoExamenModal(paciente) {
+            currentPacienteParaEOA = paciente;
+            tipoExamenSeleccionado = null;
+            
+            // Limpiar selección anterior
+            const radios = document.querySelectorAll('input[name="tipoExamen"]');
+            radios.forEach(radio => radio.checked = false);
+            
+            const modal = document.getElementById('tipoExamenModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                }, 10);
+            }
+        }
+        
+        // Función para cerrar el modal de tipo de examen
+        window.closeTipoExamenModal = function() {
+            const modal = document.getElementById('tipoExamenModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+            
+            currentPacienteParaEOA = null;
+            tipoExamenSeleccionado = null;
+        };
+        
+        // Función para continuar con el EOA después de seleccionar el tipo
+        window.continuarConEOA = function() {
+            const tipoSeleccionado = document.querySelector('input[name="tipoExamen"]:checked');
+            
+            if (!tipoSeleccionado) {
+                utils.showNotification('Por favor, seleccione un tipo de examen', 'error');
+                return;
+            }
+            
+            tipoExamenSeleccionado = tipoSeleccionado.value;
+            
+            // Cerrar modal de selección
+            closeTipoExamenModal();
+            
+            // Abrir modal de EOA con el tipo seleccionado
+            if (currentPacienteParaEOA && typeof eoa !== 'undefined' && eoa.openEoaModalConTipo) {
+                eoa.openEoaModalConTipo(currentPacienteParaEOA, tipoExamenSeleccionado);
+            } else if (currentPacienteParaEOA && typeof openEoaModal === 'function') {
+                // Fallback si la nueva función no está disponible
+                openEoaModal(currentPacienteParaEOA);
+            }
+        };
         
         // Funciones globales para cerrar modales (accesibles desde onclick)
         window.closeModal = function() {

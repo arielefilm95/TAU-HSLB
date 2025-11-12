@@ -96,6 +96,56 @@ function openEoaModal(paciente) {
     }
 }
 
+// Función para abrir modal de EOA con tipo específico
+function openEoaModalConTipo(paciente, tipoExamen) {
+    currentPacienteEOA = paciente;
+    currentPacienteExamenes = [];
+    currentPacienteExamenCount = 0;
+    eoaFormPristine = true;
+    
+    const modal = document.getElementById('eoaModal');
+    if (modal) {
+        // Actualizar información del paciente en el modal
+        const pacienteInfo = document.getElementById('madreInfo');
+        if (pacienteInfo) {
+            const tipoPaciente = paciente.tipo_paciente || 'MADRE';
+            const etiquetaTipo = tipoPaciente === 'MADRE' ? 'Madre' : (tipoPaciente === 'BEBE' ? 'Bebé' : 'Neo');
+            
+            pacienteInfo.innerHTML = `
+                <strong>${etiquetaTipo}:</strong> ${utils.escapeHTML([paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado')} |
+                <strong>RUT:</strong> ${utils.escapeHTML(utils.formatearRUT(paciente.rut))} |
+                <strong>Ficha:</strong> ${utils.escapeHTML(paciente.numero_ficha)} |
+                <strong>Sala:</strong> ${utils.escapeHTML(paciente.sala)} |
+                <strong>Cama:</strong> ${utils.escapeHTML(paciente.cama)}
+                ${paciente.tipo_paciente === 'MADRE' && paciente.cantidad_hijos ? ` | <strong>Hijos:</strong> ${paciente.cantidad_hijos}` : ''}
+            `;
+        }
+        
+        // Limpiar formulario
+        limpiarFormularioEOA();
+
+        // Cargar exámenes anteriores si existen
+        cargarExamenesAnteriores(paciente.id).then(() => {
+            // Determinar el número de examen según el tipo seleccionado
+            if (tipoExamen === 'primero') {
+                // Si es primer examen, siempre usar número 1
+                currentPacienteExamenCount = 0; // Se incrementará al guardar
+                currentExamenEOA = null; // No hay examen anterior
+            } else if (tipoExamen === 'repetición') {
+                // Si es repetición, usar el conteo actual
+                // currentPacienteExamenCount ya tiene el valor correcto
+                // currentExamenEOA ya tiene el último examen
+            }
+            
+            // Mostrar modal
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+        });
+    }
+}
+
 // Función para cerrar modal de EOA
 function closeEoaModal() {
     const modal = document.getElementById('eoaModal');
@@ -118,7 +168,7 @@ async function cargarExamenesAnteriores(pacienteId) {
     try {
         if (!window.supabaseClient) {
             console.error('Supabase no está inicializado');
-            return;
+            return Promise.resolve();
         }
         
         const { data, error, count } = await window.supabaseClient
@@ -147,8 +197,11 @@ async function cargarExamenesAnteriores(pacienteId) {
             guardarEstadoFormularioEOA(examenesDesc[0].paciente_id, examenesDesc[0]);
         }
         
+        return Promise.resolve();
+        
     } catch (error) {
         console.error('Error al cargar exámenes anteriores:', error);
+        return Promise.reject(error);
     }
 }
 
@@ -1078,6 +1131,7 @@ if (document.readyState === 'loading') {
 // Exportar funciones para uso en otros módulos
 window.eoa = {
     openEoaModal,
+    openEoaModalConTipo,
     closeEoaModal,
     registrarExamenEOA,
     obtenerExamenesPaciente,
