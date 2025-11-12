@@ -1,0 +1,13 @@
+{
+  "platform": "github-pages",
+  "baseUrl": "https://arielefilm95.github.io/TAU-HSLB",
+  "supabaseUrls": [
+    "https://arielefilm95.github.io/TAU-HSLB",
+    "https://arielefilm95.github.io/TAU-HSLB/dashboard.html"
+  ],
+  "timestamp": "2025-11-12T15:28:48.528Z",
+  "instructions": {
+    "supabase": "Ve a tu proyecto Supabase > Authentication > Settings y configura:\n- Site URL: https://arielefilm95.github.io/TAU-HSLB\n- Redirect URLs: https://arielefilm95.github.io/TAU-HSLB, https://arielefilm95.github.io/TAU-HSLB/dashboard.html",
+    "deployment": "\n1. Ve a tu repositorio en GitHub\n2. Settings > Pages\n3. Source: \"Deploy from a branch\"\n4. Branch: \"master\" y carpeta \"/root\"\n5. Save"
+  }
+}
