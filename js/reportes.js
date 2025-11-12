@@ -3,8 +3,6 @@
 let reportesSupabase = null;
 let reportesRows = [];
 
-const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
 
 function describirExamen(examen) {
     if (!examen) {
@@ -142,7 +140,15 @@ async function initReportes() {
             throw new Error('Supabase SDK no disponible');
         }
 
-        reportesSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Usar la configuración centralizada de Supabase
+        if (!window.supabaseConfig) {
+            throw new Error('Configuración de Supabase no disponible');
+        }
+
+        const supabaseUrl = window.supabaseConfig.getSupabaseUrl();
+        const supabaseAnonKey = window.supabaseConfig.getSupabaseAnonKey();
+        
+        reportesSupabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         reportesRows = await fetchReportesData();
         renderReportesTable(reportesRows);

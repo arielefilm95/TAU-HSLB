@@ -1,27 +1,26 @@
 // Configuración de autenticación con Supabase
 
-// Obtener credenciales desde el archivo de configuración
-let SUPABASE_URL, SUPABASE_ANON_KEY;
-
-// Función para cargar configuración de Supabase
-function loadSupabaseConfig() {
+// Función para obtener configuración de Supabase
+function getSupabaseConfig() {
+    // Valores por defecto (se usan si no hay configuración personalizada)
+    const defaultUrl = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
+    const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
+    
     try {
         // Intentar obtener desde el archivo de configuración
         if (window.supabaseConfig) {
-            SUPABASE_URL = window.supabaseConfig.getSupabaseUrl();
-            SUPABASE_ANON_KEY = window.supabaseConfig.getSupabaseAnonKey();
+            const SUPABASE_URL = window.supabaseConfig.getSupabaseUrl();
+            const SUPABASE_ANON_KEY = window.supabaseConfig.getSupabaseAnonKey();
             console.log('✅ Configuración de Supabase cargada desde config/supabase-config.js');
+            return { SUPABASE_URL, SUPABASE_ANON_KEY };
         } else {
-            // Valores por defecto (fallback)
-            SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
-            SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
             console.log('⚠️ Usando configuración por defecto de Supabase');
+            return { SUPABASE_URL: defaultUrl, SUPABASE_ANON_KEY: defaultKey };
         }
     } catch (error) {
         console.error('❌ Error al cargar configuración de Supabase:', error);
         // Valores por defecto en caso de error
-        SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
-        SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
+        return { SUPABASE_URL: defaultUrl, SUPABASE_ANON_KEY: defaultKey };
     }
 }
 
@@ -32,7 +31,7 @@ let supabaseClient = null;
 function initializeSupabase() {
     try {
         // Cargar configuración antes de inicializar
-        loadSupabaseConfig();
+        const { SUPABASE_URL, SUPABASE_ANON_KEY } = getSupabaseConfig();
         
         if (typeof window.supabase !== 'undefined') {
             // Obtener opciones de configuración si están disponibles
@@ -300,6 +299,6 @@ window.auth = {
 // También exportar el cliente directamente para compatibilidad
 window.supabaseAuth = {
     client: supabaseClient,
-    url: SUPABASE_URL,
+    url: getSupabaseConfig().SUPABASE_URL,
     initialized: false
 };

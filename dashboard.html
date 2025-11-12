@@ -525,20 +525,20 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="config/supabase-config.js?v=202511110000"></script>
-    <script src="js/auth.js?v=202511110000"></script>
+    <script src="js/auth.js?v=202511120000"></script>
     <script src="js/utils.js?v=202511092000"></script>
     <script>
-        // Configuración directa de Supabase
-        const SUPABASE_URL = 'https://oywepfjbzvnzvcnqtlnv.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d2VwZmpienZuenZjbnF0bG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTg0NzgsImV4cCI6MjA3NzkzNDQ3OH0.nnJ3tbgoWdu1-qcnpZwDK6W_WQSDmVFU_Hf-5XCpDo4';
-        
-        // Inicializar Supabase directamente
+        // Inicializar Supabase usando la configuración centralizada
         let supabase;
         
         function initializeeSupabase() {
-            if (typeof window.supabase !== 'undefined') {
+            if (typeof window.supabase !== 'undefined' && typeof window.supabaseConfig !== 'undefined') {
                 try {
-                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    // Usar la configuración del archivo supabase-config.js
+                    const supabaseUrl = window.supabaseConfig.getSupabaseUrl();
+                    const supabaseAnonKey = window.supabaseConfig.getSupabaseAnonKey();
+                    
+                    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
                     console.log('✅ Supabase inicializado correctamente');
                     
                     // Hacer supabase disponible globalmente para otros scripts
@@ -1323,7 +1323,7 @@
 
                     function requestSkipWaiting(worker) {
                         if (!worker) return;
-                        worker.postMessage({ type: 'SKIP_WAITINGING' });
+                        worker.postMessage({ type: 'SKIP_WAITING' });
                     }
 
                     if (registration.waiting) {
