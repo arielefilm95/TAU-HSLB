@@ -442,7 +442,7 @@ function displayPacientesList(pacientes) {
     
     const html = pacientes.map(paciente => {
         const estado = obtenerEstadoEOAVisual(paciente.id);
-        const itemClasses = ['madre-item'];
+        const itemClasses = ['madre-item-simple'];
         if (estado.containerClass) {
             itemClasses.push(estado.containerClass);
         }
@@ -453,31 +453,17 @@ function displayPacientesList(pacientes) {
 
         return `
         <div class="${itemClasses.join(' ')}" data-madre-id="${paciente.id}" onclick="selectMadre('${paciente.id}')">
-            <div class="madre-item-header">
-                <div class="madre-item-rut">${utils.escapeHTML([paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Nombre no registrado')}</div>
-                <div class="madre-item-identificacion">${utils.escapeHTML(utils.formatearRUT(paciente.rut))}</div>
-                <div class="madre-item-ficha">Ficha: ${utils.escapeHTML(paciente.numero_ficha)}</div>
-            </div>
-            <div class="madre-item-status">
-                <span class="${statusClass}">${statusText}</span>
-            </div>
-            <div class="madre-item-details">
-                <div class="madre-item-detail">
-                    <strong>Tipo:</strong> ${utils.escapeHTML(paciente.tipo_paciente || 'MADRE')}
+            <div class="madre-item-main">
+                <div class="madre-item-info">
+                    <div class="madre-item-nombre">${utils.escapeHTML([paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Nombre no registrado')}</div>
+                    <div class="madre-item-rut">${utils.escapeHTML(utils.formatearRUT(paciente.rut))}</div>
                 </div>
-                <div class="madre-item-detail">
-                    <strong>Sala:</strong> ${utils.escapeHTML(paciente.sala)}
+                <div class="madre-item-ubicacion">
+                    <span class="ubicacion-badge">${utils.escapeHTML(paciente.sala || 'Sala')}</span>
+                    <span class="ubicacion-badge">${utils.escapeHTML(paciente.cama || 'Cama')}</span>
                 </div>
-                <div class="madre-item-detail">
-                    <strong>Cama:</strong> ${utils.escapeHTML(paciente.cama)}
-                </div>
-                ${paciente.tipo_paciente === 'MADRE' ? `
-                <div class="madre-item-detail">
-                    <strong>Hijos:</strong> ${utils.escapeHTML((paciente.cantidad_hijos ?? 'N/A').toString())}
-                </div>
-                ` : ''}
-                <div class="madre-item-detail">
-                    <strong>Registro:</strong> ${utils.formatearFecha(paciente.created_at)}
+                <div class="madre-item-estado">
+                    <span class="${statusClass}">${statusText}</span>
                 </div>
             </div>
             <div class="madre-item-actions">

@@ -2,6 +2,7 @@
   "name": "TAU - Tamizaje Auditivo Universal",
   "short_name": "TAU",
   "description": "Sistema de Tamizaje Auditivo Universal del Hospital San Luis de Buin - Aplicación PWA optimizada para gestión de exámenes EOA en recién nacidos",
+  "version": "2.0.0",
   "start_url": "./dashboard.html",
   "display": "standalone",
   "background_color": "#ffffff",

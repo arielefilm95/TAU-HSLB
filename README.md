@@ -1,4 +1,4 @@
-# TAU - Tamizaje Auditivo Universal
+# TAU - Tamizaje Auditivo Universal v2.0
 
 Aplicación PWA para el seguimiento de exámenes de Emisiones Otoacústicas (EOA) en recién nacidos del Hospital San Luis de Buin.
 
@@ -173,6 +173,7 @@ CREATE POLICY "Acceso libre para todos los registros" ON madres
 - **Fase 2**: Completada ✅
 - **Fase 3**: Completada ✅
 - **Fase 4**: Completada ✅
+- **Versión**: 2.0.0 (Lanzamiento oficial con todas las funcionalidades implementadas)
 
 ### Progreso Detallado:
 - [x] Crear archivo README.md con plan completo del proyecto

@@ -454,6 +454,97 @@
     font-size: 0.9rem;
 }
 
+/* Estilos simplificados para la lista de pacientes */
+.madre-item-simple {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    margin-bottom: 12px;
+    transition: var(--transition);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.madre-item-simple.completed {
+    border-left: 4px solid #2ecc71;
+}
+
+.madre-item-simple.referido {
+    border-left: 4px solid #f1c40f;
+}
+
+.madre-item-simple.derivacion {
+    border-left: 4px solid #e74c3c;
+}
+
+.madre-item-simple:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+}
+
+.madre-item-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 15px;
+}
+
+.madre-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.madre-item-nombre {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-color);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.madre-item-rut {
+    font-size: 0.85rem;
+    color: var(--dark-color);
+    font-weight: 500;
+}
+
+.madre-item-ubicacion {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ubicacion-badge {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--dark-color);
+    white-space: nowrap;
+}
+
+.madre-item-estado {
+    flex-shrink: 0;
+}
+
+.madre-item-simple .madre-item-actions {
+    margin-top: 0;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.madre-item-simple .madre-item-actions .btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    min-width: 90px;
+}
+
 .status-pill {
     display: inline-flex;
     align-items: center;
@@ -654,6 +745,36 @@
     .madre-item-actions .btn {
         width: 100%;
     }
+    
+    /* Estilos responsivos para la vista simplificada */
+    .madre-item-main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .madre-item-ubicacion {
+        order: 2;
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .madre-item-estado {
+        order: 1;
+        align-self: flex-end;
+    }
+    
+    .madre-item-simple .madre-item-actions {
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 10px;
+    }
+    
+    .madre-item-simple .madre-item-actions .btn {
+        flex: 1;
+        min-width: auto;
+    }
 }
 
 @media (max-width: 480px) {
@@ -710,6 +831,26 @@
     
     .madre-info-details {
         grid-template-columns: 1fr;
+    }
+    
+    /* Estilos para vista simplificada en pantallas pequeñas */
+    .madre-item-simple {
+        padding: 12px;
+    }
+    
+    .madre-item-simple .madre-item-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .madre-item-simple .madre-item-actions .btn {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .ubicacion-badge {
+        font-size: 0.7rem;
+        padding: 3px 6px;
     }
 }
 
