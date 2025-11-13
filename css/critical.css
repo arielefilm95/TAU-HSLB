@@ -285,7 +285,7 @@ body {
   font-weight: 600;
   margin-bottom: 0.25rem;
   color: var(--text-color);
-  truncate: ellipsis;
+  text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
 }

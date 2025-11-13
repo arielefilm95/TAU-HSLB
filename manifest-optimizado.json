@@ -190,11 +190,5 @@
       "form_factor": "wide",
       "display": "minimal-ui"
     }
-  ],
-  "edge_side_panel": {
-    "preferred_width": 400
-  },
-  "launch_handler": {
-    "client_mode": "navigate-existing"
-  }
+  ]
 }
