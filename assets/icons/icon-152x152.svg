@@ -1,18 +1,18 @@
 
-<svg width="144" height="144" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<svg width="152" height="152" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="medicalGradient144" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="medicalGradient152" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#3498db;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="earGradient144" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="earGradient152" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#ecf0f1;stop-opacity:1" />
     </linearGradient>
   </defs>
   
   <!-- Fondo circular -->
-  <circle cx="256" cy="256" r="250" fill="url(#medicalGradient144)" stroke="#1a252f" stroke-width="4"/>
+  <circle cx="256" cy="256" r="250" fill="url(#medicalGradient152)" stroke="#1a252f" stroke-width="4"/>
   
   <!-- Oído estilizado -->
   <path d="M 180 200 
@@ -22,7 +22,7 @@
            C 250 260, 240 280, 220 280
            C 200 280, 180 260, 180 240
            Z" 
-        fill="url(#earGradient144)" 
+        fill="url(#earGradient152)" 
         stroke="#2c3e50" 
         stroke-width="3"/>
   

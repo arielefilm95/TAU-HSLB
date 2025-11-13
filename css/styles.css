@@ -23,10 +23,15 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     color: var(--text-color);
     background-color: #f5f7fa;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
 }
 
 .container {
@@ -50,6 +55,10 @@ body {
     transition: var(--transition);
     position: relative;
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .btn:focus {
@@ -137,6 +146,9 @@ body {
     border-radius: var(--border-radius);
     font-size: 16px;
     transition: var(--transition);
+    -webkit-appearance: none;
+    -webkit-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
 }
 
 .form-group input:focus,
@@ -405,5 +417,97 @@ body {
     
     .modal-body {
         padding: 15px;
+    }
+}
+
+/* Optimizaciones específicas para iPhone/iOS */
+@supports (-webkit-touch-callout: none) {
+    /* iOS specific styles */
+    body {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+    }
+    
+    .btn {
+        font-size: 14px;
+        padding: 10px 20px;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        font-size: 14px;
+        padding: 10px;
+    }
+    
+    .modal-header h3 {
+        font-size: 18px;
+    }
+    
+    .modal-body {
+        font-size: 14px;
+    }
+    
+    /* Prevenir zoom en inputs en iOS */
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    input[type="search"],
+    input[type="tel"],
+    textarea,
+    select {
+        font-size: 16px !important;
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+    }
+    
+    /* Corrección para viewport en iPhone X y superiores */
+    @media (min-height: 812px) {
+        .modal-content {
+            max-height: calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+            margin-top: env(safe-area-inset-top);
+            margin-bottom: env(safe-area-inset-bottom);
+        }
+    }
+}
+
+/* Optimizaciones para pantallas pequeñas */
+@media screen and (max-width: 414px) {
+    body {
+        font-size: 14px;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        font-size: clamp(1rem, 4vw, 1.5rem);
+    }
+    
+    .btn {
+        font-size: 14px;
+        padding: 10px 16px;
+    }
+    
+    .form-group label {
+        font-size: 13px;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        font-size: 14px;
+        padding: 10px;
+    }
+    
+    .modal-header h3 {
+        font-size: 16px;
+    }
+    
+    .modal-body {
+        font-size: 13px;
+        padding: 12px;
+    }
+    
+    .error-message {
+        font-size: 12px;
     }
 }

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Iconos Profesionales - TAU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .icon-preview {
+            text-align: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .icon-preview canvas {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .icon-preview h3 {
+            margin: 10px 0 5px 0;
+            color: #3498db;
+            font-size: 14px;
+        }
+        .generate-btn {
+            background: linear-gradient(135deg, #3498db, #2c3e50);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: block;
+            margin: 30px auto;
+            transition: transform 0.2s;
+        }
+        .generate-btn:hover {
+            transform: translateY(-2px);
+        }
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #3498db;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Generador de Iconos Profesionales - TAU</h1>
+        
+        <div class="instructions">
+            <h3>📋 Instrucciones</h3>
+            <ol>
+                <li>Haz clic en "Generar Iconos" para crear todos los tamaños necesarios</li>
+                <li>Los iconos se descargarán automáticamente en tu carpeta de descargas</li>
+                <li>Copia los archivos descargados a la carpeta assets/icons/ del proyecto</li>
+                <li>Los iconos incluirán: diseño médico con oído, ondas sonoras y texto TAU</li>
+            </ol>
+        </div>
+
+        <button class="generate-btn" onclick="generateIcons()">
+            🚀 Generar Todos los Iconos
+        </button>
+
+        <div id="status" class="status"></div>
+
+        <div class="preview-container" id="previewContainer">
+            <!-- Las vistas previas se generarán aquí -->
+        </div>
+    </div>
+
+    <script>
+        // Lista de tamaños necesarios para PWA
+        const iconSizes = [
+            { size: 72, name: 'icon-72x72.png' },
+            { size: 96, name: 'icon-96x96.png' },
+            { size: 128, name: 'icon-128x128.png' },
+            { size: 144, name: 'icon-144x144.png' },
+            { size: 152, name: 'icon-152x152.png' },
+            { size: 192, name: 'icon-192x192.png' },
+            { size: 384, name: 'icon-384x384.png' },
+            { size: 512, name: 'icon-512x512.png' }
+        ];
+
+        // Función para crear un canvas y generar el icono
+        function generateIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Gradiente de fondo
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#2c3e50');
+            gradient.addColorStop(1, '#3498db');
+            
+            // Fondo circular
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2 - 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Borde
+            ctx.strokeStyle = '#1a252f';
+            ctx.lineWidth = Math.max(2, size/50);
+            ctx.stroke();
+            
+            // Oído estilizado
+            const earX = size * 0.35;
+            const earY = size * 0.4;
+            const earWidth = size * 0.15;
+            const earHeight = size * 0.25;
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = Math.max(1, size/100);
+            
+            // Forma del oído
+            ctx.beginPath();
+            ctx.ellipse(earX, earY, earWidth/2, earHeight/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Detalles del oído (círculos internos)
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(earX - 5, earY, size * 0.025, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(earX + 5, earY + 5, size * 0.015, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(earX - 8, earY + 8, size * 0.012, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Ondas sonoras
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(2, size/50);
+            ctx.lineCap = 'round';
+            
+            // Primera onda
+            ctx.beginPath();
+            ctx.globalAlpha = 0.9;
+            ctx.moveTo(earX + earWidth, earY - 10);
+            ctx.quadraticCurveTo(earX + earWidth + 20, earY - 20, earX + earWidth + 30, earY - 10);
+            ctx.stroke();
+            
+            // Segunda onda
+            ctx.beginPath();
+            ctx.globalAlpha = 0.8;
+            ctx.moveTo(earX + earWidth + 5, earY);
+            ctx.quadraticCurveTo(earX + earWidth + 25, earY - 10, earX + earWidth + 40, earY);
+            ctx.stroke();
+            
+            // Tercera onda
+            ctx.beginPath();
+            ctx.globalAlpha = 0.7;
+            ctx.moveTo(earX + earWidth + 10, earY + 10);
+            ctx.quadraticCurveTo(earX + earWidth + 30, earY, earX + earWidth + 50, earY + 10);
+            ctx.stroke();
+            
+            ctx.globalAlpha = 1;
+            
+            // Texto TAU
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${size * 0.12}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TAU', size/2, size * 0.68);
+            
+            // Subtítulo
+            ctx.font = `${size * 0.04}px Arial`;
+            ctx.fillStyle = '#ecf0f1';
+            ctx.fillText('Tamizaje Auditivo', size/2, size * 0.75);
+            
+            // Cruz médica decorativa
+            const crossX = size * 0.65;
+            const crossY = size * 0.35;
+            const crossSize = size * 0.03;
+            
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(crossX - crossSize/2, crossY - crossSize, crossSize, crossSize * 2);
+            ctx.fillRect(crossX - crossSize, crossY - crossSize/2, crossSize * 2, crossSize);
+            
+            return canvas;
+        }
+
+        // Función para descargar el icono
+        function downloadIcon(canvas, filename) {
+            return new Promise((resolve) => {
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    resolve();
+                });
+            });
+        }
+
+        // Función para mostrar vista previa
+        function showPreview(size, name) {
+            const previewContainer = document.getElementById('previewContainer');
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'icon-preview';
+            
+            const canvas = generateIcon(size);
+            canvas.style.width = '100px';
+            canvas.style.height = '100px';
+            
+            const title = document.createElement('h3');
+            title.textContent = name;
+            
+            const sizeText = document.createElement('p');
+            sizeText.textContent = `${size}x${size} píxeles`;
+            sizeText.style.margin = '5px 0';
+            sizeText.style.fontSize = '12px';
+            sizeText.style.color = '#666';
+            
+            previewDiv.appendChild(canvas);
+            previewDiv.appendChild(title);
+            previewDiv.appendChild(sizeText);
+            previewContainer.appendChild(previewDiv);
+        }
+
+        // Generar todas las vistas previas al cargar la página
+        window.onload = function() {
+            iconSizes.forEach(icon => {
+                showPreview(icon.size, icon.name);
+            });
+        };
+
+        // Función principal para generar todos los iconos
+        async function generateIcons() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status success';
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = '🔄 Generando iconos... Por favor espera.';
+            
+            try {
+                for (let i = 0; i < iconSizes.length; i++) {
+                    const icon = iconSizes[i];
+                    const canvas = generateIcon(icon.size);
+                    await downloadIcon(canvas, icon.name);
+                    
+                    statusDiv.textContent = `✅ Icono ${icon.name} generado (${i + 1}/${iconSizes.length})`;
+                }
+                
+                statusDiv.textContent = '🎉 ¡Todos los iconos han sido generados y descargados exitosamente!';
+                statusDiv.className = 'status success';
+                
+            } catch (error) {
+                console.error('Error al generar iconos:', error);
+                statusDiv.textContent = '❌ Error al generar los iconos. Por favor, revisa la consola.';
+                statusDiv.className = 'status error';
+            }
+        }
+    </script>
+</body>
+</html>
