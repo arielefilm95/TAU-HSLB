@@ -11,7 +11,6 @@
   "orientation": "portrait-primary",
   "scope": "./",
   "lang": "es",
-  "dir": "ltr",
   "categories": ["health", "medical", "productivity"],
   "icons": [
     {
@@ -63,7 +62,6 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["health", "medical", "productivity"],
   "shortcuts": [
     {
       "name": "Registrar Madre",

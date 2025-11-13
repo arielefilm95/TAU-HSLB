@@ -32,6 +32,7 @@ Se han generado iconos en todos los tamaños requeridos para PWA:
 ## 📋 Optimizaciones Realizadas
 
 ### Para iPhone/iOS
+
 - Metaetiquetas específicas para iOS en `index.html` y `dashboard.html`
 - Control del zoom con `user-scalable=no`
 - Detección de teléfono deshabilitada
@@ -39,12 +40,14 @@ Se han generado iconos en todos los tamaños requeridos para PWA:
 - Splash screens configurados
 
 ### Para PWA
+
 - Propósito `any maskable` para todos los iconos
 - `display_override` para mejor control de visualización
 - `categories` definidas correctamente
 - `dir` y `lang` especificados
 
 ### Para CSS
+
 - `text-rendering: optimizeLegibility`
 - `-webkit-font-smoothing: antialiased`
 - `-webkit-text-size-adjust: 100%`
