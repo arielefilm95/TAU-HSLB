@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAU - Tamizaje Auditivo Universal | Dashboard</title>
+    <meta name="description" content="Panel principal del Sistema de Tamizaje Auditivo Universal del Hospital San Luis de Buin">
+ 
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="TAU">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- CSS Crítico Inline -->
+    <style>
+        /* CSS crítico para above-the-fold */
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --secondary-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #34495e;
+            --text-color: #2c3e50;
+            --border-color: #ddd;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --border-radius: 8px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #f5f7fa;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .logo h1 {
+            font-size: 2rem;
+            margin: 0;
+        }
+
+        .logo p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+
+        .app-main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-header h2 {
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-subtitle {
+            color: var(--dark-color);
+            opacity: 0.8;
+        }
+
+        /* Loading states */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            color: var(--text-color);
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Botones críticos */
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            text-decoration: none;
+            text-align: center;
+            transition: var(--transition);
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        /* Cards */
+        .action-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h3 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-color);
+        }
+
+        .card p {
+            margin: 0 0 1rem 0;
+            color: var(--dark-color);
+        }
+
+        /* Responsive crítico */
+        @media (max-width: 768px) {
+            .app-main {
+                padding: 1rem;
+            }
+            
+            .action-cards {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+    
+    <!-- Preload de recursos críticos -->
+    <link rel="preload" href="css/styles.css" as="style">
+    <link rel="preload" href="css/dashboard.css" as="style">
+    <link rel="preload" href="js/utils.js" as="script">
+    <link rel="preload" href="js/auth.js" as="script">
+    <link rel="preload" href="js/consultas-optimizadas.js" as="script">
+    
+    <!-- CSS no crítico con carga diferida -->
+    <link rel="preload" href="css/dashboard.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="css/dashboard.css"></noscript>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>TAU</h1>
+                    <p class="subtitle">Tamizaje Auditivo Universal</p>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="app-main">
+            <div class="dashboard-header">
+                <h2>Hospital San Luis de Buin</h2>
+                <p class="dashboard-subtitle">Sistema de Registro de Exámenes EOA</p>
+            </div>
+            
+            <!-- Action Cards -->
+            <div class="action-cards">
+                <div class="card" data-action="registrar">
+                    <div class="card-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                    </div>
+                    <h3>Registro</h3>
+                    <p>Registrar nueva madre o bebé con su información</p>
+                    <button class="btn btn-primary" data-action="registrar">Registrar</button>
+                </div>
+                
+                <div class="card" data-action="ver-madres">
+                    <div class="card-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <h3>Lista de Usuarios</h3>
+                    <p>Lista de todos los usuarios registrados y sus exámenes EOA</p>
+                    <button class="btn btn-primary" data-action="ver-madres">Ver Lista</button>
+                </div>
+                
+                <div class="card" data-action="importar">
+                    <div class="card-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10,9 9,9 8,9"></polyline>
+                        </svg>
+                    </div>
+                    <h3>Importar Partos</h3>
+                    <p>Subir archivo Excel con datos de partos del mes</p>
+                    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
+                    <button class="btn btn-secondary" data-action="importar">Importar Excel</button>
+                </div>
+            </div>
+            
+            <!-- Recent Mothers List -->
+            <div class="recent-section">
+                <div class="recent-section-header">
+                    <h3>Registros Recientes</h3>
+                    <div class="header-buttons">
+                        <button class="btn btn-secondary btn-sm" data-action="ver-importados">
+                            Ver Importados
+                        </button>
+                        <button class="btn btn-secondary btn-sm" data-action="ver-reportes">
+                            Ver Reportes
+                        </button>
+                    </div>
+                </div>
+                <div id="recentMothers" class="recent-list" data-component="recent-mothers">
+                    <div class="loading">Cargando...</div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Notification -->
+        <div id="notification" class="notification" style="display: none;">
+            <span id="notificationMessage"></span>
+            <button class="notification-close" onclick="hideNotification()">&times;</button>
+        </div>
+    </div>
+    
+    <!-- Scripts críticos con defer -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="config/supabase-config.js?v=202511120000" defer></script>
+    <script src="js/utils.js?v=202511120000" defer></script>
+    <script src="js/auth.js?v=202511120000" defer></script>
+    <script src="js/consultas-optimizadas.js?v=202511120000" defer></script>
+    
+    <!-- Script principal con carga dinámica -->
+    <script>
+        // Sistema de carga dinámica de módulos
+        class ModuleLoader {
+            constructor() {
+                this.loadedModules = new Set();
+                this.loadingPromises = new Map();
+                this.observers = [];
+            }
+
+            // Cargar módulo con lazy loading
+            async loadModule(moduleName, modulePath) {
+                if (this.loadedModules.has(moduleName)) {
+                    return window[moduleName];
+                }
+
+                if (this.loadingPromises.has(moduleName)) {
+                    return this.loadingPromises.get(moduleName);
+                }
+
+                const promise = this.loadScript(modulePath).then(() => {
+                    this.loadedModules.add(moduleName);
+                    return window[moduleName];
+                });
+
+                this.loadingPromises.set(moduleName, promise);
+                return promise;
+            }
+
+            // Cargar script dinámicamente
+            loadScript(src) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+
+            // Configurar Intersection Observer para lazy loading
+            setupIntersectionObserver() {
+                if (!('IntersectionObserver' in window)) {
+                    return;
+                }
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const componentName = entry.target.dataset.component;
+                            if (componentName) {
+                                this.loadComponent(componentName);
+                            }
+                        }
+                    });
+                }, { rootMargin: '50px' });
+
+                // Observar elementos con data-component
+                document.querySelectorAll('[data-component]').forEach(el => {
+                    observer.observe(el);
+                });
+
+                this.observers.push(observer);
+            }
+
+            // Cargar componente específico
+            async loadComponent(componentName) {
+                switch (componentName) {
+                    case 'recent-mothers':
+                        await this.loadModule('dashboard', 'js/dashboard-optimizado.js');
+                        if (window.dashboardOptimizado) {
+                            await window.dashboardOptimizado.loadRecentMothers();
+                        }
+                        break;
+                    case 'modals':
+                        await this.loadModule('modals', 'js/modals-optimizado.js');
+                        break;
+                    case 'charts':
+                        await this.loadModule('charts', 'js/charts-optimizado.js');
+                        break;
+                    default:
+                        console.warn(`Componente no reconocido: ${componentName}`);
+                }
+            }
+        }
+
+        // Sistema de delegación de eventos
+        class EventDelegator {
+            constructor() {
+                this.handlers = new Map();
+                this.setupGlobalListeners();
+            }
+
+            // Registrar handler para un tipo de acción
+            register(action, handler) {
+                if (!this.handlers.has(action)) {
+                    this.handlers.set(action, []);
+                }
+                this.handlers.get(action).push(handler);
+            }
+
+            // Configurar listeners globales
+            setupGlobalListeners() {
+                // Delegación de clicks
+                document.addEventListener('click', this.handleClick.bind(this));
+                
+                // Delegación de submits
+                document.addEventListener('submit', this.handleSubmit.bind(this));
+                
+                // Delegación de inputs con debounce
+                document.addEventListener('input', this.debounce(this.handleInput.bind(this), 300));
+            }
+
+            // Manejar clicks delegados
+            handleClick(event) {
+                const action = event.target.dataset.action || 
+                              event.target.closest('[data-action]')?.dataset.action;
+                
+                if (action && this.handlers.has(action)) {
+                    event.preventDefault();
+                    const handlers = this.handlers.get(action);
+                    handlers.forEach(handler => {
+                        try {
+                            handler(event);
+                        } catch (error) {
+                            console.error(`Error en handler para acción ${action}:`, error);
+                        }
+                    });
+                }
+            }
+
+            // Manejar submits delegados
+            handleSubmit(event) {
+                const formAction = event.target.dataset.form;
+                if (formAction && this.handlers.has(formAction)) {
+                    event.preventDefault();
+                    const handlers = this.handlers.get(formAction);
+                    handlers.forEach(handler => {
+                        try {
+                            handler(event);
+                        } catch (error) {
+                            console.error(`Error en handler para formulario ${formAction}:`, error);
+                        }
+                    });
+                }
+            }
+
+            // Manejar inputs delegados
+            handleInput(event) {
+                const inputAction = event.target.dataset.input;
+                if (inputAction && this.handlers.has(inputAction)) {
+                    const handlers = this.handlers.get(inputAction);
+                    handlers.forEach(handler => {
+                        try {
+                            handler(event);
+                        } catch (error) {
+                            console.error(`Error en handler para input ${inputAction}:`, error);
+                        }
+                    });
+                }
+            }
+
+            // Utilidad de debounce
+            debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+        }
+
+        // Inicialización de la aplicación
+        class App {
+            constructor() {
+                this.moduleLoader = new ModuleLoader();
+                this.eventDelegator = new EventDelegator();
+                this.supabase = null;
+                this.consultas = null;
+            }
+
+            async initialize() {
+                try {
+                    // Esperar librerías críticas
+                    await this.waitForLibraries();
+                    
+                    // Inicializar Supabase
+                    this.supabase = window.auth.initializeSupabase();
+                    
+                    // Inicializar consultas optimizadas
+                    this.consultas = new window.ConsultasOptimizadas(this.supabase);
+                    
+                    // Configurar event handlers
+                    this.setupEventHandlers();
+                    
+                    // Configurar lazy loading
+                    this.moduleLoader.setupIntersectionObserver();
+                    
+                    // Cargar componentes críticos
+                    await this.loadCriticalComponents();
+                    
+                    // Configurar service worker optimizado
+                    this.setupServiceWorker();
+                    
+                    console.log('✅ Aplicación inicializada correctamente');
+                } catch (error) {
+                    console.error('❌ Error al inicializar aplicación:', error);
+                    this.showError('Error al cargar la aplicación');
+                }
+            }
+
+            // Esperar a que las librerías críticas carguen
+            waitForLibraries() {
+                return new Promise((resolve) => {
+                    const checkLibraries = () => {
+                        if (window.supabase && window.supabaseConfig && window.auth && window.ConsultasOptimizadas) {
+                            resolve();
+                        } else {
+                            setTimeout(checkLibraries, 100);
+                        }
+                    };
+                    checkLibraries();
+                });
+            }
+
+            // Configurar event handlers usando delegación
+            setupEventHandlers() {
+                // Registrar acciones principales
+                this.eventDelegator.register('registrar', () => this.openModalRegistro());
+                this.eventDelegator.register('ver-madres', () => this.openModalMadres());
+                this.eventDelegator.register('importar', () => this.handleImportar());
+                this.eventDelegator.register('ver-importados', () => this.redirectTo('importados.html'));
+                this.eventDelegator.register('ver-reportes', () => this.redirectTo('reportes.html'));
+            }
+
+            // Cargar componentes críticos
+            async loadCriticalComponents() {
+                // Cargar módulo de dashboard optimizado
+                await this.moduleLoader.loadModule('dashboardOptimizado', 'js/dashboard-optimizado.js');
+                
+                if (window.dashboardOptimizado) {
+                    await window.dashboardOptimizado.initialize(this.consultas);
+                }
+            }
+
+            // Configurar service worker optimizado
+            setupServiceWorker() {
+                if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+                    navigator.serviceWorker.register('./sw-optimizado.js')
+                        .then(registration => {
+                            console.log('✅ Service Worker optimizado registrado');
+                            
+                            // Manejar actualizaciones
+                            registration.addEventListener('updatefound', () => {
+                                const newWorker = registration.installing;
+                                if (newWorker) {
+                                    newWorker.addEventListener('statechange', () => {
+                                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                            // Notificar al usuario sobre actualización
+                                            this.showUpdateNotification();
+                                        }
+                                    });
+                                }
+                            });
+                        })
+                        .catch(error => {
+                            console.warn('⚠️ Error al registrar Service Worker:', error);
+                        });
+                }
+            }
+
+            // Métodos de acción
+            openModalRegistro() {
+                console.log('🖊️ Abriendo modal de registro');
+                // Implementar lógica de modal
+            }
+
+            openModalMadres() {
+                console.log('👥 Abriendo modal de madres');
+                // Implementar lógica de modal
+            }
+
+            handleImportar() {
+                console.log('📁 Manejando importación');
+                const fileInput = document.getElementById('excelFileInput');
+                if (fileInput) {
+                    fileInput.click();
+                }
+            }
+
+            redirectTo(url) {
+                window.location.href = url;
+            }
+
+            // Métodos de UI
+            showError(message) {
+                const notification = document.getElementById('notification');
+                const messageElement = document.getElementById('notificationMessage');
+                
+                if (notification && messageElement) {
+                    messageElement.textContent = message;
+                    notification.className = 'notification error show';
+                    
+                    setTimeout(() => {
+                        notification.classList.remove('show');
+                    }, 5000);
+                }
+            }
+
+            showUpdateNotification() {
+                if (window.utils && window.utils.showNotification) {
+                    window.utils.showNotification('Nueva versión disponible. Recargue la página.', 'info');
+                }
+            }
+        }
+
+        // Inicializar aplicación cuando el DOM esté listo
+        let app;
+        
+        function initializeApp() {
+            if (!app) {
+                app = new App();
+            }
+            app.initialize();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+
+        // Hacer accesible globalmente para debugging
+        window.app = app;
+    </script>
+</body>
+</html>

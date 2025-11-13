@@ -1,0 +1,207 @@
+/* css/accessibility.css */
+/* Estilos para mejor accesibilidad */
+
+/* Ocultar visualmente pero mantener para lectores de pantalla */
+.sr-only,
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Mejorar visibilidad de foco */
+:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Para navegación por teclado */
+.keyboard-navigation button:focus,
+.keyboard-navigation input:focus,
+.keyboard-navigation select:focus,
+.keyboard-navigation textarea:focus,
+.keyboard-navigation a:focus {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Mejorar contraste para elementos interactivos */
+button,
+a,
+input,
+select,
+textarea {
+  color: var(--text-color);
+  background-color: var(--light-color);
+  border: 2px solid var(--border-color);
+}
+
+/* Estados hover y focus con suficiente contraste */
+button:hover,
+button:focus,
+a:hover,
+a:focus {
+  background-color: var(--primary-color);
+  color: white;
+  text-decoration: underline;
+}
+
+/* Indicadores de estado claros */
+[aria-expanded="true"]::before {
+  content: " (expandido)";
+}
+
+[aria-expanded="false"]::before {
+  content: " (contraído)";
+}
+
+[aria-pressed="true"]::after {
+  content: " (activado)";
+}
+
+[aria-pressed="false"]::after {
+  content: " (desactivado)";
+}
+
+/* Mejorar legibilidad */
+body {
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+/* Asegurar que el texto sea legible al hacer zoom */
+@media (min-resolution: 120dpi) {
+  body {
+    font-size: 18px;
+  }
+}
+
+/* Reducir movimiento para usuarios con preferencia */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Modo alto contraste */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #0000FF;
+    --text-color: #000000;
+    --background-color: #FFFFFF;
+    --border-color: #000000;
+  }
+  
+  body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+  }
+  
+  button,
+  input,
+  select,
+  textarea {
+    border-width: 3px;
+  }
+}
+
+/* Indicadores de error claros */
+.error,
+[aria-invalid="true"] {
+  border-color: var(--danger-color) !important;
+  border-width: 3px !important;
+}
+
+.error::before,
+[aria-invalid="true"]::before {
+  content: "❌ ";
+  color: var(--danger-color);
+}
+
+/* Indicadores de éxito */
+.success,
+[aria-invalid="false"] {
+  border-color: var(--success-color) !important;
+}
+
+/* Etiquetas descriptivas */
+input[aria-label]::placeholder,
+textarea[aria-label]::placeholder {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+/* Mejorar accesibilidad de tablas */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid var(--border-color);
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: var(--light-color);
+  font-weight: bold;
+}
+
+/* Captions para tablas */
+table caption {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* Agrupaciones lógicas */
+fieldset {
+  border: 2px solid var(--border-color);
+  padding: 10px;
+  margin: 10px 0;
+}
+
+legend {
+  font-weight: bold;
+  padding: 0 10px;
+}
+
+/* Indicadores de progreso accesibles */
+progress {
+  width: 100%;
+  height: 20px;
+}
+
+progress::after {
+  content: attr(value) "%";
+  display: block;
+  text-align: center;
+}
+
+/* Tooltips accesibles */
+[title]:hover::after,
+[aria-label]:hover::after {
+  content: attr(title) attr(aria-label);
+  position: absolute;
+  background-color: var(--dark-color);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  z-index: 1000;
+  white-space: nowrap;
+}

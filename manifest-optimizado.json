@@ -1,0 +1,200 @@
+{
+  "name": "TAU - Tamizaje Auditivo Universal",
+  "short_name": "TAU",
+  "description": "Sistema de Tamizaje Auditivo Universal del Hospital San Luis de Buin - Aplicación PWA optimizada para gestión de exámenes EOA en recién nacidos",
+  "start_url": "./dashboard.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2c3e50",
+  "orientation": "portrait-primary",
+  "scope": "./",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": ["health", "medical", "productivity"],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "icons": [
+    {
+      "src": "./assets/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./assets/screenshots/desktop-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard principal con lista de pacientes"
+    },
+    {
+      "src": "./assets/screenshots/mobile-1.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Vista móvil del dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Registrar Madre",
+      "short_name": "Nueva Madre",
+      "description": "Registrar nueva madre en el sistema",
+      "url": "./dashboard.html?action=registrar-madre",
+      "icons": [
+        {
+          "src": "./assets/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Ver Pacientes",
+      "short_name": "Lista",
+      "description": "Ver lista de pacientes registrados",
+      "url": "./dashboard.html?action=ver-pacientes",
+      "icons": [
+        {
+          "src": "./assets/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Importar Partos",
+      "short_name": "Importar",
+      "description": "Importar datos de partos desde Excel",
+      "url": "./dashboard.html?action=importar-partos",
+      "icons": [
+        {
+          "src": "./assets/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Ver Reportes",
+      "short_name": "Reportes",
+      "description": "Ver reportes y estadísticas",
+      "url": "./reportes.html",
+      "icons": [
+        {
+          "src": "./assets/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+tau",
+      "url": "./dashboard.html?action=%s"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "./dashboard.html?action=importar-partos",
+      "accept": {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx", ".xls"]
+      }
+    }
+  ],
+  "share_target": {
+    "action": "./dashboard.html?action=compartir-datos",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "titulo",
+      "text": "descripcion",
+      "url": "enlace",
+      "files": [
+        {
+          "name": "archivos",
+          "accept": [".xlsx", ".xls", ".csv"]
+        }
+      ]
+    }
+  },
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "focus-existing"]
+  },
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate",
+  "scope_extensions": [
+    "https://*.supabase.co/*"
+  ],
+  "display_override": [
+    {
+      "form_factor": "narrow",
+      "display": "standalone"
+    },
+    {
+      "form_factor": "wide",
+      "display": "minimal-ui"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
+}
