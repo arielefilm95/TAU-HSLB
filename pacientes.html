@@ -30,6 +30,27 @@
             <div class="search-box">
                 <input type="text" id="pacientesSearch" placeholder="Buscar por nombre, RUT o número de ficha...">
             </div>
+            <div class="pacientes-filters">
+                <div class="filter-field">
+                    <label for="filtroFechaPartoTipo">Filtrar fechas de parto</label>
+                    <select id="filtroFechaPartoTipo">
+                        <option value="todos">Todas las fechas</option>
+                        <option value="semana">Por semana</option>
+                        <option value="mes">Por mes</option>
+                    </select>
+                </div>
+                <div class="filter-field filter-week is-hidden" id="filtroSemanaWrapper">
+                    <label for="filtroFechaPartoSemana">Semana (ISO 8601)</label>
+                    <input type="week" id="filtroFechaPartoSemana" min="2000-W01">
+                </div>
+                <div class="filter-field filter-month is-hidden" id="filtroMesWrapper">
+                    <label for="filtroFechaPartoMes">Mes</label>
+                    <input type="month" id="filtroFechaPartoMes" min="2000-01">
+                </div>
+                <div class="filter-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="filtroFechaPartoReset">Limpiar filtro</button>
+                </div>
+            </div>
             <div id="pacientesTableContainer" class="pacientes-table-area">
                 <p class="loading">Cargando pacientes...</p>
             </div>
