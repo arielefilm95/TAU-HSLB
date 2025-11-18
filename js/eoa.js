@@ -1038,6 +1038,20 @@ function formatearSiNo(valor) {
     return valor ? 'S\u00ed' : 'No';
 }
 
+function mostrarEvolucionEnPantalla(contenido) {
+    const contenedor = document.getElementById('eoaEvolutionOutput');
+    if (!contenedor) {
+        return;
+    }
+    if (!contenido) {
+        contenedor.innerHTML = '<p class="eoa-evolution-empty">No hay contenido para mostrar.</p>';
+        return;
+    }
+    const textoEscapado = utils ? utils.escapeHTML(contenido) : contenido;
+    contenedor.innerHTML = `<pre class="eoa-evolution-text">${textoEscapado}</pre>`;
+    contenedor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function formatearTipoParto(tipo) {
     if (!tipo) {
         return 'Sin registro';
@@ -1177,11 +1191,8 @@ function exportarEvolucionDesdeFormulario() {
         return;
     }
 
-    const pacienteIdentificador = currentPacienteEOA.rut || currentPacienteEOA.id || 'paciente';
-    const safeName = pacienteIdentificador.toString().replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-    const fileName = `evolucion_${safeName}_${new Date().toISOString().split('T')[0]}.txt`;
-    descargarTextoEvolucion(fileName, texto);
-    utils.showNotification('Evoluci\u00f3n exportada en TXT', 'success');
+    mostrarEvolucionEnPantalla(texto);
+    utils.showNotification('Evoluci\u00f3n mostrada en pantalla', 'success');
 }
 
 // Event listeners específicos para EOA

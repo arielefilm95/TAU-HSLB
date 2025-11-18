@@ -308,6 +308,8 @@ function crearFilaPaciente(paciente) {
     const fechaPartoTexto = fechaPartoDate ? utils.formatearFecha(fechaPartoDate) : (fechaParto ? fechaParto.split('T')[0] : 'Sin registro');
     const observaciones = obtenerObservacionesPlano(examenes);
     const nombreConfirm = nombreCompleto.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
+    const estadoPrimer = determinarEstadoPrimerExamen(primerExamen, segundoExamen);
+    const estadoSegundo = determinarEstadoSegundoExamen(segundoExamen);
 
     return `
         <tr data-madre-id="${paciente.id}">
@@ -316,9 +318,17 @@ function crearFilaPaciente(paciente) {
             <td>${utils.escapeHTML(paciente.numero_ficha || 'Sin ficha')}</td>
             <td>${utils.escapeHTML(fechaPartoTexto)}</td>
             <td>${utils.escapeHTML(primerExamen ? utils.formatearFecha(primerExamen.fecha_examen) : 'Sin registro')}</td>
-            <td class="resultado-col">${utils.escapeHTML(formatearResultado(primerExamen))}</td>
+            <td class="resultado-col">
+                <span class="resultado-pill ${estadoPrimer.clase}">
+                    ${utils.escapeHTML(estadoPrimer.texto)}
+                </span>
+            </td>
             <td>${utils.escapeHTML(segundoExamen ? utils.formatearFecha(segundoExamen.fecha_examen) : 'Sin registro')}</td>
-            <td class="resultado-col">${utils.escapeHTML(formatearResultado(segundoExamen))}</td>
+            <td class="resultado-col">
+                <span class="resultado-pill ${estadoSegundo.clase}">
+                    ${utils.escapeHTML(estadoSegundo.texto)}
+                </span>
+            </td>
             <td class="observaciones-col">${utils.escapeHTML(observaciones)}</td>
             <td class="table-actions">
                 <button type="button" class="table-actions-btn" aria-label="Acciones" data-madre-id="${paciente.id}">
@@ -338,6 +348,49 @@ function formatearResultado(examen) {
     const od = examen.od_resultado || 'N/A';
     const oi = examen.oi_resultado || 'N/A';
     return `OD: ${od} | OI: ${oi}`;
+}
+
+function examenEsRefiere(examen) {
+    if (!examen) {
+        return false;
+    }
+    return (examen.od_resultado === 'REFIERE' || examen.oi_resultado === 'REFIERE');
+}
+
+function examenEsPasa(examen) {
+    if (!examen) {
+        return false;
+    }
+    return examen.od_resultado === 'PASA' && examen.oi_resultado === 'PASA';
+}
+
+function determinarEstadoPrimerExamen(primerExamen, segundoExamen) {
+    if (!primerExamen) {
+        return { texto: 'Sin resultado', clase: 'estado-neutral' };
+    }
+    if (examenEsPasa(primerExamen)) {
+        return { texto: formatearResultado(primerExamen), clase: 'estado-success' };
+    }
+    if (examenEsRefiere(primerExamen)) {
+        if (examenEsRefiere(segundoExamen)) {
+            return { texto: 'Refiere (ambos)', clase: 'estado-danger' };
+        }
+        return { texto: 'Refiere (1er)', clase: 'estado-warning' };
+    }
+    return { texto: formatearResultado(primerExamen), clase: 'estado-warning' };
+}
+
+function determinarEstadoSegundoExamen(segundoExamen) {
+    if (!segundoExamen) {
+        return { texto: 'Sin registro', clase: 'estado-neutral' };
+    }
+    if (examenEsRefiere(segundoExamen)) {
+        return { texto: formatearResultado(segundoExamen), clase: 'estado-danger' };
+    }
+    if (examenEsPasa(segundoExamen)) {
+        return { texto: formatearResultado(segundoExamen), clase: 'estado-success' };
+    }
+    return { texto: formatearResultado(segundoExamen), clase: 'estado-warning' };
 }
 
 function obtenerObservacionesPlano(examenes = []) {
@@ -586,11 +639,7 @@ function abrirModalEdicion(madreId) {
     document.getElementById('editCama').value = paciente.cama || '';
     document.getElementById('editHijos').value = paciente.cantidad_hijos ?? 1;
 
-    const modal = document.getElementById('editPacienteModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('show'), 10);
-    }
+    iniciarEdicionInline(madreId);
 }
 
 function closeEditPacienteModal() {
@@ -600,6 +649,99 @@ function closeEditPacienteModal() {
         setTimeout(() => modal.style.display = 'none', 300);
     }
     document.getElementById('editPacienteForm').reset();
+}
+
+function crearInputEdicion(value, field, type = 'text') {
+    return `<input class="inline-edit-input" data-field="${field}" type="${type}" value="${value ?? ''}">`;
+}
+
+function iniciarEdicionInline(madreId) {
+    const row = document.querySelector(`tr[data-madre-id="${madreId}"]`);
+    if (!row || row.classList.contains('editing')) {
+        return;
+    }
+
+    const paciente = pacientesListado.find(item => item.id === madreId);
+    if (!paciente) {
+        utils?.showNotification('No se encontró el paciente para editar', 'error');
+        return;
+    }
+
+    row.dataset.originalHtml = row.innerHTML;
+    row.classList.add('editing');
+
+    const cells = row.querySelectorAll('td');
+    cells[0].innerHTML = crearInputEdicion(paciente.nombre || '', 'nombre');
+    cells[1].innerHTML = crearInputEdicion(utils.formatearRUT ? utils.formatearRUT(paciente.rut) : paciente.rut || '', 'rut');
+    cells[2].innerHTML = crearInputEdicion(paciente.numero_ficha || '', 'numero_ficha');
+    cells[4].innerHTML = crearInputEdicion(paciente.created_at ? paciente.created_at.split('T')[0] : '', 'fecha_examen', 'date');
+
+    const actionsCell = cells[cells.length - 1];
+    actionsCell.innerHTML = `
+        <button class="btn btn-success btn-sm inline-save" type="button">Guardar</button>
+        <button class="btn btn-secondary btn-sm inline-cancel" type="button">Cancelar</button>
+    `;
+    actionsCell.querySelector('.inline-save').addEventListener('click', async function(event) {
+        event.stopPropagation();
+        await guardarEdicionInline(row, paciente.id);
+    });
+    actionsCell.querySelector('.inline-cancel').addEventListener('click', function(event) {
+        event.stopPropagation();
+        cancelarEdicionInline(row);
+    });
+}
+
+async function guardarEdicionInline(row, pacienteId) {
+    const nombre = row.querySelector('.inline-edit-input[data-field="nombre"]').value.trim();
+    const rut = row.querySelector('.inline-edit-input[data-field="rut"]').value.trim().replace(/\./g, '').replace('-', '');
+    const numeroFicha = row.querySelector('.inline-edit-input[data-field="numero_ficha"]').value.trim();
+    const fechaExamen = row.querySelector('.inline-edit-input[data-field="fecha_examen"]').value;
+
+    if (!nombre || !rut || !numeroFicha) {
+        utils?.showNotification('Completa nombre, RUT y ficha para guardar.', 'error');
+        return;
+    }
+
+    const payload = {
+        nombre,
+        apellido: pacientesListado.find(p => p.id === pacienteId)?.apellido || '',
+        rut,
+        numero_ficha: numeroFicha,
+        sala: pacientesListado.find(p => p.id === pacienteId)?.sala || '',
+        cama: pacientesListado.find(p => p.id === pacienteId)?.cama || '',
+        cantidad_hijos: pacientesListado.find(p => p.id === pacienteId)?.cantidad_hijos ?? 1
+    };
+
+    const btn = row.querySelector('.inline-save');
+    if (btn) {
+        btn.disabled = true;
+    }
+
+    try {
+        const result = await window.madres.actualizarMadre(pacienteId, payload);
+        if (!result.success) {
+            throw new Error(result.error || 'No se pudo actualizar el paciente');
+        }
+        utils?.showNotification('Paciente actualizado directamente en la tabla', 'success');
+        const searchValue = document.getElementById('pacientesSearch')?.value.trim() || '';
+        await loadPacientes(searchValue);
+    } catch (error) {
+        console.error('Error guardando edición inline:', error);
+        utils?.showNotification(error.message || 'Error al guardar edición', 'error');
+        if (btn) {
+            btn.disabled = false;
+        }
+    }
+}
+
+function cancelarEdicionInline(row) {
+    if (!row || !row.dataset.originalHtml) {
+        return;
+    }
+    row.innerHTML = row.dataset.originalHtml;
+    row.classList.remove('editing');
+    delete row.dataset.originalHtml;
+    bindTablaEventos(row.closest('.madres-table-wrapper'));
 }
 
 async function eliminarPaciente(madreId, nombreMadre = '') {

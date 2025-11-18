@@ -479,37 +479,12 @@
 .madres-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;
+    table-layout: auto;
 }
 
 .madres-table thead {
     background: var(--primary-color);
     color: #fff;
-}
-
-.madres-table thead .column-filter {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    align-items: center;
-    padding: 8px;
-}
-
-.madres-table thead .column-filter input,
-.madres-table thead .column-filter button {
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 0.8rem;
-    color: inherit;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    background: rgba(255, 255, 255, 0.2);
-    transition: var(--transition);
-    min-width: 0;
-}
-
-.madres-table thead .column-filter input:focus,
-.madres-table thead .column-filter button:hover {
-    border-color: rgba(255, 255, 255, 0.9);
 }
 
 .madres-table th,
@@ -534,8 +509,74 @@
     background: rgba(52, 152, 219, 0.08);
 }
 
+.madres-table tbody tr.editing td {
+    background: rgba(244, 244, 244, 0.9);
+}
+
+.inline-edit-input {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 6px 10px;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.eoa-evolution-output {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: #fff;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.eoa-evolution-text {
+    white-space: pre-wrap;
+    font-size: 0.86rem;
+    color: var(--dark-color);
+    margin: 0;
+}
+
+.eoa-evolution-empty {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--dark-color);
+}
+
 .madres-table .resultado-col {
     min-width: 150px;
+}
+
+.resultado-pill {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+}
+
+.resultado-pill.estado-success {
+    background: rgba(39, 174, 96, 0.15);
+    color: #27ae60;
+}
+
+.resultado-pill.estado-warning {
+    background: rgba(241, 196, 15, 0.18);
+    color: #f1c40f;
+}
+
+.resultado-pill.estado-danger {
+    background: rgba(231, 76, 60, 0.18);
+    color: #c0392b;
+}
+
+.resultado-pill.estado-neutral {
+    background: rgba(44, 62, 80, 0.08);
+    color: var(--dark-color);
 }
 
 .madres-table .observaciones-col {
