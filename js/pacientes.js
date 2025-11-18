@@ -77,29 +77,53 @@ function bindSearchInput() {
 function bindEditForm() {
     const form = document.getElementById('editPacienteForm');
     if (!form) return;
+
+    const rutInput = document.getElementById('editRut');
+    if (rutInput && window.utils?.formatearRUTInput) {
+        rutInput.addEventListener('input', function() {
+            window.utils.formatearRUTInput(this);
+        });
+    }
+
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         const pacienteId = document.getElementById('editPacienteId').value;
         if (!pacienteId) return;
 
-        const payload = {
-            nombre: document.getElementById('editNombre').value.trim(),
-            apellido: document.getElementById('editApellido').value.trim(),
-            rut: document.getElementById('editRut').value.trim().replace(/\./g, '').replace('-', ''),
-            numero_ficha: document.getElementById('editFicha').value.trim(),
-            sala: document.getElementById('editSala').value.trim(),
-            cama: document.getElementById('editCama').value.trim(),
-            cantidad_hijos: parseInt(document.getElementById('editHijos').value, 10)
-        };
+        const nombre = document.getElementById('editNombre').value.trim();
+        const apellido = document.getElementById('editApellido').value.trim();
+        const rutValor = rutInput?.value.trim() || '';
+        const numeroFicha = document.getElementById('editFicha').value.trim();
+        const sala = document.getElementById('editSala').value.trim();
+        const cama = document.getElementById('editCama').value.trim();
+        const cantidadHijos = parseInt(document.getElementById('editHijos').value, 10);
+        const rutFormateado = window.utils?.formatearRUT ? window.utils.formatearRUT(rutValor) : rutValor;
+        const rutNormalizado = rutFormateado.replace(/\./g, '').replace('-', '');
 
-        if (!payload.nombre || !payload.apellido || !payload.rut) {
+        if (!nombre || !apellido || !rutNormalizado || !numeroFicha || !sala || !cama) {
             utils?.showNotification('Completa todos los campos obligatorios', 'error');
             return;
         }
-        if (Number.isNaN(payload.cantidad_hijos) || payload.cantidad_hijos < 1) {
-            utils?.showNotification('La cantidad de hijos debe ser un número válido', 'error');
+
+        if (window.utils?.validarRUT && rutFormateado && !window.utils.validarRUT(rutFormateado)) {
+            utils?.showNotification('Ingresa un RUT valido en el formato 12345678-9', 'error');
             return;
         }
+
+        if (Number.isNaN(cantidadHijos) || cantidadHijos < 1) {
+            utils?.showNotification('La cantidad de hijos debe ser un numero valido', 'error');
+            return;
+        }
+
+        const payload = {
+            nombre,
+            apellido,
+            rut: rutNormalizado,
+            numero_ficha: numeroFicha,
+            sala,
+            cama,
+            cantidad_hijos: cantidadHijos
+        };
 
         const submitBtn = form.querySelector('button[type="submit"]');
         const btnText = submitBtn?.querySelector('.btn-text');
@@ -626,20 +650,26 @@ async function abrirEoaParaPaciente(pacienteId) {
 function abrirModalEdicion(madreId) {
     const paciente = pacientesListado.find(item => item.id === madreId);
     if (!paciente) {
-        utils?.showNotification('No se encontró el paciente seleccionado', 'error');
+        utils?.showNotification('No se encontro el paciente seleccionado', 'error');
         return;
     }
 
+    const rutFormateado = window.utils?.formatearRUT ? window.utils.formatearRUT(paciente.rut || '') : (paciente.rut || '');
     document.getElementById('editPacienteId').value = paciente.id;
     document.getElementById('editNombre').value = paciente.nombre || '';
     document.getElementById('editApellido').value = paciente.apellido || '';
-    document.getElementById('editRut').value = utils.formatearRUT ? utils.formatearRUT(paciente.rut) : paciente.rut;
+    document.getElementById('editRut').value = rutFormateado;
     document.getElementById('editFicha').value = paciente.numero_ficha || '';
     document.getElementById('editSala').value = paciente.sala || '';
     document.getElementById('editCama').value = paciente.cama || '';
     document.getElementById('editHijos').value = paciente.cantidad_hijos ?? 1;
 
-    iniciarEdicionInline(madreId);
+    const modal = document.getElementById('editPacienteModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => modal.classList.add('show'));
+    }
+    document.getElementById('editNombre')?.focus();
 }
 
 function closeEditPacienteModal() {
@@ -648,7 +678,8 @@ function closeEditPacienteModal() {
         modal.classList.remove('show');
         setTimeout(() => modal.style.display = 'none', 300);
     }
-    document.getElementById('editPacienteForm').reset();
+    const form = document.getElementById('editPacienteForm');
+    form?.reset();
 }
 
 function crearInputEdicion(value, field, type = 'text') {

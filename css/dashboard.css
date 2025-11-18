@@ -474,6 +474,23 @@
     border: none;
     box-shadow: none;
     background: transparent;
+    overflow-x: hidden;
+}
+
+.pacientes-page .madres-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.pacientes-page .madres-table th,
+.pacientes-page .madres-table td {
+    white-space: normal;
+    word-break: break-word;
+}
+
+.pacientes-page .madres-table .resultado-col,
+.pacientes-page .madres-table .observaciones-col {
+    min-width: 0;
 }
 
 .madres-table {
