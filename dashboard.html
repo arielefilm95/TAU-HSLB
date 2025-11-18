@@ -149,6 +149,8 @@
                     <!-- Formulario Madre -->
                     <div id="madreFormContainer" style="display: none;">
                         <form id="madreForm">
+                            <input type="hidden" id="madreFormMode" value="create">
+                            <input type="hidden" id="madreEditId" value="">
                             <div class="form-section">
                                 <h4>Datos de la Madre</h4>
                                 <div class="form-group">
@@ -940,6 +942,9 @@
                         cama: document.getElementById('cama').value.trim(),
                         cantidad_hijos: cantidadHijosNumero
                     };
+                    const formModeInput = document.getElementById('madreFormMode');
+                    const editIdInput = document.getElementById('madreEditId');
+                    const isEditMode = formModeInput && editIdInput && formModeInput.value === 'edit' && editIdInput.value;
                     
                     // Mostrar loader
                     if (typeof utils !== 'undefined' && utils.toggleButtonLoader) {
@@ -948,10 +953,20 @@
                     
                     // Guardar en Supabase
                     if (window.supabaseClient) {
-                        window.supabaseClient
+                        let request = window.supabaseClient
                             .from('pacientes')
                             .insert([formData])
-                            .select()
+                            .select();
+                        
+                        if (isEditMode) {
+                            request = window.supabaseClient
+                                .from('pacientes')
+                                .update(formData)
+                                .eq('id', editIdInput.value)
+                                .select();
+                        }
+                        
+                        request
                             .then(({ data, error }) => {
                                 if (error) {
                                     throw error;
@@ -959,7 +974,7 @@
                                 
                                 // Éxito
                                 if (typeof utils !== 'undefined' && utils.showNotification) {
-                                    utils.showNotification('Madre registrada exitosamente', 'success');
+                                    utils.showNotification(isEditMode ? 'Madre actualizada exitosamente' : 'Madre registrada exitosamente', 'success');
                                 }
                                 
                                 // Cerrar modal
@@ -975,6 +990,18 @@
                                 if (typeof dashboard !== 'undefined' && dashboard.loadRecentMothers) {
                                     dashboard.loadRecentMothers();
                                 }
+                                
+                                if (typeof dashboard !== 'undefined' && dashboard.loadMadresList) {
+                                    const searchMadresInput = document.getElementById('searchMadres');
+                                    const currentSearch = searchMadresInput ? searchMadresInput.value : '';
+                                    dashboard.loadMadresList(currentSearch);
+                                }
+                                
+                                if (typeof resetModalState === 'function') {
+                                    resetModalState();
+                                } else if (typeof utils !== 'undefined' && utils.limpiarFormulario) {
+                                    utils.limpiarFormulario('madreForm');
+                                }
                             })
                             .catch(error => {
                                 console.error('Error al registrar madre:', error);
@@ -989,6 +1016,16 @@
                             .finally(() => {
                                 if (typeof utils !== 'undefined' && utils.toggleButtonLoader) {
                                     utils.toggleButtonLoader('guardarMadreBtn', false);
+                                }
+                                if (formModeInput) {
+                                    formModeInput.value = 'create';
+                                }
+                                if (editIdInput) {
+                                    editIdInput.value = '';
+                                }
+                                const btnText = document.querySelector('#guardarMadreBtn .btn-text');
+                                if (btnText) {
+                                    btnText.textContent = 'Guardar Madre';
                                 }
                             });
                     }
@@ -1187,6 +1224,20 @@
             
             // Resetear título
             document.getElementById('modalTitle').textContent = 'Registrar';
+            
+             // Resetear modo de formulario
+            const modeInput = document.getElementById('madreFormMode');
+            const editIdInput = document.getElementById('madreEditId');
+            if (modeInput) {
+                modeInput.value = 'create';
+            }
+            if (editIdInput) {
+                editIdInput.value = '';
+            }
+            const btnText = document.querySelector('#guardarMadreBtn .btn-text');
+            if (btnText) {
+                btnText.textContent = 'Guardar Madre';
+            }
         }
         
         function showFormulario(tipo) {

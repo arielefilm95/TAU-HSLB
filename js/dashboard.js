@@ -4,7 +4,9 @@
 let recentPatients = [];
 const pacientesResumenExamen = new Map();
 const pacienteEvolucionCache = new Map();
+let pacientesTablaActual = [];
 let midnightCleanupInterval = null;
+let activeActionMenu = null;
 
 function resultadoRefiere(examen) {
     if (!examen) {
@@ -559,56 +561,305 @@ function displayPacientesList(pacientes) {
     const pacientesListElement = document.getElementById('madresList');
     
     if (!pacientesListElement) return;
-    
-    if (pacientes.length === 0) {
+    closeAllActionMenus();
+    if (!pacientes || pacientes.length === 0) {
+        pacientesTablaActual = [];
         pacientesListElement.innerHTML = '<p class="no-data">No se encontraron registros</p>';
         return;
     }
     
-    const html = pacientes.map(paciente => {
-        const estado = obtenerEstadoEOAVisual(paciente.id);
-        const itemClasses = ['madre-item-simple'];
-        if (estado.containerClass) {
-            itemClasses.push(estado.containerClass);
-        }
-        const statusClass = `status-pill ${estado.pillTheme}`;
-        const statusText = estado.pillText;
-        const nombreCompletoPlano = [paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado';
-        const nombreConfirm = nombreCompletoPlano.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
-
-        return `
-        <div class="${itemClasses.join(' ')}" data-madre-id="${paciente.id}" onclick="selectMadre('${paciente.id}')">
-            <div class="madre-item-main">
-                <div class="madre-item-info">
-                    <div class="madre-item-nombre">${utils.escapeHTML([paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Nombre no registrado')}</div>
-                    <div class="madre-item-rut">${utils.escapeHTML(utils.formatearRUT(paciente.rut))}</div>
-                </div>
-                <div class="madre-item-ubicacion">
-                    <span class="ubicacion-badge">${utils.escapeHTML(paciente.sala || 'Sala')}</span>
-                    <span class="ubicacion-badge">${utils.escapeHTML(paciente.cama || 'Cama')}</span>
-                </div>
-                <div class="madre-item-estado">
-                    <span class="${statusClass}">${statusText}</span>
-                </div>
-            </div>
-            <div class="madre-item-actions">
-                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); selectMadre('${paciente.id}')">
-                    Realizar EOA
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); dashboard.confirmarEliminacionMadre('${paciente.id}', '${nombreConfirm}')">
-                    Eliminar
-                </button>
-            </div>
+    pacientesTablaActual = pacientes.slice();
+    
+    const rowsHtml = pacientes.map(paciente => crearFilaPacienteTabla(paciente)).join('');
+    const headHtml = `
+        <tr>
+            <th>Nombre</th>
+            <th>RUT</th>
+            <th>N° de Ficha</th>
+            <th>Fecha de Parto</th>
+            <th>1er examen</th>
+            <th class="resultado-col">Resultado</th>
+            <th>2do examen</th>
+            <th class="resultado-col">Resultado</th>
+            <th class="observaciones-col">Observaciones</th>
+            <th></th>
+        </tr>
+    `;
+    
+    pacientesListElement.innerHTML = `
+        <div class="madres-table-wrapper">
+            <table class="madres-table">
+                <thead>${headHtml}</thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+            </table>
         </div>
     `;
-    }).join('');
     
-    pacientesListElement.innerHTML = html;
+    bindEventosTablaPacientes(pacientesListElement);
 }
 
 // Función para mostrar lista de madres (mantener compatibilidad)
 function displayMadresList(madres) {
     return displayPacientesList(madres);
+}
+
+function crearFilaPacienteTabla(paciente) {
+    const nombreCompleto = [paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado';
+    const rutFormateado = utils.formatearRUT ? utils.formatearRUT(paciente.rut) : paciente.rut;
+    const fechaParto = paciente.fecha_parto || paciente.fecha_nacimiento || paciente.created_at;
+    const fechaPartoTexto = fechaParto ? utils.formatearFecha(fechaParto) : 'Sin registro';
+    const examenes = obtenerExamenesDePaciente(paciente.id);
+    const primerExamen = examenes[0] || null;
+    const segundoExamen = examenes[1] || null;
+    const primerFecha = primerExamen ? utils.formatearFecha(primerExamen.fecha_examen) : 'Sin registro';
+    const segundoFecha = segundoExamen ? utils.formatearFecha(segundoExamen.fecha_examen) : 'Sin registro';
+    const primerResultado = formatearResultadoExamen(primerExamen);
+    const segundoResultado = formatearResultadoExamen(segundoExamen);
+    const observacionesTexto = obtenerObservacionesPlanoTabla(examenes);
+    const nombreConfirm = nombreCompleto.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
+    
+    return `
+        <tr data-madre-id="${paciente.id}">
+            <td>${utils.escapeHTML(nombreCompleto)}</td>
+            <td>${utils.escapeHTML(rutFormateado)}</td>
+            <td>${utils.escapeHTML(paciente.numero_ficha || 'Sin ficha')}</td>
+            <td>${utils.escapeHTML(fechaPartoTexto)}</td>
+            <td>${utils.escapeHTML(primerFecha)}</td>
+            <td class="resultado-col">${utils.escapeHTML(primerResultado)}</td>
+            <td>${utils.escapeHTML(segundoFecha)}</td>
+            <td class="resultado-col">${utils.escapeHTML(segundoResultado)}</td>
+            <td class="observaciones-col">${utils.escapeHTML(observacionesTexto)}</td>
+            <td class="table-actions">
+                <button type="button" class="table-actions-btn" aria-label="Acciones" data-madre-id="${paciente.id}">
+                    &#8942;
+                </button>
+                <div class="table-actions-menu">
+                    <button type="button" data-menu-action="editar" data-madre-id="${paciente.id}">Editar datos</button>
+                    <button type="button" data-menu-action="eliminar" data-madre-id="${paciente.id}" data-nombre-madre="${nombreConfirm}">Eliminar</button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function obtenerExamenesDePaciente(pacienteId) {
+    if (!pacienteId) {
+        return [];
+    }
+    const resumen = pacientesResumenExamen.get(pacienteId);
+    return resumen && Array.isArray(resumen.examenes) ? resumen.examenes : [];
+}
+
+function formatearResultadoExamen(examen) {
+    if (!examen) {
+        return 'Sin resultado';
+    }
+    const od = examen.od_resultado || 'N/A';
+    const oi = examen.oi_resultado || 'N/A';
+    return `OD: ${od} | OI: ${oi}`;
+}
+
+function obtenerObservacionesPlanoTabla(examenes = []) {
+    if (!Array.isArray(examenes) || examenes.length === 0) {
+        return 'Sin observaciones';
+    }
+    const ultimoConObservaciones = [...examenes].reverse().find(examen => examen && examen.observaciones);
+    if (!ultimoConObservaciones) {
+        return 'Sin observaciones';
+    }
+    if (window.eoa && typeof window.eoa.observacionesATextoPlano === 'function') {
+        return window.eoa.observacionesATextoPlano(ultimoConObservaciones.observaciones) || 'Sin observaciones';
+    }
+    return ultimoConObservaciones.observaciones || 'Sin observaciones';
+}
+
+function bindEventosTablaPacientes(container) {
+    const filas = container.querySelectorAll('.madres-table tbody tr');
+    filas.forEach(fila => {
+        fila.addEventListener('click', async function() {
+            const madreId = this.dataset.madreId;
+            if (!madreId) return;
+            try {
+                if (window.dashboard && typeof window.dashboard.selectMadre === 'function') {
+                    await window.dashboard.selectMadre(madreId);
+                } else if (typeof selectMadre === 'function') {
+                    await selectMadre(madreId);
+                }
+            } catch (error) {
+                console.error('Error al abrir EOA desde la tabla:', error);
+            }
+        });
+    });
+    
+    const actionButtons = container.querySelectorAll('.table-actions-btn');
+    actionButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.stopPropagation();
+            toggleActionsMenu(this);
+        });
+    });
+    
+    const actionMenuButtons = container.querySelectorAll('.table-actions-menu button');
+    actionMenuButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.stopPropagation();
+            const action = this.dataset.menuAction;
+            const madreId = this.dataset.madreId;
+            const nombreMadre = this.dataset.nombreMadre || '';
+            closeAllActionMenus();
+            if (!madreId) return;
+            if (action === 'editar') {
+                iniciarEdicionMadre(madreId);
+            } else if (action === 'eliminar') {
+                confirmarEliminacionMadre(madreId, nombreMadre);
+            }
+        });
+    });
+    
+    const actionMenus = container.querySelectorAll('.table-actions-menu');
+    actionMenus.forEach(menu => {
+        menu.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+    });
+}
+
+function toggleActionsMenu(button) {
+    const menu = button.nextElementSibling;
+    if (!menu) {
+        return;
+    }
+    if (menu === activeActionMenu) {
+        menu.classList.remove('open');
+        activeActionMenu = null;
+        return;
+    }
+    closeAllActionMenus();
+    menu.classList.add('open');
+    activeActionMenu = menu;
+}
+
+function closeAllActionMenus() {
+    const menus = document.querySelectorAll('.table-actions-menu.open');
+    menus.forEach(menu => menu.classList.remove('open'));
+    activeActionMenu = null;
+}
+
+async function iniciarEdicionMadre(madreId) {
+    if (!madreId) {
+        return;
+    }
+    try {
+        let paciente = pacientesTablaActual.find(item => item.id === madreId);
+        if (!paciente && window.supabaseClient) {
+            const { data, error } = await window.supabaseClient
+                .from('pacientes')
+                .select('*')
+                .eq('id', madreId)
+                .single();
+            if (error) {
+                throw error;
+            }
+            paciente = data;
+        }
+        if (!paciente) {
+            throw new Error('Paciente no encontrado');
+        }
+        prepararFormularioMadreParaEdicion(paciente);
+    } catch (error) {
+        console.error('Error al iniciar edición de madre:', error);
+        if (typeof utils !== 'undefined' && utils.showNotification) {
+            utils.showNotification('No se pudieron cargar los datos de la madre', 'error');
+        }
+    }
+}
+
+function prepararFormularioMadreParaEdicion(paciente) {
+    if (!paciente) {
+        return;
+    }
+    if (typeof resetModalState === 'function') {
+        resetModalState();
+    } else if (typeof utils !== 'undefined' && utils.limpiarFormulario) {
+        utils.limpiarFormulario('madreForm');
+    }
+    
+    const selector = document.getElementById('tipoRegistroSelector');
+    if (selector) {
+        selector.style.display = 'none';
+    }
+    
+    const madreContainer = document.getElementById('madreFormContainer');
+    const bebeContainer = document.getElementById('bebeFormContainer');
+    if (madreContainer) {
+        madreContainer.style.display = 'block';
+    }
+    if (bebeContainer) {
+        bebeContainer.style.display = 'none';
+    }
+    
+    const tituloModal = document.getElementById('modalTitle');
+    if (tituloModal) {
+        tituloModal.textContent = 'Editar Madre';
+    }
+    
+    const modeInput = document.getElementById('madreFormMode');
+    const editIdInput = document.getElementById('madreEditId');
+    if (modeInput) {
+        modeInput.value = 'edit';
+    }
+    if (editIdInput) {
+        editIdInput.value = paciente.id;
+    }
+    const btnText = document.querySelector('#guardarMadreBtn .btn-text');
+    if (btnText) {
+        btnText.textContent = 'Actualizar Madre';
+    }
+    
+    const rutInput = document.getElementById('rut');
+    if (rutInput) {
+        rutInput.value = utils.formatearRUT ? utils.formatearRUT(paciente.rut) : paciente.rut;
+    }
+    const nombreInput = document.getElementById('nombreMadre');
+    if (nombreInput) {
+        nombreInput.value = paciente.nombre || '';
+    }
+    const apellidoInput = document.getElementById('apellidoMadre');
+    if (apellidoInput) {
+        apellidoInput.value = paciente.apellido || '';
+    }
+    const fichaInput = document.getElementById('numeroFicha');
+    if (fichaInput) {
+        fichaInput.value = paciente.numero_ficha || '';
+    }
+    const salaInput = document.getElementById('sala');
+    if (salaInput) {
+        salaInput.value = paciente.sala || '';
+    }
+    const camaInput = document.getElementById('cama');
+    if (camaInput) {
+        camaInput.value = paciente.cama || '';
+    }
+    const hijosInput = document.getElementById('cantidadHijos');
+    if (hijosInput) {
+        hijosInput.value = paciente.cantidad_hijos ?? '';
+    }
+    
+    const modal = document.getElementById('modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+    }
+    
+    setTimeout(() => {
+        if (nombreInput) {
+            nombreInput.focus();
+        }
+    }, 200);
 }
 
 function actualizarEstadoVisualMadre(madreId) {
@@ -773,6 +1024,9 @@ function closeModal() {
             modal.style.display = 'none';
         }, 300);
     }
+    if (typeof resetModalState === 'function') {
+        resetModalState();
+    }
 }
 
 // Función para cerrar modal de madres
@@ -862,6 +1116,14 @@ function stopMidnightCleanup() {
     }
 }
 
+
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.table-actions')) {
+        closeAllActionMenus();
+    }
+});
+
+
 // Event listeners globales
 document.addEventListener('DOMContentLoaded', function() {
     // Configurar búsqueda de madres
@@ -913,6 +1175,7 @@ window.dashboard = {
     closeMadresModal,
     markMadreConExamen,
     confirmarEliminacionMadre,
+    startEditarMadre: iniciarEdicionMadre,
     setupMidnightCleanup,
     stopMidnightCleanup,
     clearRecentMothersDisplay

@@ -438,6 +438,118 @@
     overflow-y: auto;
 }
 
+.madres-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: #fff;
+    box-shadow: var(--shadow);
+}
+
+.madres-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.madres-table thead {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.madres-table th,
+.madres-table td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+}
+
+.madres-table th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.madres-table tbody tr {
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.madres-table tbody tr:hover {
+    background: rgba(52, 152, 219, 0.08);
+}
+
+.madres-table .resultado-col {
+    min-width: 150px;
+}
+
+.madres-table .observaciones-col {
+    min-width: 200px;
+    white-space: normal;
+}
+
+.table-actions {
+    position: relative;
+    width: 60px;
+}
+
+.table-actions-btn {
+    border: 1px solid var(--border-color);
+    background: #fff;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.table-actions-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.table-actions-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    display: none;
+    flex-direction: column;
+    min-width: 140px;
+    z-index: 10;
+    padding: 6px 0;
+}
+
+.table-actions-menu.open {
+    display: flex;
+}
+
+.table-actions-menu button {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    text-align: left;
+    font-size: 0.9rem;
+    width: 100%;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.table-actions-menu button:hover {
+    background: rgba(52, 152, 219, 0.12);
+}
+
+.table-actions-menu button[data-menu-action="eliminar"] {
+    color: var(--danger-color);
+}
+
 .madre-item {
     background: #f8f9fa;
     border: 1px solid var(--border-color);
