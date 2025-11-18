@@ -149,7 +149,7 @@ function bindEditForm() {
         const payload = {
             nombre,
             apellido,
-            rut: rutNormalizado,
+            rut: rutFormateado,
             numero_ficha: numeroFicha,
             sala,
             cama,
