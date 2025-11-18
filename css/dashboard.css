@@ -519,6 +519,10 @@
     padding-right: 32px;
 }
 
+.pacientes-page .madres-table thead th {
+    white-space: nowrap;
+}
+
 .madres-table tbody tr {
     cursor: pointer;
     transition: background 0.2s ease;
