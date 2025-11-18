@@ -154,7 +154,7 @@ async function obtenerResumenExamenes(pacienteIds = []) {
 
         const { data, error } = await window.supabaseClient
             .from('examenes_eoa')
-            .select('id,paciente_id,od_resultado,oi_resultado,fecha_examen,observaciones')
+            .select('id,paciente_id,od_resultado,oi_resultado,fecha_examen,fecha_nacimiento,observaciones')
             .in('paciente_id', uniqueIds)
             .order('fecha_examen', { ascending: true });
 
@@ -226,7 +226,8 @@ function crearFilaPaciente(paciente) {
     const segundoExamen = examenes[1] || null;
     const nombreCompleto = [paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Sin nombre';
     const rutFormateado = utils.formatearRUT ? utils.formatearRUT(paciente.rut) : paciente.rut;
-    const fechaParto = paciente.fecha_parto || paciente.fecha_nacimiento || paciente.created_at;
+    const fechaNacimientoExamen = primerExamen?.fecha_nacimiento;
+    const fechaParto = fechaNacimientoExamen || paciente.fecha_parto || paciente.fecha_nacimiento || paciente.created_at;
     const fechaPartoTexto = fechaParto ? utils.formatearFecha(fechaParto) : 'Sin registro';
     const observaciones = obtenerObservacionesPlano(examenes);
     const nombreConfirm = nombreCompleto.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
