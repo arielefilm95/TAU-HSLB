@@ -4,6 +4,27 @@ let pacientesListado = [];
 const resumenPacientes = new Map();
 let activeMenu = null;
 
+function parseISODateAsLocal(dateValue) {
+    if (!dateValue) {
+        return null;
+    }
+    const datePart = dateValue.toString().split('T')[0];
+    const parts = datePart.split('-').map(part => parseInt(part, 10));
+    if (parts.length !== 3 || parts.some(Number.isNaN)) {
+        return null;
+    }
+    const [year, month, day] = parts;
+    return new Date(year, month - 1, day);
+}
+
+function formatDateFromLocal(value) {
+    const date = parseISODateAsLocal(value);
+    if (!date) {
+        return null;
+    }
+    return date;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initPacientesPage();
 });
@@ -228,7 +249,8 @@ function crearFilaPaciente(paciente) {
     const rutFormateado = utils.formatearRUT ? utils.formatearRUT(paciente.rut) : paciente.rut;
     const fechaNacimientoExamen = primerExamen?.fecha_nacimiento;
     const fechaParto = fechaNacimientoExamen || paciente.fecha_parto || paciente.fecha_nacimiento || paciente.created_at;
-    const fechaPartoTexto = fechaParto ? utils.formatearFecha(fechaParto) : 'Sin registro';
+    const fechaPartoDate = formatDateFromLocal(fechaParto);
+    const fechaPartoTexto = fechaPartoDate ? utils.formatearFecha(fechaPartoDate) : (fechaParto ? fechaParto.split('T')[0] : 'Sin registro');
     const observaciones = obtenerObservacionesPlano(examenes);
     const nombreConfirm = nombreCompleto.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
 

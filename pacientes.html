@@ -23,17 +23,15 @@
         </header>
 
         <main class="app-main pacientes-page">
-            <div class="card">
-                <div class="card-header" style="text-align:left;">
-                    <h2>Pacientes registrados</h2>
-                    <p>Visualiza el historial de partos y resultados de exámenes EOA.</p>
-                </div>
-                <div class="search-box">
-                    <input type="text" id="pacientesSearch" placeholder="Buscar por nombre, RUT o número de ficha...">
-                </div>
-                <div id="pacientesTableContainer" class="madres-list">
-                    <p class="loading">Cargando pacientes...</p>
-                </div>
+            <section class="pacientes-header">
+                <h2>Pacientes registrados</h2>
+                <p>Visualiza el historial de partos y resultados de exámenes EOA.</p>
+            </section>
+            <div class="search-box">
+                <input type="text" id="pacientesSearch" placeholder="Buscar por nombre, RUT o número de ficha...">
+            </div>
+            <div id="pacientesTableContainer" class="pacientes-table-area">
+                <p class="loading">Cargando pacientes...</p>
             </div>
         </main>
     </div>

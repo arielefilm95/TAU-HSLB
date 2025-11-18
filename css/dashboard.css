@@ -447,10 +447,39 @@
     box-shadow: var(--shadow);
 }
 
+.pacientes-page {
+    width: 100%;
+    margin: 0 auto;
+    padding-bottom: 40px;
+}
+
+.pacientes-header {
+    margin-bottom: 20px;
+}
+
+.pacientes-page .search-box {
+    margin-bottom: 10px;
+    max-width: 640px;
+}
+
+.pacientes-page .search-box input {
+    width: 100%;
+}
+
+.pacientes-table-area {
+    width: 100%;
+}
+
+.pacientes-page .madres-table-wrapper {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
 .madres-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 900px;
+    table-layout: fixed;
 }
 
 .madres-table thead {
@@ -468,7 +497,7 @@
 
 .madres-table th {
     font-weight: 600;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 .madres-table tbody tr {
