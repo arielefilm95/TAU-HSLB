@@ -706,6 +706,8 @@
         margin-left: 0;
         margin-top: 10px;
         width: 100%;
+        display: flex;
+        justify-content: flex-start;
     }
     
     .recent-item-actions .btn-sm {
@@ -715,13 +717,15 @@
     }
     
     .recent-item-actions .btn-small {
-        width: 100%;
+        width: auto;
+        max-width: 220px;
         padding: 8px 12px;
         font-size: 0.8rem;
         min-height: 36px;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
+        flex: 0 0 auto;
     }
     
     .recent-item-expand {
@@ -813,12 +817,15 @@
     }
     
     .recent-item-actions .btn-small {
-        padding: 8px 12px;
-        font-size: 0.8rem;
-        min-height: 36px;
-        display: flex;
+        width: auto;
+        max-width: 180px;
+        padding: 7px 12px;
+        font-size: 0.78rem;
+        min-height: 34px;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
+        flex: 0 0 auto;
     }
     
     .madre-item {
