@@ -3,6 +3,13 @@
 let pacientesListado = [];
 const resumenPacientes = new Map();
 let activeMenu = null;
+let campoObservacionesPaciente = null;
+const CAMPOS_OBSERVACIONES_CANDIDATOS = [
+    'observaciones_generales',
+    'observaciones_paciente',
+    'observaciones_estado',
+    'observaciones'
+];
 
 function parseISODateAsLocal(dateValue) {
     if (!dateValue) {
@@ -103,16 +110,26 @@ function bindEditForm() {
         const cantidadHijos = parseInt(document.getElementById('editHijos').value, 10);
         const rutFormateado = window.utils?.formatearRUT ? window.utils.formatearRUT(rutValor) : rutValor;
         const rutNormalizado = rutFormateado.replace(/\./g, '').replace('-', '');
-        const puedeEditarObservaciones = Boolean(
+        const usaObservacionesGenerales = Boolean(campoObservacionesPaciente);
+        const observacionesTexto = observacionesField?.value.trim() || '';
+        let requiereActualizacionExamen = false;
+        let examenObservacionesId = '';
+        let observacionesActualizadas = null;
+
+        if (usaObservacionesGenerales) {
+            // Las observaciones se guardarán directamente en el registro de paciente
+        } else if (
             observacionesField &&
             !observacionesField.disabled &&
             observacionesExamenIdInput?.value
-        );
-        const examenObservacionesId = puedeEditarObservaciones ? observacionesExamenIdInput.value : '';
-        const nuevasObservacionesTexto = puedeEditarObservaciones ? observacionesField.value.trim() : '';
-        const observacionesActualizadas = puedeEditarObservaciones
-            ? construirObservacionesActualizadas(nuevasObservacionesTexto, observacionesRawInput?.value || '')
-            : null;
+        ) {
+            requiereActualizacionExamen = true;
+            examenObservacionesId = observacionesExamenIdInput.value;
+            observacionesActualizadas = construirObservacionesActualizadas(
+                observacionesTexto,
+                observacionesRawInput?.value || ''
+            );
+        }
 
         if (!nombre || !apellido || !rutNormalizado || !numeroFicha || !sala || !cama) {
             utils?.showNotification('Completa todos los campos obligatorios', 'error');
@@ -139,6 +156,10 @@ function bindEditForm() {
             cantidad_hijos: cantidadHijos
         };
 
+        if (campoObservacionesPaciente) {
+            payload[campoObservacionesPaciente] = observacionesTexto ? observacionesTexto : null;
+        }
+
         const submitBtn = form.querySelector('button[type="submit"]');
         const btnText = submitBtn?.querySelector('.btn-text');
         const btnLoader = submitBtn?.querySelector('.btn-loader');
@@ -158,7 +179,7 @@ function bindEditForm() {
                 throw new Error(result.error || 'No se pudo actualizar el paciente');
             }
 
-            if (puedeEditarObservaciones) {
+            if (!campoObservacionesPaciente && requiereActualizacionExamen) {
                 const examenResult = await window.eoa.actualizarExamenEOA(examenObservacionesId, {
                     observaciones: observacionesActualizadas || null
                 });
@@ -200,6 +221,7 @@ async function loadPacientes(searchTerm = '') {
         if (error) throw error;
 
         pacientesListado = data || [];
+        detectarCampoObservacionesPaciente(pacientesListado);
         const resumenMap = await obtenerResumenExamenes(pacientesListado.map(p => p.id));
         resumenPacientes.clear();
         resumenMap.forEach((value, key) => resumenPacientes.set(key, value));
@@ -319,7 +341,7 @@ function renderPacientesTable(pacientes) {
                 </div>
             </th>
             <th class="sortable observaciones-col" data-column="observaciones">
-                Observaciones
+                Observaciones Generales
                 <div class="sort-controls">
                     <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
                     <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
@@ -354,7 +376,7 @@ function crearFilaPaciente(paciente) {
     const fechaParto = fechaNacimientoExamen || paciente.fecha_parto || paciente.fecha_nacimiento || paciente.created_at;
     const fechaPartoDate = formatDateFromLocal(fechaParto);
     const fechaPartoTexto = fechaPartoDate ? utils.formatearFecha(fechaPartoDate) : (fechaParto ? fechaParto.split('T')[0] : 'Sin registro');
-    const observaciones = obtenerObservacionesPlano(examenes);
+    const observaciones = obtenerObservacionesTabla(paciente, examenes);
     const nombreConfirm = nombreCompleto.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
     const estadoPrimer = determinarEstadoPrimerExamen(primerExamen, segundoExamen);
     const estadoSegundo = determinarEstadoSegundoExamen(segundoExamen);
@@ -441,6 +463,14 @@ function determinarEstadoSegundoExamen(segundoExamen) {
     return { texto: formatearResultado(segundoExamen), clase: 'estado-warning' };
 }
 
+function obtenerObservacionesTabla(paciente, examenes = []) {
+    const generales = getObservacionesGeneralesPaciente(paciente);
+    if (generales) {
+        return generales;
+    }
+    return obtenerObservacionesPlano(examenes);
+}
+
 function obtenerObservacionesPlano(examenes = []) {
     if (!Array.isArray(examenes) || examenes.length === 0) {
         return 'Sin observaciones';
@@ -451,6 +481,27 @@ function obtenerObservacionesPlano(examenes = []) {
         return window.eoa.observacionesATextoPlano(examen.observaciones) || 'Sin observaciones';
     }
     return examen.observaciones || 'Sin observaciones';
+}
+
+function detectarCampoObservacionesPaciente(lista = []) {
+    campoObservacionesPaciente = null;
+    if (!Array.isArray(lista) || lista.length === 0) {
+        return;
+    }
+    campoObservacionesPaciente = CAMPOS_OBSERVACIONES_CANDIDATOS.find(campo =>
+        lista.some(paciente => Object.prototype.hasOwnProperty.call(paciente, campo))
+    ) || null;
+}
+
+function tieneObservacionesGenerales() {
+    return Boolean(campoObservacionesPaciente);
+}
+
+function getObservacionesGeneralesPaciente(paciente) {
+    if (!tieneObservacionesGenerales() || !paciente) {
+        return '';
+    }
+    return paciente[campoObservacionesPaciente] || '';
 }
 
 function bindTablaEventos(container) {
@@ -619,6 +670,10 @@ function getSegundoExamenResultado(paciente) {
 }
 
 function getObservaciones(paciente) {
+    const generales = getObservacionesGeneralesPaciente(paciente);
+    if (generales) {
+        return generales;
+    }
     const resumen = resumenPacientes.get(paciente.id) || { examenes: [] };
     const examenes = resumen.examenes || [];
     if (!Array.isArray(examenes) || examenes.length === 0) {
@@ -674,7 +729,7 @@ function construirObservacionesActualizadas(nuevoTexto, observacionesPrevias) {
     }
 }
 
-function prepararObservacionesEdicion(madreId) {
+function prepararObservacionesEdicion(paciente) {
     const textarea = document.getElementById('editObservaciones');
     const examenIdInput = document.getElementById('editObservacionesExamenId');
     const rawInput = document.getElementById('editObservacionesRaw');
@@ -684,14 +739,25 @@ function prepararObservacionesEdicion(madreId) {
         return;
     }
 
-    const examenEditable = obtenerExamenEditableObservaciones(madreId);
+    if (tieneObservacionesGenerales()) {
+        textarea.disabled = false;
+        textarea.value = getObservacionesGeneralesPaciente(paciente) || '';
+        examenIdInput.value = '';
+        rawInput.value = '';
+        if (helpText) {
+            helpText.textContent = 'Observaciones generales del paciente (derivaciones, estado, notas).';
+        }
+        return;
+    }
+
+    const examenEditable = paciente ? obtenerExamenEditableObservaciones(paciente.id) : null;
     if (!examenEditable) {
         textarea.value = '';
         textarea.disabled = true;
         examenIdInput.value = '';
         rawInput.value = '';
         if (helpText) {
-            helpText.textContent = 'Este paciente aún no registra exámenes para editar observaciones.';
+            helpText.textContent = 'Este paciente aun no registra examenes para editar observaciones.';
         }
         return;
     }
@@ -703,8 +769,8 @@ function prepararObservacionesEdicion(madreId) {
     rawInput.value = rawObservaciones;
     if (helpText) {
         helpText.textContent = rawObservaciones
-            ? 'Edita el texto general del último examen con observaciones. Los detalles adicionales se conservan.'
-            : 'Aún no hay observaciones registradas para el último examen. Puedes agregarlas aquí.';
+            ? 'Edita el texto general del ultimo examen con observaciones. Los detalles adicionales se conservan.'
+            : 'Aun no hay observaciones registradas para el ultimo examen. Puedes agregarlas aqui.';
     }
 }
 
@@ -715,7 +781,7 @@ function limpiarObservacionesEdicion() {
     const helpText = document.getElementById('editObservacionesHelp');
     if (textarea) {
         textarea.value = '';
-        textarea.disabled = true;
+        textarea.disabled = !tieneObservacionesGenerales();
     }
     if (examenIdInput) {
         examenIdInput.value = '';
@@ -724,7 +790,9 @@ function limpiarObservacionesEdicion() {
         rawInput.value = '';
     }
     if (helpText) {
-        helpText.textContent = 'Se cargarán las observaciones del examen más reciente.';
+        helpText.textContent = tieneObservacionesGenerales()
+            ? 'Observaciones generales del paciente.'
+            : 'Se cargarán las observaciones del examen más reciente.';
     }
 }
 
@@ -783,7 +851,7 @@ function abrirModalEdicion(madreId) {
     document.getElementById('editSala').value = paciente.sala || '';
     document.getElementById('editCama').value = paciente.cama || '';
     document.getElementById('editHijos').value = paciente.cantidad_hijos ?? 1;
-    prepararObservacionesEdicion(madreId);
+    prepararObservacionesEdicion(paciente);
 
     const modal = document.getElementById('editPacienteModal');
     if (modal) {
@@ -927,3 +995,4 @@ function mostrarMensaje(containerId, html) {
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
