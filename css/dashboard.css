@@ -487,6 +487,31 @@
     color: #fff;
 }
 
+.madres-table thead .column-filter {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 8px;
+}
+
+.madres-table thead .column-filter input,
+.madres-table thead .column-filter button {
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    color: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.2);
+    transition: var(--transition);
+    min-width: 0;
+}
+
+.madres-table thead .column-filter input:focus,
+.madres-table thead .column-filter button:hover {
+    border-color: rgba(255, 255, 255, 0.9);
+}
+
 .madres-table th,
 .madres-table td {
     padding: 12px 14px;
