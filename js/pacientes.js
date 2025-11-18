@@ -214,15 +214,69 @@ function renderPacientesTable(pacientes) {
 
     const headHtml = `
         <tr>
-            <th>Nombre</th>
-            <th>RUT</th>
-            <th>N° de Ficha</th>
-            <th>Fecha de Parto</th>
-            <th>1er examen</th>
-            <th class="resultado-col">Resultado</th>
-            <th>2do examen</th>
-            <th class="resultado-col">Resultado</th>
-            <th class="observaciones-col">Observaciones</th>
+            <th class="sortable" data-column="nombre">
+                Nombre
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
+            <th class="sortable" data-column="rut">
+                RUT
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
+            <th class="sortable" data-column="numero_ficha">
+                N° de Ficha
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
+            <th class="sortable" data-column="fecha_parto">
+                Fecha de Parto
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
+            <th class="sortable" data-column="primer_examen">
+                1er examen
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
+            <th class="sortable resultado-col" data-column="primer_resultado">
+                Resultado
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
+            <th class="sortable" data-column="segundo_examen">
+                2do examen
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
+            <th class="sortable resultado-col" data-column="segundo_resultado">
+                Resultado
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
+            <th class="sortable observaciones-col" data-column="observaciones">
+                Observaciones
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
             <th></th>
         </tr>
     `;
@@ -238,6 +292,7 @@ function renderPacientesTable(pacientes) {
     `;
 
     bindTablaEventos(container);
+    bindSortEvents(container);
 }
 
 function crearFilaPaciente(paciente) {
@@ -329,6 +384,151 @@ function bindTablaEventos(container) {
             }
         });
     });
+}
+
+function bindSortEvents(container) {
+    container.querySelectorAll('.sortable').forEach(header => {
+        const sortButtons = header.querySelectorAll('.sort-btn');
+        sortButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const column = header.dataset.column;
+                const direction = this.dataset.direction;
+                sortPacientes(column, direction);
+                
+                // Actualizar estados visuales de los botones
+                container.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    });
+}
+
+function sortPacientes(column, direction) {
+    const sortedPacientes = [...pacientesListado].sort((a, b) => {
+        let valueA, valueB;
+        
+        switch(column) {
+            case 'nombre':
+                valueA = `${a.nombre || ''} ${a.apellido || ''}`.toLowerCase();
+                valueB = `${b.nombre || ''} ${b.apellido || ''}`.toLowerCase();
+                break;
+            case 'rut':
+                valueA = a.rut || '';
+                valueB = b.rut || '';
+                break;
+            case 'numero_ficha':
+                valueA = a.numero_ficha || '';
+                valueB = b.numero_ficha || '';
+                break;
+            case 'fecha_parto':
+                valueA = getFechaParto(a);
+                valueB = getFechaParto(b);
+                break;
+            case 'primer_examen':
+                valueA = getPrimerExamenFecha(a);
+                valueB = getPrimerExamenFecha(b);
+                break;
+            case 'primer_resultado':
+                valueA = getPrimerExamenResultado(a);
+                valueB = getPrimerExamenResultado(b);
+                break;
+            case 'segundo_examen':
+                valueA = getSegundoExamenFecha(a);
+                valueB = getSegundoExamenFecha(b);
+                break;
+            case 'segundo_resultado':
+                valueA = getSegundoExamenResultado(a);
+                valueB = getSegundoExamenResultado(b);
+                break;
+            case 'observaciones':
+                valueA = getObservaciones(a);
+                valueB = getObservaciones(b);
+                break;
+            default:
+                return 0;
+        }
+        
+        // Manejar fechas
+        if (column.includes('fecha') || column.includes('examen')) {
+            const dateA = valueA ? new Date(valueA) : new Date(0);
+            const dateB = valueB ? new Date(valueB) : new Date(0);
+            return direction === 'asc' ? dateA - dateB : dateB - dateA;
+        }
+        
+        // Manejar números
+        if (!isNaN(valueA) && !isNaN(valueB)) {
+            return direction === 'asc' ? valueA - valueB : valueB - valueA;
+        }
+        
+        // Manejar texto
+        valueA = (valueA || '').toString().toLowerCase();
+        valueB = (valueB || '').toString().toLowerCase();
+        
+        if (direction === 'asc') {
+            return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+        } else {
+            return valueA > valueB ? -1 : valueA < valueB ? 1 : 0;
+        }
+    });
+    
+    renderPacientesTable(sortedPacientes);
+}
+
+function getFechaParto(paciente) {
+    const resumen = resumenPacientes.get(paciente.id) || { examenes: [] };
+    const examenes = resumen.examenes || [];
+    const primerExamen = examenes[0] || null;
+    const fechaNacimientoExamen = primerExamen?.fecha_nacimiento;
+    return fechaNacimientoExamen || paciente.fecha_parto || paciente.fecha_nacimiento || paciente.created_at;
+}
+
+function getPrimerExamenFecha(paciente) {
+    const resumen = resumenPacientes.get(paciente.id) || { examenes: [] };
+    const examenes = resumen.examenes || [];
+    const primerExamen = examenes[0] || null;
+    return primerExamen?.fecha_examen || '';
+}
+
+function getPrimerExamenResultado(paciente) {
+    const resumen = resumenPacientes.get(paciente.id) || { examenes: [] };
+    const examenes = resumen.examenes || [];
+    const primerExamen = examenes[0] || null;
+    if (!primerExamen) return '';
+    const od = primerExamen.od_resultado || 'N/A';
+    const oi = primerExamen.oi_resultado || 'N/A';
+    return `OD: ${od} | OI: ${oi}`;
+}
+
+function getSegundoExamenFecha(paciente) {
+    const resumen = resumenPacientes.get(paciente.id) || { examenes: [] };
+    const examenes = resumen.examenes || [];
+    const segundoExamen = examenes[1] || null;
+    return segundoExamen?.fecha_examen || '';
+}
+
+function getSegundoExamenResultado(paciente) {
+    const resumen = resumenPacientes.get(paciente.id) || { examenes: [] };
+    const examenes = resumen.examenes || [];
+    const segundoExamen = examenes[1] || null;
+    if (!segundoExamen) return '';
+    const od = segundoExamen.od_resultado || 'N/A';
+    const oi = segundoExamen.oi_resultado || 'N/A';
+    return `OD: ${od} | OI: ${oi}`;
+}
+
+function getObservaciones(paciente) {
+    const resumen = resumenPacientes.get(paciente.id) || { examenes: [] };
+    const examenes = resumen.examenes || [];
+    if (!Array.isArray(examenes) || examenes.length === 0) {
+        return 'Sin observaciones';
+    }
+    const examen = [...examenes].reverse().find(item => item && item.observaciones);
+    if (!examen) return 'Sin observaciones';
+    if (window.eoa && typeof window.eoa.observacionesATextoPlano === 'function') {
+        return window.eoa.observacionesATextoPlano(examen.observaciones) || 'Sin observaciones';
+    }
+    return examen.observaciones || 'Sin observaciones';
 }
 
 function toggleMenu(button) {
