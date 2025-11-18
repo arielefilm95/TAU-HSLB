@@ -50,6 +50,8 @@
             <div class="modal-body">
                 <form id="editPacienteForm">
                     <input type="hidden" id="editPacienteId">
+                    <input type="hidden" id="editObservacionesExamenId">
+                    <input type="hidden" id="editObservacionesRaw">
                     <div class="form-section">
                         <div class="form-group">
                             <label for="editNombre">Nombre</label>
@@ -82,6 +84,11 @@
                                 <label for="editHijos">Cantidad de hijos</label>
                                 <input type="number" id="editHijos" min="1" required>
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="editObservaciones">Observaciones (último examen EOA)</label>
+                            <textarea id="editObservaciones" rows="3" placeholder="No hay observaciones disponibles" disabled></textarea>
+                            <small id="editObservacionesHelp" class="form-text">Se cargarán las observaciones del examen más reciente.</small>
                         </div>
                     </div>
                     <div class="form-actions">

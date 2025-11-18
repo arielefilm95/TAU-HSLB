@@ -79,6 +79,10 @@ function bindEditForm() {
     if (!form) return;
 
     const rutInput = document.getElementById('editRut');
+    const observacionesField = document.getElementById('editObservaciones');
+    const observacionesExamenIdInput = document.getElementById('editObservacionesExamenId');
+    const observacionesRawInput = document.getElementById('editObservacionesRaw');
+
     if (rutInput && window.utils?.formatearRUTInput) {
         rutInput.addEventListener('input', function() {
             window.utils.formatearRUTInput(this);
@@ -99,6 +103,16 @@ function bindEditForm() {
         const cantidadHijos = parseInt(document.getElementById('editHijos').value, 10);
         const rutFormateado = window.utils?.formatearRUT ? window.utils.formatearRUT(rutValor) : rutValor;
         const rutNormalizado = rutFormateado.replace(/\./g, '').replace('-', '');
+        const puedeEditarObservaciones = Boolean(
+            observacionesField &&
+            !observacionesField.disabled &&
+            observacionesExamenIdInput?.value
+        );
+        const examenObservacionesId = puedeEditarObservaciones ? observacionesExamenIdInput.value : '';
+        const nuevasObservacionesTexto = puedeEditarObservaciones ? observacionesField.value.trim() : '';
+        const observacionesActualizadas = puedeEditarObservaciones
+            ? construirObservacionesActualizadas(nuevasObservacionesTexto, observacionesRawInput?.value || '')
+            : null;
 
         if (!nombre || !apellido || !rutNormalizado || !numeroFicha || !sala || !cama) {
             utils?.showNotification('Completa todos los campos obligatorios', 'error');
@@ -143,6 +157,16 @@ function bindEditForm() {
             if (!result.success) {
                 throw new Error(result.error || 'No se pudo actualizar el paciente');
             }
+
+            if (puedeEditarObservaciones) {
+                const examenResult = await window.eoa.actualizarExamenEOA(examenObservacionesId, {
+                    observaciones: observacionesActualizadas || null
+                });
+                if (!examenResult.success) {
+                    throw new Error(examenResult.error || 'No se pudieron actualizar las observaciones del examen');
+                }
+            }
+
             utils?.showNotification('Paciente actualizado exitosamente', 'success');
             closeEditPacienteModal();
             const searchValue = document.getElementById('pacientesSearch')?.value.trim() || '';
@@ -608,6 +632,102 @@ function getObservaciones(paciente) {
     return examen.observaciones || 'Sin observaciones';
 }
 
+function obtenerExamenEditableObservaciones(madreId) {
+    const resumen = resumenPacientes.get(madreId);
+    const examenes = resumen?.examenes || [];
+    if (!Array.isArray(examenes) || examenes.length === 0) {
+        return null;
+    }
+    const ultimoConObservaciones = [...examenes].reverse().find(examen => examen && examen.observaciones);
+    return ultimoConObservaciones || examenes[examenes.length - 1];
+}
+
+function obtenerTextoGeneralObservaciones(rawObservaciones) {
+    if (!rawObservaciones) {
+        return '';
+    }
+    try {
+        if (window.eoa?.parseObservacionesDetalladas) {
+            const parsed = window.eoa.parseObservacionesDetalladas(rawObservaciones);
+            return parsed?.general || '';
+        }
+    } catch (error) {
+        console.warn('No se pudo parsear observaciones para edición:', error);
+    }
+    return rawObservaciones || '';
+}
+
+function construirObservacionesActualizadas(nuevoTexto, observacionesPrevias) {
+    const texto = (nuevoTexto || '').trim();
+    const rawPrevio = observacionesPrevias || '';
+    if (!window.eoa?.parseObservacionesDetalladas || !window.eoa?.serializarObservacionesDetalladas) {
+        return texto || null;
+    }
+
+    try {
+        const parsed = window.eoa.parseObservacionesDetalladas(rawPrevio);
+        const detalles = parsed?.detalles || {};
+        return window.eoa.serializarObservacionesDetalladas(texto, detalles);
+    } catch (error) {
+        console.warn('No se pudo reconstruir el detalle de observaciones:', error);
+        return texto || null;
+    }
+}
+
+function prepararObservacionesEdicion(madreId) {
+    const textarea = document.getElementById('editObservaciones');
+    const examenIdInput = document.getElementById('editObservacionesExamenId');
+    const rawInput = document.getElementById('editObservacionesRaw');
+    const helpText = document.getElementById('editObservacionesHelp');
+
+    if (!textarea || !examenIdInput || !rawInput) {
+        return;
+    }
+
+    const examenEditable = obtenerExamenEditableObservaciones(madreId);
+    if (!examenEditable) {
+        textarea.value = '';
+        textarea.disabled = true;
+        examenIdInput.value = '';
+        rawInput.value = '';
+        if (helpText) {
+            helpText.textContent = 'Este paciente aún no registra exámenes para editar observaciones.';
+        }
+        return;
+    }
+
+    textarea.disabled = false;
+    const rawObservaciones = examenEditable.observaciones || '';
+    textarea.value = obtenerTextoGeneralObservaciones(rawObservaciones);
+    examenIdInput.value = examenEditable.id;
+    rawInput.value = rawObservaciones;
+    if (helpText) {
+        helpText.textContent = rawObservaciones
+            ? 'Edita el texto general del último examen con observaciones. Los detalles adicionales se conservan.'
+            : 'Aún no hay observaciones registradas para el último examen. Puedes agregarlas aquí.';
+    }
+}
+
+function limpiarObservacionesEdicion() {
+    const textarea = document.getElementById('editObservaciones');
+    const examenIdInput = document.getElementById('editObservacionesExamenId');
+    const rawInput = document.getElementById('editObservacionesRaw');
+    const helpText = document.getElementById('editObservacionesHelp');
+    if (textarea) {
+        textarea.value = '';
+        textarea.disabled = true;
+    }
+    if (examenIdInput) {
+        examenIdInput.value = '';
+    }
+    if (rawInput) {
+        rawInput.value = '';
+    }
+    if (helpText) {
+        helpText.textContent = 'Se cargarán las observaciones del examen más reciente.';
+    }
+}
+
 function toggleMenu(button) {
     const menu = button.nextElementSibling;
     if (!menu) return;
@@ -663,6 +783,7 @@ function abrirModalEdicion(madreId) {
     document.getElementById('editSala').value = paciente.sala || '';
     document.getElementById('editCama').value = paciente.cama || '';
     document.getElementById('editHijos').value = paciente.cantidad_hijos ?? 1;
+    prepararObservacionesEdicion(madreId);
 
     const modal = document.getElementById('editPacienteModal');
     if (modal) {
@@ -680,6 +801,7 @@ function closeEditPacienteModal() {
     }
     const form = document.getElementById('editPacienteForm');
     form?.reset();
+    limpiarObservacionesEdicion();
 }
 
 function crearInputEdicion(value, field, type = 'text') {
