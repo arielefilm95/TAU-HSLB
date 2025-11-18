@@ -550,7 +550,14 @@ async function actualizarExamenEOA(examenId, updates) {
             dataToUpdate.oi_resultado = updates.oi_resultado;
         }
         if (updates.observaciones !== undefined) {
-            dataToUpdate.observaciones = updates.observaciones.trim() || null;
+            let observacionesValor = updates.observaciones;
+            if (typeof observacionesValor === 'string') {
+                observacionesValor = observacionesValor.trim();
+            }
+            if (observacionesValor === '') {
+                observacionesValor = null;
+            }
+            dataToUpdate.observaciones = observacionesValor ?? null;
         }
         
         if (!window.supabaseClient) {
