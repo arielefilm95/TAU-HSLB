@@ -7,6 +7,134 @@ let currentPacienteExamenes = [];
 let currentPacienteExamenCount = 0;
 let eoaFormPristine = true;
 const EOA_FORM_STORAGE_PREFIX = 'tau_eoa_form_state_';
+const FACTOR_OBSERVACIONES_MARKER = '\n[[DETALLE_FACTORES]]';
+const FACTOR_OBSERVACIONES_LABELS = {
+    familiares_perdida_auditiva: 'Familiares con pérdida auditiva',
+    madre_fumo: 'Consumo de cigarrillos',
+    madre_alcohol: 'Consumo de alcohol',
+    madre_drogas: 'Consumo de drogas'
+};
+
+function parseISODateAsLocal(dateValue) {
+    if (!dateValue) {
+        return null;
+    }
+    const datePart = dateValue.toString().split('T')[0];
+    const parts = datePart.split('-').map(part => parseInt(part, 10));
+    if (parts.length !== 3 || parts.some(Number.isNaN)) {
+        return null;
+    }
+    const [year, month, day] = parts;
+    return new Date(year, month - 1, day);
+}
+
+function buildComplicacionValue(estadoInput, detalleTexto) {
+    const estado = estadoInput ? estadoInput.value : null;
+    const detalle = (detalleTexto || '').trim();
+    if (!estado && !detalle) {
+        return null;
+    }
+    if (!estado) {
+        return detalle || null;
+    }
+    if (!detalle) {
+        return estado;
+    }
+    return `${estado}: ${detalle}`;
+}
+
+function parseComplicacionValue(valor) {
+    if (!valor) {
+        return { estado: null, detalle: '' };
+    }
+    const trimmed = valor.trim();
+    const match = trimmed.match(/^(SI|NO)\b/i);
+    if (!match) {
+        return { estado: null, detalle: trimmed };
+    }
+    const estado = match[1].toUpperCase();
+    const resto = trimmed.slice(match[0].length).replace(/^[:\-]\s*/, '').trim();
+    return { estado, detalle: resto };
+}
+
+function serializeObservaciones(generalTexto, detalles = {}) {
+    const general = (generalTexto || '').trim();
+    const cleanedDetalles = {};
+    let hasDetalles = false;
+    Object.entries(detalles).forEach(([key, value]) => {
+        const texto = (value || '').trim();
+        if (texto) {
+            cleanedDetalles[key] = texto;
+            hasDetalles = true;
+        }
+    });
+    if (!general && !hasDetalles) {
+        return null;
+    }
+    if (hasDetalles) {
+        return `${general}${FACTOR_OBSERVACIONES_MARKER}${JSON.stringify(cleanedDetalles)}`;
+    }
+    return general;
+}
+
+function parseObservaciones(rawObservaciones) {
+    if (!rawObservaciones) {
+        return { general: '', detalles: {} };
+    }
+    const markerIndex = rawObservaciones.indexOf(FACTOR_OBSERVACIONES_MARKER);
+    if (markerIndex === -1) {
+        return { general: rawObservaciones, detalles: {} };
+    }
+    const general = rawObservaciones.slice(0, markerIndex).trim();
+    const dataString = rawObservaciones.slice(markerIndex + FACTOR_OBSERVACIONES_MARKER.length).trim();
+    try {
+        const detalles = JSON.parse(dataString);
+        return { general, detalles: detalles || {} };
+    } catch (error) {
+        console.warn('No se pudo parsear el detalle de observaciones:', error);
+        return { general, detalles: {} };
+    }
+}
+
+function buildObservacionesPlainText(rawObservaciones) {
+    const { general, detalles } = parseObservaciones(rawObservaciones);
+    const secciones = [];
+    if (general) {
+        secciones.push(general);
+    }
+    Object.entries(detalles).forEach(([key, value]) => {
+        if (!value) {
+            return;
+        }
+        const label = FACTOR_OBSERVACIONES_LABELS[key] || key;
+        secciones.push(`${label}: ${value}`);
+    });
+    return secciones.join('\n');
+}
+
+function renderObservacionesHTML(rawObservaciones) {
+    const { general, detalles } = parseObservaciones(rawObservaciones);
+    const detalleKeys = Object.keys(detalles).filter(key => detalles[key]);
+    if (!general && detalleKeys.length === 0) {
+        return '';
+    }
+    let html = '';
+    if (general) {
+        html += `<p>${utils.escapeHTML(general)}</p>`;
+    }
+    if (detalleKeys.length) {
+        html += '<ul class="observaciones-detalle">';
+        detalleKeys.forEach(key => {
+            const label = FACTOR_OBSERVACIONES_LABELS[key] || key;
+            html += `<li><strong>${utils.escapeHTML(label)}:</strong> ${utils.escapeHTML(detalles[key])}</li>`;
+        });
+        html += '</ul>';
+    }
+    if (!html) {
+        return '';
+    }
+    return `<div class="examen-observaciones">${html}</div>`;
+}
 
 function getEoaFormStorageKey(pacienteId) {
     return `${EOA_FORM_STORAGE_PREFIX}${pacienteId}`;
@@ -235,7 +363,7 @@ function mostrarExamenesAnteriores(examenes) {
                     <span class="resultado ${examen.od_resultado.toLowerCase()}">OD: ${examen.od_resultado}</span>
                     <span class="resultado ${examen.oi_resultado.toLowerCase()}">OI: ${examen.oi_resultado}</span>
                 </div>
-                ${examen.observaciones ? `<div class="examen-observaciones">${utils.escapeHTML(examen.observaciones)}</div>` : ''}
+                ${renderObservacionesHTML(examen.observaciones)}
             </div>
         `).join('');
         
@@ -547,17 +675,20 @@ async function exportarExamenesCSV() {
         ];
         const csvContent = [
             headers.join(','),
-            ...examenes.map(examen => [
-                utils.formatearRUT(examen.pacientes.rut),
-                examen.pacientes.tipo_paciente || 'MADRE',
-                examen.pacientes.numero_ficha,
-                examen.pacientes.sala,
-                examen.pacientes.cama,
-                examen.od_resultado,
-                examen.oi_resultado,
-                examen.observaciones ? `"${examen.observaciones.replace(/"/g, '""')}"` : '',
-                utils.formatearFechaHora(examen.fecha_examen)
-            ].join(','))
+            ...examenes.map(examen => {
+                const observacionesTexto = buildObservacionesPlainText(examen.observaciones);
+                return [
+                    utils.formatearRUT(examen.pacientes.rut),
+                    examen.pacientes.tipo_paciente || 'MADRE',
+                    examen.pacientes.numero_ficha,
+                    examen.pacientes.sala,
+                    examen.pacientes.cama,
+                    examen.od_resultado,
+                    examen.oi_resultado,
+                    observacionesTexto ? `"${observacionesTexto.replace(/"/g, '""')}"` : '',
+                    utils.formatearFechaHora(examen.fecha_examen)
+                ].join(',');
+            })
         ].join('\n');
         
         // Crear blob y descargar
@@ -593,6 +724,8 @@ function validarFormularioEOA() {
     const madreFumo = document.querySelector('input[name="madreFumo"]:checked');
     const madreAlcohol = document.querySelector('input[name="madreAlcohol"]:checked');
     const madreDrogas = document.querySelector('input[name="madreDrogas"]:checked');
+    const complicacionesEmbarazoEstado = document.querySelector('input[name="complicacionesEmbarazoEstado"]:checked');
+    const complicacionesDesarrolloEstado = document.querySelector('input[name="complicacionesDesarrolloEstado"]:checked');
     
     let isValid = true;
     
@@ -633,6 +766,16 @@ function validarFormularioEOA() {
     }
     
     // Validar factores de riesgo
+    if (!complicacionesEmbarazoEstado) {
+        utils.showNotification('Debe indicar si hubo complicaciones en el embarazo', 'error');
+        isValid = false;
+    }
+
+    if (!complicacionesDesarrolloEstado) {
+        utils.showNotification('Debe indicar si hubo complicaciones en el desarrollo', 'error');
+        isValid = false;
+    }
+
     if (!familiaresPerdidaAuditiva) {
         utils.showNotification('Debe indicar si hay familiares con pérdida auditiva', 'error');
         isValid = false;
@@ -673,6 +816,17 @@ function construirPayloadExamenDesdeFormulario() {
 
     const semanasGestacionValue = document.getElementById('semanasGestacion').value;
     const semanasGestacion = semanasGestacionValue ? parseInt(semanasGestacionValue, 10) : null;
+    const complicacionesEmbarazoEstado = document.querySelector('input[name="complicacionesEmbarazoEstado"]:checked');
+    const complicacionesDesarrolloEstado = document.querySelector('input[name="complicacionesDesarrolloEstado"]:checked');
+    const complicacionesEmbarazoTexto = document.getElementById('complicacionesEmbarazo').value || '';
+    const complicacionesDesarrolloTexto = document.getElementById('complicacionesDesarrollo').value || '';
+    const observacionesGenerales = document.getElementById('observaciones').value || '';
+    const observacionesDetalladas = serializeObservaciones(observacionesGenerales, {
+        familiares_perdida_auditiva: (document.getElementById('familiaresPerdidaAuditivaDetalle') || {}).value,
+        madre_fumo: (document.getElementById('madreFumoDetalle') || {}).value,
+        madre_alcohol: (document.getElementById('madreAlcoholDetalle') || {}).value,
+        madre_drogas: (document.getElementById('madreDrogasDetalle') || {}).value
+    });
 
     return {
         paciente_id: currentPacienteEOA ? currentPacienteEOA.id : null,
@@ -684,13 +838,13 @@ function construirPayloadExamenDesdeFormulario() {
         sexo_bebe: sexoBebeInput.value,
         tipo_parto: tipoPartoInput.value,
         semanas_gestacion: semanasGestacion,
-        complicaciones_embarazo: document.getElementById('complicacionesEmbarazo').value.trim() || null,
-        complicaciones_desarrollo: document.getElementById('complicacionesDesarrollo').value.trim() || null,
+        complicaciones_embarazo: buildComplicacionValue(complicacionesEmbarazoEstado, complicacionesEmbarazoTexto) || null,
+        complicaciones_desarrollo: buildComplicacionValue(complicacionesDesarrolloEstado, complicacionesDesarrolloTexto) || null,
         familiares_perdida_auditiva: familiaresInput.value === 'true',
         madre_fumo: madreFumoInput.value === 'true',
         madre_alcohol: madreAlcoholInput.value === 'true',
         madre_drogas: madreDrogasInput.value === 'true',
-        observaciones: document.getElementById('observaciones').value.trim() || null
+        observaciones: observacionesDetalladas
     };
 }
 
@@ -800,20 +954,43 @@ function prefillFormularioEOA(examenData) {
         semanasGestacionInput.value = examenData.semanas_gestacion ?? '';
     }
 
+    const complicacionesEmbarazoParsed = parseComplicacionValue(examenData.complicaciones_embarazo);
+    if (complicacionesEmbarazoParsed.estado) {
+        setRadioValue('complicacionesEmbarazoEstado', complicacionesEmbarazoParsed.estado);
+    }
     const complicacionesEmbarazoInput = document.getElementById('complicacionesEmbarazo');
     if (complicacionesEmbarazoInput) {
-        complicacionesEmbarazoInput.value = examenData.complicaciones_embarazo || '';
+        complicacionesEmbarazoInput.value = complicacionesEmbarazoParsed.detalle || '';
     }
 
+    const complicacionesDesarrolloParsed = parseComplicacionValue(examenData.complicaciones_desarrollo);
+    if (complicacionesDesarrolloParsed.estado) {
+        setRadioValue('complicacionesDesarrolloEstado', complicacionesDesarrolloParsed.estado);
+    }
     const complicacionesDesarrolloInput = document.getElementById('complicacionesDesarrollo');
     if (complicacionesDesarrolloInput) {
-        complicacionesDesarrolloInput.value = examenData.complicaciones_desarrollo || '';
+        complicacionesDesarrolloInput.value = complicacionesDesarrolloParsed.detalle || '';
     }
 
+    const { general: observacionesGenerales, detalles: observacionesDetalles } = parseObservaciones(examenData.observaciones);
     const observacionesInput = document.getElementById('observaciones');
     if (observacionesInput) {
-        observacionesInput.value = examenData.observaciones || '';
+        observacionesInput.value = observacionesGenerales || '';
     }
+
+    const detalleCampos = [
+        ['familiaresPerdidaAuditivaDetalle', observacionesDetalles.familiares_perdida_auditiva],
+        ['madreFumoDetalle', observacionesDetalles.madre_fumo],
+        ['madreAlcoholDetalle', observacionesDetalles.madre_alcohol],
+        ['madreDrogasDetalle', observacionesDetalles.madre_drogas]
+    ];
+
+    detalleCampos.forEach(([id, valor]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.value = valor || '';
+        }
+    });
 }
 
 // Función para limpiar formulario EOA
@@ -850,8 +1027,8 @@ function formatearFechaTexto(fecha) {
     if (!fecha) {
         return 'Sin registro';
     }
-    const date = new Date(fecha);
-    if (Number.isNaN(date.getTime())) {
+    const date = parseISODateAsLocal(fecha);
+    if (!date || Number.isNaN(date.getTime())) {
         return fecha;
     }
     return date.toLocaleDateString('es-CL');
@@ -1146,5 +1323,8 @@ window.eoa = {
     limpiarFormularioEOA,
     getCurrentPaciente: () => currentPacienteEOA,
     getCurrentMadre: () => currentPacienteEOA, // Mantener compatibilidad
-    getCurrentExamen: () => currentExamenEOA
+    getCurrentExamen: () => currentExamenEOA,
+    observacionesATextoPlano: buildObservacionesPlainText,
+    parseObservacionesDetalladas: parseObservaciones,
+    serializarObservacionesDetalladas: serializeObservaciones
 };

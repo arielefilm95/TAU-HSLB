@@ -21,6 +21,13 @@ function describirExamen(examen) {
     return partes.join(' | ');
 }
 
+function obtenerObservacionesReporte(rawObservaciones) {
+    if (window.eoa && typeof window.eoa.observacionesATextoPlano === 'function') {
+        return window.eoa.observacionesATextoPlano(rawObservaciones);
+    }
+    return rawObservaciones || '';
+}
+
 function compilarObservaciones(examenes) {
     if (!Array.isArray(examenes) || examenes.length === 0) {
         return '';
@@ -28,7 +35,7 @@ function compilarObservaciones(examenes) {
 
     return examenes
         .filter(examen => examen && examen.observaciones)
-        .map((examen, index) => `${index + 1}°: ${examen.observaciones}`)
+        .map((examen, index) => `${index + 1}°: ${obtenerObservacionesReporte(examen.observaciones)}`)
         .join(' | ');
 }
 

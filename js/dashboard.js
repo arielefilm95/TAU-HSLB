@@ -3,6 +3,7 @@
 // Variables globales
 let recentPatients = [];
 const pacientesResumenExamen = new Map();
+const pacienteEvolucionCache = new Map();
 let midnightCleanupInterval = null;
 
 function resultadoRefiere(examen) {
@@ -246,6 +247,12 @@ function displayRecentPatients() {
                 <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${paciente.id}">
                     Realizar EOA
                 </button>
+                <button class="btn btn-outline btn-sm btn-small" data-action="mostrar-evolucion" data-madre-id="${paciente.id}">
+                    Mostrar evolución
+                </button>
+            </div>
+            <div class="recent-item-evolucion" data-evolucion-container aria-hidden="true">
+                <p class="evolucion-status">Presiona "Mostrar evolución" para ver los detalles del examen.</p>
             </div>
         </div>
     `;
@@ -270,8 +277,126 @@ function displayRecentPatients() {
                 }
             });
         }
+
+        const evolucionButton = item.querySelector('button[data-action="mostrar-evolucion"]');
+        if (evolucionButton) {
+            evolucionButton.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                await toggleEvolucionReciente(pacienteId, item, evolucionButton);
+            });
+        }
     });
 }
+
+async function toggleEvolucionReciente(pacienteId, itemElement, triggerButton) {
+    if (!pacienteId || !itemElement) {
+        return;
+    }
+
+    const evolucionContainer = itemElement.querySelector('.recent-item-evolucion');
+    if (!evolucionContainer) {
+        return;
+    }
+
+    const isVisible = evolucionContainer.classList.contains('show');
+    if (isVisible) {
+        evolucionContainer.classList.remove('show');
+        evolucionContainer.setAttribute('aria-hidden', 'true');
+        if (triggerButton) {
+            triggerButton.textContent = 'Mostrar evolución';
+        }
+        return;
+    }
+
+    evolucionContainer.classList.add('show');
+    evolucionContainer.setAttribute('aria-hidden', 'false');
+    if (triggerButton) {
+        triggerButton.textContent = 'Ocultar evolución';
+    }
+
+    if (evolucionContainer.dataset.loaded === 'true') {
+        return;
+    }
+
+    evolucionContainer.innerHTML = '<p class="evolucion-status">Cargando evolución...</p>';
+
+    try {
+        const examenes = await obtenerEvolucionesPaciente(pacienteId);
+        evolucionContainer.innerHTML = renderEvolucionPreview(examenes);
+        evolucionContainer.dataset.loaded = 'true';
+    } catch (error) {
+        console.error('Error al cargar evolución:', error);
+        evolucionContainer.innerHTML = '<p class="evolucion-status error">No se pudo cargar la evolución. Intenta nuevamente.</p>';
+        evolucionContainer.dataset.loaded = 'false';
+        if (triggerButton) {
+            triggerButton.textContent = 'Mostrar evolución';
+        }
+        evolucionContainer.classList.remove('show');
+        evolucionContainer.setAttribute('aria-hidden', 'true');
+    }
+}
+
+async function obtenerEvolucionesPaciente(pacienteId) {
+    if (!pacienteId) {
+        throw new Error('Paciente inválido');
+    }
+
+    if (pacienteEvolucionCache.has(pacienteId)) {
+        return pacienteEvolucionCache.get(pacienteId);
+    }
+
+    if (typeof obtenerExamenesPaciente !== 'function') {
+        throw new Error('Función de exámenes no disponible');
+    }
+
+    const result = await obtenerExamenesPaciente(pacienteId, 5);
+    if (!result.success) {
+        throw new Error(result.error || 'No se pudo obtener la evolución');
+    }
+
+    const examenesOrdenados = (result.data || []).slice().sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
+    pacienteEvolucionCache.set(pacienteId, examenesOrdenados);
+    return examenesOrdenados;
+}
+
+function renderEvolucionPreview(examenes) {
+    if (!Array.isArray(examenes) || examenes.length === 0) {
+        return '<p class="evolucion-status">Este paciente aún no tiene exámenes registrados.</p>';
+    }
+
+    const contenido = examenes.map((examen, index) => {
+        const numeroExamen = index + 1;
+        const fechaTexto = examen.fecha_examen ? utils.formatearFecha(examen.fecha_examen) : 'Fecha no registrada';
+        const textoEvolucion = typeof generarTextoEvolucion === 'function'
+            ? generarTextoEvolucion(examen, numeroExamen)
+            : generarTextoEvolucionResumida(examen, numeroExamen);
+
+        return `
+            <div class="evolucion-entry">
+                <div class="evolucion-entry-header">
+                    <span>Examen ${numeroExamen} - ${utils.escapeHTML(fechaTexto)}</span>
+                    <span class="evolucion-entry-status">OD: ${utils.escapeHTML(examen.od_resultado || 'N/A')} | OI: ${utils.escapeHTML(examen.oi_resultado || 'N/A')}</span>
+                </div>
+                <pre class="evolucion-entry-text">${utils.escapeHTML(textoEvolucion)}</pre>
+            </div>
+        `;
+    }).join('');
+
+    return contenido;
+}
+
+function generarTextoEvolucionResumida(examenData, numeroExamen) {
+    const fecha = examenData.fecha_examen ? utils.formatearFecha(examenData.fecha_examen) : 'Sin fecha';
+    const observacionesTexto = window.eoa && (typeof window.eoa.observacionesATextoPlano === 'function')
+        ? window.eoa.observacionesATextoPlano(examenData.observaciones)
+        : (examenData.observaciones || 'Sin observaciones');
+    return `Evoluci��n ${numeroExamen} (${fecha})
+OD: ${examenData.od_resultado || 'N/A'}
+OI: ${examenData.oi_resultado || 'N/A'}
+Observaciones: ${observacionesTexto || 'Sin observaciones'}`;
+}
+
 
 function obtenerEstadoEOAVisual(pacienteId) {
     const resumen = pacientesResumenExamen.get(pacienteId);
@@ -559,6 +684,7 @@ function markMadreConExamen(pacienteId, examenData = null) {
         pacientesResumenExamen.set(pacienteId, resumen);
     }
 
+    pacienteEvolucionCache.delete(pacienteId);
     recentPatients = recentPatients.map(paciente => paciente.id === pacienteId ? { ...paciente } : paciente);
     actualizarEstadoVisualMadre(pacienteId);
 }

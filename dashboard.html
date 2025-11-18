@@ -345,13 +345,13 @@
                             <h4>Resultados del Examen</h4>
                             <div class="form-group">
                                 <label>Oído Derecho (OD)</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
+                                <div class="radio-group resultado-group">
+                                    <label class="radio-label resultado-option" data-resultado="PASA">
                                         <input type="radio" name="od" value="PASA" required>
                                         <span class="radio-custom"></span>
                                         PASA
                                     </label>
-                                    <label class="radio-label">
+                                    <label class="radio-label resultado-option" data-resultado="REFIERE">
                                         <input type="radio" name="od" value="REFIERE" required>
                                         <span class="radio-custom"></span>
                                         REFIERE
@@ -361,13 +361,13 @@
                             
                             <div class="form-group">
                                 <label>Oído Izquierdo (OI)</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
+                                <div class="radio-group resultado-group">
+                                    <label class="radio-label resultado-option" data-resultado="PASA">
                                         <input type="radio" name="oi" value="PASA" required>
                                         <span class="radio-custom"></span>
                                         PASA
                                     </label>
-                                    <label class="radio-label">
+                                    <label class="radio-label resultado-option" data-resultado="REFIERE">
                                         <input type="radio" name="oi" value="REFIERE" required>
                                         <span class="radio-custom"></span>
                                         REFIERE
@@ -427,78 +427,118 @@
                         
                         <div class="form-section">
                             <h4>Antecedentes y Factores de Riesgo</h4>
-                            <div class="form-group">
-                                <label for="complicacionesEmbarazo">Complicaciones en el Embarazo</label>
-                                <textarea id="complicacionesEmbarazo" name="complicacionesEmbarazo" rows="2" placeholder="Describa cualquier complicación durante el embarazo..."></textarea>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="complicacionesDesarrollo">Complicaciones en el Desarrollo</label>
-                                <textarea id="complicacionesDesarrollo" name="complicacionesDesarrollo" rows="2" placeholder="Describa cualquier complicación en el desarrollo del bebé..."></textarea>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Familiares con Pérdida Auditiva</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
-                                        <input type="radio" name="familiaresPerdidaAuditiva" value="true" required>
-                                        <span class="radio-custom"></span>
-                                        Sí
-                                    </label>
-                                    <label class="radio-label">
-                                        <input type="radio" name="familiaresPerdidaAuditiva" value="false" required>
-                                        <span class="radio-custom"></span>
-                                        No
-                                    </label>
+                            <div class="risk-item">
+                                <div class="risk-item-header">
+                                    <label for="complicacionesEmbarazo">Complicaciones en el Embarazo</label>
+                                    <div class="radio-group risk-radio">
+                                        <label class="radio-label" data-risk="complicaciones-embarazo">
+                                            <input type="radio" name="complicacionesEmbarazoEstado" value="SI" required>
+                                            <span class="radio-custom"></span>
+                                            Sí
+                                        </label>
+                                        <label class="radio-label" data-risk="complicaciones-embarazo">
+                                            <input type="radio" name="complicacionesEmbarazoEstado" value="NO" required>
+                                            <span class="radio-custom"></span>
+                                            No
+                                        </label>
+                                    </div>
                                 </div>
+                                <textarea id="complicacionesEmbarazo" name="complicacionesEmbarazo" rows="2" placeholder="Observaciones sobre las complicaciones durante el embarazo..."></textarea>
                             </div>
                             
-                            <div class="form-group">
-                                <label>¿La madre fumó durante el embarazo?</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
-                                        <input type="radio" name="madreFumo" value="true" required>
-                                        <span class="radio-custom"></span>
-                                        Sí
-                                    </label>
-                                    <label class="radio-label">
-                                        <input type="radio" name="madreFumo" value="false" required>
-                                        <span class="radio-custom"></span>
-                                        No
-                                    </label>
+                            <div class="risk-item">
+                                <div class="risk-item-header">
+                                    <label for="complicacionesDesarrollo">Complicaciones en el Desarrollo</label>
+                                    <div class="radio-group risk-radio">
+                                        <label class="radio-label" data-risk="complicaciones-desarrollo">
+                                            <input type="radio" name="complicacionesDesarrolloEstado" value="SI" required>
+                                            <span class="radio-custom"></span>
+                                            Sí
+                                        </label>
+                                        <label class="radio-label" data-risk="complicaciones-desarrollo">
+                                            <input type="radio" name="complicacionesDesarrolloEstado" value="NO" required>
+                                            <span class="radio-custom"></span>
+                                            No
+                                        </label>
+                                    </div>
                                 </div>
+                                <textarea id="complicacionesDesarrollo" name="complicacionesDesarrollo" rows="2" placeholder="Observaciones sobre las complicaciones en el desarrollo..."></textarea>
                             </div>
                             
-                            <div class="form-group">
-                                <label>¿La madre consumió alcohol durante el embarazo?</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
-                                        <input type="radio" name="madreAlcohol" value="true" required>
-                                        <span class="radio-custom"></span>
-                                        Sí
-                                    </label>
-                                    <label class="radio-label">
-                                        <input type="radio" name="madreAlcohol" value="false" required>
-                                        <span class="radio-custom"></span>
-                                        No
-                                    </label>
+                            <div class="risk-item">
+                                <div class="risk-item-header">
+                                    <label>Familiares con Pérdida Auditiva</label>
+                                    <div class="radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="familiaresPerdidaAuditiva" value="true" required>
+                                            <span class="radio-custom"></span>
+                                            Sí
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="familiaresPerdidaAuditiva" value="false" required>
+                                            <span class="radio-custom"></span>
+                                            No
+                                        </label>
+                                    </div>
                                 </div>
+                                <textarea id="familiaresPerdidaAuditivaDetalle" rows="2" placeholder="Observaciones para antecedentes familiares..."></textarea>
                             </div>
                             
-                            <div class="form-group">
-                                <label>¿La madre usó drogas durante el embarazo?</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
-                                        <input type="radio" name="madreDrogas" value="true" required>
-                                        <span class="radio-custom"></span>
-                                        Sí
-                                    </label>
-                                    <label class="radio-label">
-                                        <input type="radio" name="madreDrogas" value="false" required>
-                                        <span class="radio-custom"></span>
-                                        No
-                                    </label>
+                            <div class="risk-item">
+                                <div class="risk-item-header">
+                                    <label>¿La madre fumó durante el embarazo?</label>
+                                    <div class="radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="madreFumo" value="true" required>
+                                            <span class="radio-custom"></span>
+                                            Sí
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="madreFumo" value="false" required>
+                                            <span class="radio-custom"></span>
+                                            No
+                                        </label>
+                                    </div>
                                 </div>
+                                <textarea id="madreFumoDetalle" rows="2" placeholder="Observaciones relacionadas al consumo de cigarrillos..."></textarea>
+                            </div>
+                            
+                            <div class="risk-item">
+                                <div class="risk-item-header">
+                                    <label>¿La madre consumió alcohol durante el embarazo?</label>
+                                    <div class="radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="madreAlcohol" value="true" required>
+                                            <span class="radio-custom"></span>
+                                            Sí
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="madreAlcohol" value="false" required>
+                                            <span class="radio-custom"></span>
+                                            No
+                                        </label>
+                                    </div>
+                                </div>
+                                <textarea id="madreAlcoholDetalle" rows="2" placeholder="Observaciones sobre consumo de alcohol..."></textarea>
+                            </div>
+                            
+                            <div class="risk-item">
+                                <div class="risk-item-header">
+                                    <label>¿La madre usó drogas durante el embarazo?</label>
+                                    <div class="radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="madreDrogas" value="true" required>
+                                            <span class="radio-custom"></span>
+                                            Sí
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="madreDrogas" value="false" required>
+                                            <span class="radio-custom"></span>
+                                            No
+                                        </label>
+                                    </div>
+                                </div>
+                                <textarea id="madreDrogasDetalle" rows="2" placeholder="Observaciones sobre consumo de drogas..."></textarea>
                             </div>
                         </div>
                         

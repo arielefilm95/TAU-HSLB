@@ -6,6 +6,28 @@ let datosFiltrados = [];
 let datosMadres = new Map();
 let datosEOA = new Map();
 let registroEoaSeleccionado = null;
+let observacionesDetalleEnEdicion = null;
+
+function obtenerTextoObservaciones(rawObservaciones) {
+    if (window.eoa && typeof window.eoa.observacionesATextoPlano === 'function') {
+        return window.eoa.observacionesATextoPlano(rawObservaciones);
+    }
+    return rawObservaciones || '';
+}
+
+function descomponerObservacionesDetalladas(rawObservaciones) {
+    if (window.eoa && typeof window.eoa.parseObservacionesDetalladas === 'function') {
+        return window.eoa.parseObservacionesDetalladas(rawObservaciones);
+    }
+    return { general: rawObservaciones || '', detalles: {} };
+}
+
+function recomponerObservacionesDetalladas(generalTexto, detalles) {
+    if (window.eoa && typeof window.eoa.serializarObservacionesDetalladas === 'function') {
+        return window.eoa.serializarObservacionesDetalladas(generalTexto, detalles);
+    }
+    return generalTexto || null;
+}
 
 // Función para cargar todos los datos
 async function cargarDatos() {
@@ -180,7 +202,11 @@ function examenObservacion(examen, etiqueta) {
     if (!examen || !examen.observaciones) {
         return '';
     }
-    return `${etiqueta}: ${examen.observaciones}`;
+    const observacionPlano = obtenerTextoObservaciones(examen.observaciones);
+    if (!observacionPlano) {
+        return '';
+    }
+    return `${etiqueta}: ${observacionPlano}`;
 }
 
 window.abrirRegistrarEoaModal = function(importadoId, etiquetaExamen = null) {
@@ -213,6 +239,7 @@ window.abrirRegistrarEoaModal = function(importadoId, etiquetaExamen = null) {
     document.querySelectorAll('#registrarEoaForm input[name="eoaOd"]').forEach(input => input.checked = false);
     document.querySelectorAll('#registrarEoaForm input[name="eoaOi"]').forEach(input => input.checked = false);
     document.getElementById('eoaObservaciones').value = '';
+    observacionesDetalleEnEdicion = null;
     
     // Resetear botón de guardar
     const guardarBtn = document.getElementById('guardarEoaImportadosBtn');
@@ -269,7 +296,9 @@ window.abrirEditarEoaModal = function(examenId, importadoId, etiquetaExamen = nu
         input.checked = input.value === examenEditar.oi_resultado;
     });
     
-    document.getElementById('eoaObservaciones').value = examenEditar.observaciones || '';
+    const observacionesDesglosadas = descomponerObservacionesDetalladas(examenEditar.observaciones);
+    document.getElementById('eoaObservaciones').value = observacionesDesglosadas.general || '';
+    observacionesDetalleEnEdicion = observacionesDesglosadas.detalles;
     
     // Cambiar texto del botón
     const guardarBtn = document.getElementById('guardarEoaImportadosBtn');
@@ -320,6 +349,7 @@ function closeRegistrarEoaModal() {
         setTimeout(() => modal.style.display = 'none', 300);
     }
     registroEoaSeleccionado = null;
+    observacionesDetalleEnEdicion = null;
 }
 
 async function guardarExamenDesdeImportados(event) {
@@ -348,12 +378,17 @@ async function guardarExamenDesdeImportados(event) {
             throw new Error('No fue posible asociar un paciente al registro');
         }
 
+        let observacionesFinales = observaciones || null;
+        if (observacionesDetalleEnEdicion && Object.keys(observacionesDetalleEnEdicion).length > 0) {
+            observacionesFinales = recomponerObservacionesDetalladas(observaciones, observacionesDetalleEnEdicion);
+        }
+
         const payload = {
             paciente_id: pacienteId,
             od_resultado: od.value,
             oi_resultado: oi.value,
             fecha_examen: fecha,
-            observaciones: observaciones || null
+            observaciones: observacionesFinales
         };
 
         let data, error;
