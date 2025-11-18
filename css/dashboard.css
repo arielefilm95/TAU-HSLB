@@ -440,11 +440,11 @@
 
 .madres-table-wrapper {
     width: 100%;
-    overflow-x: auto;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    background: #fff;
-    box-shadow: var(--shadow);
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
 .pacientes-page {
@@ -498,6 +498,8 @@
 .madres-table th {
     font-weight: 600;
     white-space: normal;
+    position: relative;
+    padding-right: 46px;
 }
 
 .madres-table tbody tr {
@@ -1913,7 +1915,7 @@
 
 .sort-controls {
     position: absolute;
-    right: 8px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
     display: flex;
