@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAU - Lista de Pacientes</title>
+    <meta name="description" content="Listado completo de pacientes del sistema TAU">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>TAU</h1>
+                    <p class="subtitle">Lista completa de pacientes</p>
+                </div>
+                <div class="user-info">
+                    <a href="dashboard.html" class="btn btn-secondary btn-sm">Volver al dashboard</a>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-main pacientes-page">
+            <div class="card">
+                <div class="card-header" style="text-align:left;">
+                    <h2>Pacientes registrados</h2>
+                    <p>Visualiza el historial de partos y resultados de exámenes EOA.</p>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="pacientesSearch" placeholder="Buscar por nombre, RUT o número de ficha...">
+                </div>
+                <div id="pacientesTableContainer" class="madres-list">
+                    <p class="loading">Cargando pacientes...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="notification" class="notification" style="display: none;">
+        <span id="notificationMessage"></span>
+        <button class="notification-close" onclick="hideNotification()">&times;</button>
+    </div>
+
+    <div id="editPacienteModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar paciente</h3>
+                <button class="modal-close" onclick="closeEditPacienteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editPacienteForm">
+                    <input type="hidden" id="editPacienteId">
+                    <div class="form-section">
+                        <div class="form-group">
+                            <label for="editNombre">Nombre</label>
+                            <input type="text" id="editNombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editApellido">Apellido</label>
+                            <input type="text" id="editApellido" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editRut">RUT</label>
+                            <input type="text" id="editRut" required placeholder="12345678-9">
+                        </div>
+                        <div class="form-group">
+                            <label for="editFicha">N° de ficha</label>
+                            <input type="text" id="editFicha" required>
+                        </div>
+                        <div class="form-section" style="padding:0;border:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="editSala">Sala</label>
+                                    <input type="text" id="editSala" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editCama">Cama</label>
+                                    <input type="text" id="editCama" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="editHijos">Cantidad de hijos</label>
+                                <input type="number" id="editHijos" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditPacienteModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-text">Guardar cambios</span>
+                            <span class="btn-loader" style="display:none;">Guardando...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- EOA Modal (copied for full functionality) -->
+    <div id="eoaModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Examen EOA</h3>
+                <button class="modal-close" onclick="closeEoaModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="madre-info">
+                    <h4 id="madreInfo">Información de la madre</h4>
+                </div>
+
+                <form id="eoaForm">
+                    <div class="form-section">
+                        <h4>Resultados del Examen</h4>
+                        <div class="form-group">
+                            <label>Oído Derecho (OD)</label>
+                            <div class="radio-group resultado-group">
+                                <label class="radio-label resultado-option" data-resultado="PASA">
+                                    <input type="radio" name="od" value="PASA" required>
+                                    <span class="radio-custom"></span>
+                                    PASA
+                                </label>
+                                <label class="radio-label resultado-option" data-resultado="REFIERE">
+                                    <input type="radio" name="od" value="REFIERE" required>
+                                    <span class="radio-custom"></span>
+                                    REFIERE
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Oído Izquierdo (OI)</label>
+                            <div class="radio-group resultado-group">
+                                <label class="radio-label resultado-option" data-resultado="PASA">
+                                    <input type="radio" name="oi" value="PASA" required>
+                                    <span class="radio-custom"></span>
+                                    PASA
+                                </label>
+                                <label class="radio-label resultado-option" data-resultado="REFIERE">
+                                    <input type="radio" name="oi" value="REFIERE" required>
+                                    <span class="radio-custom"></span>
+                                    REFIERE
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Información del Bebé</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="fechaNacimiento">Fecha de Nacimiento</label>
+                                <input type="date" id="fechaNacimiento" name="fechaNacimiento" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Sexo del Bebé</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="sexoBebe" value="MASCULINO" required>
+                                        <span class="radio-custom"></span>
+                                        Masculino
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="sexoBebe" value="FEMENINO" required>
+                                        <span class="radio-custom"></span>
+                                        Femenino
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Tipo de Parto</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="tipoParto" value="NORMAL" required>
+                                        <span class="radio-custom"></span>
+                                        Normal
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="tipoParto" value="CESAREA" required>
+                                        <span class="radio-custom"></span>
+                                        Cesárea
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="semanasGestacion">Semanas de Gestación</label>
+                                <input type="number" id="semanasGestacion" name="semanasGestacion" min="20" max="42" required placeholder="Ej: 38">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Antecedentes y Factores de Riesgo</h4>
+                        <div class="risk-item">
+                            <div class="risk-item-header">
+                                <label for="complicacionesEmbarazo">Complicaciones en el Embarazo</label>
+                                <div class="radio-group risk-radio">
+                                    <label class="radio-label" data-risk="complicaciones-embarazo">
+                                        <input type="radio" name="complicacionesEmbarazoEstado" value="SI" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label" data-risk="complicaciones-embarazo">
+                                        <input type="radio" name="complicacionesEmbarazoEstado" value="NO" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                            <textarea id="complicacionesEmbarazo" rows="2" placeholder="Observaciones..."></textarea>
+                        </div>
+
+                        <div class="risk-item">
+                            <div class="risk-item-header">
+                                <label for="complicacionesDesarrollo">Complicaciones en el Desarrollo</label>
+                                <div class="radio-group risk-radio">
+                                    <label class="radio-label" data-risk="complicaciones-desarrollo">
+                                        <input type="radio" name="complicacionesDesarrolloEstado" value="SI" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label" data-risk="complicaciones-desarrollo">
+                                        <input type="radio" name="complicacionesDesarrolloEstado" value="NO" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                            <textarea id="complicacionesDesarrollo" rows="2" placeholder="Observaciones..."></textarea>
+                        </div>
+
+                        <div class="risk-item">
+                            <div class="risk-item-header">
+                                <label>¿Familiares con Pérdida Auditiva?</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="familiaresPerdidaAuditiva" value="true" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="familiaresPerdidaAuditiva" value="false" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                            <textarea id="familiaresPerdidaAuditivaDetalle" rows="2" placeholder="Observaciones..."></textarea>
+                        </div>
+
+                        <div class="risk-item">
+                            <div class="risk-item-header">
+                                <label>¿La madre fumó durante el embarazo?</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreFumo" value="true" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreFumo" value="false" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                            <textarea id="madreFumoDetalle" rows="2" placeholder="Observaciones..."></textarea>
+                        </div>
+
+                        <div class="risk-item">
+                            <div class="risk-item-header">
+                                <label>¿La madre consumió alcohol durante el embarazo?</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreAlcohol" value="true" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreAlcohol" value="false" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                            <textarea id="madreAlcoholDetalle" rows="2" placeholder="Observaciones..."></textarea>
+                        </div>
+
+                        <div class="risk-item">
+                            <div class="risk-item-header">
+                                <label>¿La madre usó drogas durante el embarazo?</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreDrogas" value="true" required>
+                                        <span class="radio-custom"></span>
+                                        Sí
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="madreDrogas" value="false" required>
+                                        <span class="radio-custom"></span>
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                            <textarea id="madreDrogasDetalle" rows="2" placeholder="Observaciones..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Observaciones</h4>
+                        <div class="form-group">
+                            <label for="observaciones">Observaciones Adicionales</label>
+                            <textarea id="observaciones" name="observaciones" rows="3" placeholder="Observaciones adicionales..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEoaModal()">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" id="exportEvolucionBtn">
+                            Exportar Evolución
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="guardarEoaBtn">
+                            <span class="btn-text">Guardar Examen</span>
+                            <span class="btn-loader" style="display: none;">Guardando...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config/supabase-config.js?v=202511120000"></script>
+    <script src="js/auth.js?v=202511120000"></script>
+    <script src="js/utils.js?v=202511120000"></script>
+    <script src="js/madres.js?v=202511120000"></script>
+    <script src="js/eoa.js?v=202511120000"></script>
+    <script src="js/pacientes.js?v=202511120000"></script>
+</body>
+</html>

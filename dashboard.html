@@ -792,26 +792,12 @@
                 verMadresBtn.replaceWith(verMadresBtn.cloneNode(true));
                 const newVerBtn = document.getElementById('verMadresBtn');
                 
-                newVerBtn.addEventListener('click', function(e) {
+                                newVerBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    console.log('🖱️ Botón ver madres clickeado');
-                    
-                    // Abrir modal de madres directamente
-                    const modal = document.getElementById('madresModal');
-                    if (modal) {
-                        modal.style.display = 'flex';
-                        setTimeout(() => {
-                            modal.classList.add('show');
-                        }, 10);
-                        
-                        // Cargar lista de madres
-                        if (typeof dashboard !== 'undefined' && dashboard.loadMadresList) {
-                            dashboard.loadMadresList();
-                        }
-                    }
+                    window.location.href = 'pacientes.html';
                 });
                 
-                console.log('✅ Event listener para botón ver madres configurado');
+                console.log('? Bot�n ver madres redirige a pacientes.html');
             } else {
                 console.error('❌ No se encontró el botón verMadresBtn');
             }
@@ -1663,3 +1649,4 @@
     </script>
 </body>
 </html>
+
