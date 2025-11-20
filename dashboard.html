@@ -1102,7 +1102,7 @@
                     const rutNormalizado = rutFormateado.replace('-', '');
 
                     // Validar RUT
-                    if (typeof utils !== 'undefined' && utils.validarRUT && !utils.validarRUT(rutFormateado)) {
+                    if (rutFormateado && typeof utils !== 'undefined' && utils.validarRUT && !utils.validarRUT(rutFormateado)) {
                         const errorElement = document.getElementById('rutBebeError');
                         if (errorElement) {
                             errorElement.textContent = 'RUT inválido';
@@ -1115,49 +1115,99 @@
                     const nombreMadre = document.getElementById('nombreMadreBebe').value.trim();
                     const apellidoMadre = document.getElementById('apellidoMadreBebe').value.trim();
                     
-                    const formData = {
+                    // Extraer datos del examen que se guardarán en examenes_eoa
+                    const fechaNacimiento = document.getElementById('fechaNacimientoBebe').value;
+                    const sexoBebe = document.querySelector('input[name="sexoBebe"]:checked')?.value;
+                    const tipoParto = document.querySelector('input[name="tipoPartoBebe"]:checked')?.value;
+                    const semanasGestacion = parseInt(document.getElementById('semanasGestacionBebe').value, 10);
+                    
+                    // Preparar datos del paciente bebé (solo campos de la tabla pacientes)
+                    const pacienteData = {
                         nombre: nombreBebe,
                         apellido: apellidoBebe,
-                        rut: rutNormalizado,
-                        numero_ficha: document.getElementById('numeroFichaBebe').value.trim(),
+                        rut: rutNormalizado || null,
+                        numero_ficha: document.getElementById('numeroFichaBebe').value.trim() || null,
                         sala: document.getElementById('salaNeo').value.trim(),
                         cama: document.getElementById('cunaNeo').value.trim(),
-                        cantidad_hijos: 1, // Para bebés NEO siempre es 1
-                        origen_registro: 'NEO', // Marcar como registro NEO
-                        // Datos adicionales del bebé
-                        fecha_nacimiento: document.getElementById('fechaNacimientoBebe').value,
-                        sexo_bebe: document.querySelector('input[name="sexoBebe"]:checked')?.value,
-                        tipo_parto: document.querySelector('input[name="tipoPartoBebe"]:checked')?.value,
-                        semanas_gestacion: parseInt(document.getElementById('semanasGestacionBebe').value, 10)
+                        tipo_paciente: 'BEBE', // Especificar que es un bebé
+                        cantidad_hijos: 1, // Para bebés siempre es 1
+                        origen_registro: 'NEO' // Marcar como registro NEO
                     };
                     
-                    // Agregar datos de la madre solo si se proporcionaron
-                    if (nombreMadre) {
-                        formData.nombre_madre = nombreMadre;
-                    }
-                    if (apellidoMadre) {
-                        formData.apellido_madre = apellidoMadre;
-                    }
+                    // Preparar datos del examen que se guardarán en examenes_eoa
+                    const examenData = {
+                        fecha_nacimiento: fechaNacimiento,
+                        sexo_bebe: sexoBebe,
+                        tipo_parto: tipoParto,
+                        semanas_gestacion: semanasGestacion,
+                        // Valores por defecto para campos requeridos en examenes_eoa
+                        od_resultado: 'PASA', // Valor por defecto, se puede cambiar después
+                        oi_resultado: 'PASA', // Valor por defecto, se puede cambiar después
+                        complicaciones_embarazo: 'NO: Sin antecedentes',
+                        complicaciones_desarrollo: 'NO: Sin antecedentes',
+                        familiares_perdida_auditiva: false,
+                        madre_fumo: false,
+                        madre_alcohol: false,
+                        madre_drogas: false,
+                        observaciones: 'Registro automático al crear bebé NEO'
+                    };
                     
                     // Mostrar loader
                     if (typeof utils !== 'undefined' && utils.toggleButtonLoader) {
                         utils.toggleButtonLoader('guardarBebeBtn', true);
                     }
                     
+                    // Función para registrar el examen después de registrar al paciente
+                    async function registrarExamenDespuesDePaciente(pacienteId) {
+                        try {
+                            // Agregar el ID del paciente y sus datos al examen
+                            examenData.paciente_id = pacienteId;
+                            examenData.paciente_nombre = nombreBebe;
+                            examenData.paciente_apellido = apellidoBebe;
+                            
+                            // Llamar a la función registrarExamenEOA del módulo eoa.js
+                            if (typeof window.eoa !== 'undefined' && typeof window.eoa.registrarExamenEOA === 'function') {
+                                const resultadoExamen = await window.eoa.registrarExamenEOA(examenData);
+                                
+                                if (!resultadoExamen.success) {
+                                    console.warn('No se pudo registrar el examen automáticamente:', resultadoExamen.error);
+                                    // No mostramos error al usuario porque el paciente ya fue registrado
+                                    if (typeof utils !== 'undefined' && utils.showNotification) {
+                                        utils.showNotification('Bebé registrado exitosamente, pero el examen no se pudo guardar automáticamente', 'warning');
+                                    }
+                                } else {
+                                    console.log('✅ Examen registrado automáticamente:', resultadoExamen.data);
+                                }
+                            } else {
+                                console.warn('Módulo eoa no disponible para registrar examen automáticamente');
+                            }
+                        } catch (error) {
+                            console.error('Error al registrar examen automáticamente:', error);
+                            // No mostramos error al usuario porque el paciente ya fue registrado
+                        }
+                    }
+                    
                     // Guardar en Supabase
                     if (window.supabaseClient) {
                         window.supabaseClient
                             .from('pacientes')
-                            .insert([formData])
+                            .insert([pacienteData])
                             .select()
-                            .then(({ data, error }) => {
+                            .then(async ({ data, error }) => {
                                 if (error) {
                                     throw error;
                                 }
                                 
-                                // Éxito
+                                // Paciente registrado exitosamente
+                                const pacienteRegistrado = data[0];
+                                console.log('✅ Bebé registrado exitosamente:', pacienteRegistrado);
+                                
+                                // Registrar el examen automáticamente
+                                await registrarExamenDespuesDePaciente(pacienteRegistrado.id);
+                                
+                                // Mostrar mensaje de éxito
                                 if (typeof utils !== 'undefined' && utils.showNotification) {
-                                    utils.showNotification('Bebé registrado exitosamente', 'success');
+                                    utils.showNotification('Bebé registrado exitosamente con examen inicial', 'success');
                                 }
                                 
                                 // Cerrar modal
