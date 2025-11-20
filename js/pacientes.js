@@ -211,7 +211,6 @@ async function loadPacientes(searchTerm = '') {
         let query = window.supabaseClient
             .from('pacientes')
             .select('*')
-            .eq('tipo_paciente', 'MADRE')
             .order('created_at', { ascending: false });
 
         if (searchTerm) {
@@ -285,6 +284,13 @@ function renderPacientesTable(pacientes) {
 
     const headHtml = `
         <tr>
+            <th class="sortable" data-column="tipo_paciente">
+                Tipo
+                <div class="sort-controls">
+                    <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
+                    <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
+                </div>
+            </th>
             <th class="sortable" data-column="nombre">
                 Nombre
                 <div class="sort-controls">
@@ -307,7 +313,7 @@ function renderPacientesTable(pacientes) {
                 </div>
             </th>
             <th class="sortable" data-column="fecha_parto">
-                Fecha de Parto
+                ${pacientes.some(p => p.tipo_paciente === 'MADRE') ? 'Fecha de Parto' : 'Fecha de Nacimiento'}
                 <div class="sort-controls">
                     <button class="sort-btn sort-asc" data-direction="asc" title="Ordenar ascendente">▲</button>
                     <button class="sort-btn sort-desc" data-direction="desc" title="Ordenar descendente">▼</button>
@@ -381,9 +387,17 @@ function crearFilaPaciente(paciente) {
     const nombreConfirm = nombreCompleto.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
     const estadoPrimer = determinarEstadoPrimerExamen(primerExamen, segundoExamen);
     const estadoSegundo = determinarEstadoSegundoExamen(segundoExamen);
+    
+    // Determinar clase CSS para el tipo de paciente
+    const tipoClase = paciente.tipo_paciente === 'MADRE' ? 'tipo-madre' :
+                     paciente.tipo_paciente === 'BEBE' ? 'tipo-bebe' :
+                     paciente.tipo_paciente === 'NEO' ? 'tipo-neo' : 'tipo-desconocido';
 
     return `
         <tr data-madre-id="${paciente.id}">
+            <td>
+                <span class="tipo-paciente ${tipoClase}">${utils.escapeHTML(paciente.tipo_paciente || 'SIN TIPO')}</span>
+            </td>
             <td>${utils.escapeHTML(nombreCompleto)}</td>
             <td>${utils.escapeHTML(rutFormateado || 'Sin registro')}</td>
             <td>${utils.escapeHTML(paciente.numero_ficha || 'Sin ficha')}</td>
@@ -562,6 +576,10 @@ function sortPacientes(column, direction) {
         let valueA, valueB;
         
         switch(column) {
+            case 'tipo_paciente':
+                valueA = a.tipo_paciente || '';
+                valueB = b.tipo_paciente || '';
+                break;
             case 'nombre':
                 valueA = `${a.nombre || ''} ${a.apellido || ''}`.toLowerCase();
                 valueB = `${b.nombre || ''} ${b.apellido || ''}`.toLowerCase();
@@ -973,15 +991,28 @@ async function eliminarPaciente(madreId, nombreMadre = '') {
     if (!confirmado) return;
 
     try {
+        // Esperar un momento para asegurar que todos los módulos estén cargados
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Verificar que window.madres existe y tiene el método eliminarMadre
-        if (!window.madres || typeof window.madres.eliminarMadre !== 'function') {
+        if (!window.madres) {
+            console.error('window.madres no existe:', window.madres);
+            throw new Error('Módulo de madres no disponible');
+        }
+        
+        if (typeof window.madres.eliminarMadre !== 'function') {
+            console.error('eliminarMadre no es una función:', typeof window.madres.eliminarMadre);
+            console.error('window.madres:', window.madres);
             throw new Error('Función de eliminación no disponible');
         }
         
+        console.log('Intentando eliminar paciente con ID:', madreId);
         const result = await window.madres.eliminarMadre(madreId);
+        console.log('Resultado de eliminarMadre:', result);
         
-        // Verificar que result existe y tiene la propiedad success
-        if (!result || typeof result !== 'object' || result.success === undefined) {
+        // Verificar que result existe y es un objeto válido
+        if (!result || typeof result !== 'object') {
+            console.error('Respuesta inválida recibida:', result);
             throw new Error('Respuesta inválida al eliminar paciente');
         }
         
