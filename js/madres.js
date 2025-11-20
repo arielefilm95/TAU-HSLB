@@ -50,6 +50,20 @@ async function registrarPaciente(pacienteData) {
             }
             dataToInsert.cantidad_hijos = cantidadHijosNumero;
         }
+
+        // Excluir campos que no pertenecen a la tabla 'pacientes'
+        // Estos campos probablemente pertenecen a 'examenes_eoa' y deben ser manejados por separado.
+        const camposExcluidos = [
+            'fecha_nacimiento',
+            'sexo_bebe',
+            'tipo_parto',
+            'semanas_gestacion',
+            'origen_registro' // Este campo debe ser manejado por el backend o con un valor por defecto.
+        ];
+        
+        for (const campo of camposExcluidos) {
+            delete dataToInsert[campo];
+        }
         
         if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
