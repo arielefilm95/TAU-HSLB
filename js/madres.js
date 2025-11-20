@@ -328,11 +328,40 @@ async function eliminarPaciente(pacienteId) {
             error: error.message || 'Error al eliminar paciente'
         };
     }
+    
+    // Esta línea nunca debería alcanzarse, pero es una seguridad adicional
+    return {
+        success: false,
+        error: 'Error inesperado al eliminar paciente'
+    };
 }
 
 // Función para eliminar una madre (mantener compatibilidad)
 async function eliminarMadre(madreId) {
-    return eliminarPaciente(madreId);
+    try {
+        const result = await eliminarPaciente(madreId);
+        // Asegurarse de que result sea un objeto válido
+        if (!result || typeof result !== 'object') {
+            console.error('eliminarPaciente devolvió un resultado inválido:', result);
+            return {
+                success: false,
+                error: 'Respuesta inválida al eliminar paciente'
+            };
+        }
+        return result;
+    } catch (error) {
+        console.error('Error en eliminarMadre:', error);
+        return {
+            success: false,
+            error: error.message || 'Error al eliminar madre'
+        };
+    }
+    
+    // Esta línea nunca debería alcanzarse, pero es una seguridad adicional
+    return {
+        success: false,
+        error: 'Error inesperado al eliminar madre'
+    };
 }
 
 // Función para obtener estadísticas de pacientes
