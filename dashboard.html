@@ -166,14 +166,14 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="rut">RUT de la Madre</label>
-                                    <input type="text" id="rut" name="rut" required placeholder="12345678-9" maxlength="10" inputmode="text" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
+                                    <label for="rut">RUT de la Madre (opcional)</label>
+                                    <input type="text" id="rut" name="rut" placeholder="12345678-9" maxlength="10" inputmode="text" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
                                     <span class="error-message" id="rutError"></span>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="numeroFicha">Número de Ficha</label>
-                                    <input type="text" id="numeroFicha" name="numeroFicha" required placeholder="Número de ficha">
+                                    <label for="numeroFicha">Número de Ficha (opcional)</label>
+                                    <input type="text" id="numeroFicha" name="numeroFicha" placeholder="Número de ficha">
                                     <span class="error-message" id="numeroFichaError"></span>
                                 </div>
                                 
@@ -224,17 +224,32 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="rutBebe">RUT del Bebé</label>
-                                    <input type="text" id="rutBebe" name="rutBebe" required placeholder="12345678-9" maxlength="10" inputmode="text" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
+                                    <label for="rutBebe">RUT del Bebé (opcional)</label>
+                                    <input type="text" id="rutBebe" name="rutBebe" placeholder="12345678-9" maxlength="10" inputmode="text" pattern="^[0-9]{8}-[0-9Kk]$" title="Formato requerido: 12345678-9">
                                     <span class="error-message" id="rutBebeError"></span>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="numeroFichaBebe">Número de Ficha</label>
-                                    <input type="text" id="numeroFichaBebe" name="numeroFichaBebe" required placeholder="Número de ficha">
+                                    <label for="numeroFichaBebe">Número de Ficha (opcional)</label>
+                                    <input type="text" id="numeroFichaBebe" name="numeroFichaBebe" placeholder="Número de ficha">
                                     <span class="error-message" id="numeroFichaBebeError"></span>
                                 </div>
                                 
+                                <div class="form-section">
+                                    <h4>Datos de la Madre (opcional)</h4>
+                                    <div class="form-group">
+                                        <label for="nombreMadreBebe">Nombre de la Madre</label>
+                                        <input type="text" id="nombreMadreBebe" name="nombreMadreBebe" placeholder="Nombre de la madre (opcional)">
+                                        <span class="error-message" id="nombreMadreBebeError"></span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="apellidoMadreBebe">Apellido de la Madre</label>
+                                        <input type="text" id="apellidoMadreBebe" name="apellidoMadreBebe" placeholder="Apellido de la madre (opcional)">
+                                        <span class="error-message" id="apellidoMadreBebeError"></span>
+                                    </div>
+                                </div>
+                                 
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="fechaNacimientoBebe">Fecha de Nacimiento</label>
@@ -1096,6 +1111,10 @@
                         return;
                     }
 
+                    // Obtener datos de la madre (opcional)
+                    const nombreMadre = document.getElementById('nombreMadreBebe').value.trim();
+                    const apellidoMadre = document.getElementById('apellidoMadreBebe').value.trim();
+                    
                     const formData = {
                         nombre: nombreBebe,
                         apellido: apellidoBebe,
@@ -1111,6 +1130,14 @@
                         tipo_parto: document.querySelector('input[name="tipoPartoBebe"]:checked')?.value,
                         semanas_gestacion: parseInt(document.getElementById('semanasGestacionBebe').value, 10)
                     };
+                    
+                    // Agregar datos de la madre solo si se proporcionaron
+                    if (nombreMadre) {
+                        formData.nombre_madre = nombreMadre;
+                    }
+                    if (apellidoMadre) {
+                        formData.apellido_madre = apellidoMadre;
+                    }
                     
                     // Mostrar loader
                     if (typeof utils !== 'undefined' && utils.toggleButtonLoader) {
@@ -1149,11 +1176,22 @@
                             })
                             .catch(error => {
                                 console.error('Error al registrar bebé:', error);
+                                console.error('Detalle del error:', {
+                                    code: error.code,
+                                    message: error.message,
+                                    details: error.details,
+                                    hint: error.hint
+                                });
+                                
                                 if (typeof utils !== 'undefined' && utils.showNotification) {
                                     if (error.code === '23505') {
                                         utils.showNotification('El RUT ya está registrado', 'error');
+                                    } else if (error.code === '42703') {
+                                        utils.showNotification('Error: columna no reconocida. Verifique la estructura de la base de datos.', 'error');
+                                    } else if (error.code === '23502') {
+                                        utils.showNotification('Error: faltan campos obligatorios', 'error');
                                     } else {
-                                        utils.showNotification('Error al registrar bebé', 'error');
+                                        utils.showNotification(`Error al registrar bebé: ${error.message || 'Error desconocido'}`, 'error');
                                     }
                                 }
                             })
