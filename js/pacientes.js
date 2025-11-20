@@ -547,7 +547,7 @@ function bindTablaEventos(container) {
             if (action === 'editar') {
                 abrirModalEdicion(madreId);
             } else if (action === 'eliminar') {
-                eliminarPaciente(madreId, nombre);
+                solicitarEliminarPaciente(madreId, nombre);
             }
         });
     });
@@ -984,7 +984,7 @@ function cancelarEdicionInline(row) {
     bindTablaEventos(row.closest('.madres-table-wrapper'));
 }
 
-async function eliminarPaciente(madreId, nombreMadre = '') {
+async function solicitarEliminarPaciente(madreId, nombreMadre = '') {
     if (!madreId) return;
     const nombreMostrar = nombreMadre ? nombreMadre.replace(/\\'/g, '\'') : 'este registro';
     const confirmado = window.confirm(`¿Eliminar el registro de ${nombreMostrar}? Esta acción no se puede deshacer.`);
