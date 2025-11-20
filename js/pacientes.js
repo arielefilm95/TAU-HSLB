@@ -131,13 +131,14 @@ function bindEditForm() {
             );
         }
 
-        if (!nombre || !apellido || !rutNormalizado || !numeroFicha || !sala || !cama) {
-            utils?.showNotification('Completa todos los campos obligatorios', 'error');
+        if (!nombre || !apellido || !sala || !cama) {
+            utils?.showNotification('Los campos nombre, apellido, sala y cama son obligatorios', 'error');
             return;
         }
 
-        if (window.utils?.validarRUT && rutFormateado && !window.utils.validarRUT(rutFormateado)) {
-            utils?.showNotification('Ingresa un RUT valido en el formato 12345678-9', 'error');
+        // Validar RUT solo si se proporciona
+        if (rutFormateado && window.utils?.validarRUT && !window.utils.validarRUT(rutFormateado)) {
+            utils?.showNotification('Ingresa un RUT válido en el formato 12345678-9 (opcional)', 'error');
             return;
         }
 
@@ -972,7 +973,18 @@ async function eliminarPaciente(madreId, nombreMadre = '') {
     if (!confirmado) return;
 
     try {
+        // Verificar que window.madres existe y tiene el método eliminarMadre
+        if (!window.madres || typeof window.madres.eliminarMadre !== 'function') {
+            throw new Error('Función de eliminación no disponible');
+        }
+        
         const result = await window.madres.eliminarMadre(madreId);
+        
+        // Verificar que result existe y tiene la propiedad success
+        if (!result || typeof result !== 'object' || result.success === undefined) {
+            throw new Error('Respuesta inválida al eliminar paciente');
+        }
+        
         if (!result.success) {
             throw new Error(result.error || 'No se pudo eliminar el paciente');
         }

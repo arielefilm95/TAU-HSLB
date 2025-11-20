@@ -6,14 +6,16 @@ let currentPaciente = null;
 // Función para registrar un nuevo paciente
 async function registrarPaciente(pacienteData) {
     try {
-        // Validar datos
-        if (!pacienteData.nombre || !pacienteData.apellido || !pacienteData.rut || !pacienteData.numero_ficha || !pacienteData.sala || !pacienteData.cama || !pacienteData.tipo_paciente) {
-            throw new Error('Todos los campos son obligatorios');
+        // Validar datos obligatorios (nombre, apellido, sala, cama, tipo_paciente)
+        if (!pacienteData.nombre || !pacienteData.apellido || !pacienteData.sala || !pacienteData.cama || !pacienteData.tipo_paciente) {
+            throw new Error('Los campos nombre, apellido, sala y cama son obligatorios');
         }
         
-        // Validar RUT
-        if (!utils.validarRUT(pacienteData.rut)) {
-            throw new Error('RUT inválido');
+        // Validar RUT solo si se proporciona
+        if (pacienteData.rut && pacienteData.rut.trim() !== '') {
+            if (!utils.validarRUT(pacienteData.rut)) {
+                throw new Error('RUT inválido');
+            }
         }
         
         // Validar tipo de paciente
@@ -25,12 +27,20 @@ async function registrarPaciente(pacienteData) {
         const dataToInsert = {
             nombre: pacienteData.nombre.trim(),
             apellido: pacienteData.apellido.trim(),
-            rut: pacienteData.rut.replace(/\./g, '').replace('-', ''), // Eliminar puntos y guion
-            numero_ficha: pacienteData.numero_ficha.trim(),
             sala: pacienteData.sala.trim(),
             cama: pacienteData.cama.trim(),
             tipo_paciente: pacienteData.tipo_paciente.toUpperCase()
         };
+        
+        // Agregar RUT solo si se proporciona
+        if (pacienteData.rut && pacienteData.rut.trim() !== '') {
+            dataToInsert.rut = pacienteData.rut.replace(/\./g, '').replace('-', '');
+        }
+        
+        // Agregar número de ficha solo si se proporciona
+        if (pacienteData.numero_ficha && pacienteData.numero_ficha.trim() !== '') {
+            dataToInsert.numero_ficha = pacienteData.numero_ficha.trim();
+        }
         
         // Si es madre, agregar cantidad de hijos si se proporciona
         if (pacienteData.tipo_paciente.toUpperCase() === 'MADRE' && pacienteData.cantidad_hijos) {
@@ -193,8 +203,8 @@ async function actualizarPaciente(pacienteId, updates) {
             throw new Error('No hay datos para actualizar');
         }
         
-        // Si se actualiza el RUT, validarlo
-        if (updates.rut && !utils.validarRUT(updates.rut)) {
+        // Si se actualiza el RUT, validarlo solo si no está vacío
+        if (updates.rut && updates.rut.trim() !== '' && !utils.validarRUT(updates.rut)) {
             throw new Error('RUT inválido');
         }
         
@@ -206,8 +216,12 @@ async function actualizarPaciente(pacienteId, updates) {
         // Preparar datos para actualización
         const dataToUpdate = {};
         
-        if (updates.rut) {
-            dataToUpdate.rut = updates.rut.replace(/\./g, '').replace('-', ''); // Eliminar puntos y guion
+        if (updates.rut !== undefined) {
+            if (updates.rut && updates.rut.trim() !== '') {
+                dataToUpdate.rut = updates.rut.replace(/\./g, '').replace('-', ''); // Eliminar puntos y guion
+            } else {
+                dataToUpdate.rut = null; // Permitir nulo si está vacío
+            }
         }
         if (updates.nombre) {
             dataToUpdate.nombre = updates.nombre.trim();
@@ -215,8 +229,12 @@ async function actualizarPaciente(pacienteId, updates) {
         if (updates.apellido) {
             dataToUpdate.apellido = updates.apellido.trim();
         }
-        if (updates.numero_ficha) {
-            dataToUpdate.numero_ficha = updates.numero_ficha.trim();
+        if (updates.numero_ficha !== undefined) {
+            if (updates.numero_ficha && updates.numero_ficha.trim() !== '') {
+                dataToUpdate.numero_ficha = updates.numero_ficha.trim();
+            } else {
+                dataToUpdate.numero_ficha = null; // Permitir nulo si está vacío
+            }
         }
         if (updates.sala) {
             dataToUpdate.sala = updates.sala.trim();
@@ -272,6 +290,11 @@ async function actualizarMadre(madreId, updates) {
 // Función para eliminar un paciente
 async function eliminarPaciente(pacienteId) {
     try {
+        // Validar que se proporcionó un ID válido
+        if (!pacienteId) {
+            throw new Error('ID de paciente no proporcionado');
+        }
+        
         if (!window.supabaseClient) {
             throw new Error('Supabase no está inicializado');
         }
@@ -296,7 +319,7 @@ async function eliminarPaciente(pacienteId) {
             throw error;
         }
         
-        return { success: true };
+        return { success: true, message: 'Paciente eliminado correctamente' };
         
     } catch (error) {
         console.error('Error al eliminar paciente:', error);
@@ -459,22 +482,16 @@ function validarFormularioMadre() {
         document.getElementById('apellidoMadreError').textContent = '';
     }
 
-    if (!rut) {
-        document.getElementById('rutError').textContent = 'El RUT es obligatorio';
-        isValid = false;
-    } else if (!utils.validarRUT(rut)) {
-        document.getElementById('rutError').textContent = 'RUT invalido';
+    // RUT es opcional, pero si se proporciona debe ser válido
+    if (rut && !utils.validarRUT(rut)) {
+        document.getElementById('rutError').textContent = 'RUT inválido (opcional)';
         isValid = false;
     } else {
         document.getElementById('rutError').textContent = '';
     }
 
-    if (!numeroFicha) {
-        document.getElementById('numeroFichaError').textContent = 'El numero de ficha es obligatorio';
-        isValid = false;
-    } else {
-        document.getElementById('numeroFichaError').textContent = '';
-    }
+    // Número de ficha es opcional
+    document.getElementById('numeroFichaError').textContent = '';
 
     if (!sala) {
         document.getElementById('salaError').textContent = 'La sala es obligatoria';
@@ -540,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Validación en tiempo real de campos obligatorios
-    const requiredInputs = ['nombreMadre', 'apellidoMadre', 'numeroFicha', 'sala', 'cama', 'cantidadHijos'];
+    const requiredInputs = ['nombreMadre', 'apellidoMadre', 'sala', 'cama', 'cantidadHijos'];
     requiredInputs.forEach(inputId => {
         const input = document.getElementById(inputId);
         if (input) {
@@ -568,6 +585,19 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+
+    // Eliminar duplicado de validación RUT (ya está definido arriba)
+
+    // Validación específica para número de ficha (opcional)
+    const fichaInput = document.getElementById('numeroFicha');
+    if (fichaInput) {
+        fichaInput.addEventListener('blur', function() {
+            const errorElement = document.getElementById('numeroFichaError');
+            // El número de ficha es opcional, así que siempre limpiamos el error
+            errorElement.textContent = '';
+            this.classList.remove('error');
+        });
+    }
 });
 
 // Exportar funciones para uso en otros módulos

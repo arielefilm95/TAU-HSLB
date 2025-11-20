@@ -953,12 +953,22 @@ async function confirmarEliminacionMadre(madreId, madreNombre = '') {
     }
 
     try {
+        // Validar que se proporcionó un ID válido
+        if (!madreId) {
+            throw new Error('ID de madre no proporcionado');
+        }
+        
         if (!window.madres || typeof window.madres.eliminarMadre !== 'function') {
             throw new Error('Función de eliminación no disponible');
         }
 
         utils.showNotification('Eliminando registro...', 'info');
         const result = await window.madres.eliminarMadre(madreId);
+
+        // Verificar que result existe y tiene la propiedad success
+        if (!result || typeof result !== 'object' || result.success === undefined) {
+            throw new Error('Respuesta inválida al eliminar madre');
+        }
 
         if (!result.success) {
             throw new Error(result.error || 'No se pudo eliminar el registro');
