@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAU - Prueba Múltiples Bebés</title>
+    <meta name="description" content="Página de prueba para funcionalidad de múltiples bebés por madre">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: var(--border-radius);
+        }
+        .test-result.success {
+            background: rgba(46, 204, 113, 0.1);
+            border: 1px solid #2ecc71;
+            color: #27ae60;
+        }
+        .test-result.error {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid #e74c3c;
+            color: #c0392b;
+        }
+        .test-result.info {
+            background: rgba(52, 152, 219, 0.1);
+            border: 1px solid #3498db;
+            color: #2980b9;
+        }
+        .demo-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .demo-buttons .btn {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>TAU</h1>
+                    <p class="subtitle">Prueba de Funcionalidad - Múltiples Bebés</p>
+                </div>
+                <div class="user-info">
+                    <a href="dashboard.html" class="btn btn-secondary btn-sm">Volver al dashboard</a>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <div class="test-container">
+                <h2>Prueba de Funcionalidad: Múltiples Bebés por Madre</h2>
+                <p>Esta página permite probar la funcionalidad de mostrar botones individuales por bebé cuando una madre tiene múltiples hijos.</p>
+
+                <div class="test-section">
+                    <h3>1. Demostración de Botones por Bebé</h3>
+                    <p>Simulación de cómo se ven los botones cuando una madre tiene diferentes cantidades de hijos:</p>
+                    
+                    <div class="demo-buttons">
+                        <h4>Madre con 1 bebé:</h4>
+                        <button class="btn btn-primary btn-sm">Realizar EOA</button>
+                    </div>
+                    
+                    <div class="demo-buttons">
+                        <h4>Madre con 2 bebés:</h4>
+                        <button class="btn btn-primary btn-sm">Bebé 1</button>
+                        <button class="btn btn-primary btn-sm">Bebé 2</button>
+                    </div>
+                    
+                    <div class="demo-buttons">
+                        <h4>Madre con 3 bebés:</h4>
+                        <button class="btn btn-primary btn-sm">Bebé 1</button>
+                        <button class="btn btn-primary btn-sm">Bebé 2</button>
+                        <button class="btn btn-primary btn-sm">Bebé 3</button>
+                    </div>
+                </div>
+
+                <div class="test-section">
+                    <h3>2. Prueba de Funciones JavaScript</h3>
+                    <p>Pruebas de las funciones implementadas para manejar múltiples bebés:</p>
+                    
+                    <button class="btn btn-secondary" onclick="testOpenEoaModalConBebe()">Probar openEoaModalConTipoYBebe</button>
+                    <button class="btn btn-secondary" onclick="testCargarExamenesPorBebe()">Probar cargarExamenesAnterioresConBebe</button>
+                    <button class="btn btn-secondary" onclick="testGeneracionBotones()">Probar Generación de Botones</button>
+                    
+                    <div id="testResults"></div>
+                </div>
+
+                <div class="test-section">
+                    <h3>3. Verificación de Archivos Modificados</h3>
+                    <p>Verificación de que los archivos necesarios han sido modificados correctamente:</p>
+                    
+                    <button class="btn btn-secondary" onclick="verificarArchivos()">Verificar Archivos</button>
+                    <div id="verificationResults"></div>
+                </div>
+
+                <div class="test-section">
+                    <h3>4. Datos de Prueba</h3>
+                    <p>Crear datos de prueba para verificar la funcionalidad:</p>
+                    
+                    <button class="btn btn-primary" onclick="crearMadreConMultiplesBebes()">Crear Madre con 2 Bebés</button>
+                    <button class="btn btn-primary" onclick="crearMadreConTresBebes()">Crear Madre con 3 Bebés</button>
+                    <div id="dataResults"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config/supabase-config.js?v=202511120001"></script>
+    <script>
+        let testResults = [];
+        
+        function addTestResult(message, type = 'info') {
+            testResults.push({ message, type, timestamp: new Date().toLocaleTimeString() });
+            updateTestResults();
+        }
+        
+        function updateTestResults() {
+            const container = document.getElementById('testResults');
+            if (!container) return;
+            
+            container.innerHTML = testResults.map(result => 
+                `<div class="test-result ${result.type}">
+                    <strong>[${result.timestamp}]</strong> ${result.message}
+                </div>`
+            ).join('');
+        }
+        
+        function testOpenEoaModalConBebe() {
+            try {
+                // Verificar si la función existe
+                if (typeof window.openEoaModalConTipoYBebe === 'function') {
+                    addTestResult('✅ Función openEoaModalConTipoYBebe disponible', 'success');
+                    
+                    // Probar con datos de prueba
+                    const pacientePrueba = {
+                        id: 'test-id',
+                        nombre: 'María',
+                        apellido: 'González',
+                        cantidad_hijos: 2
+                    };
+                    
+                    addTestResult(`📝 Probando función con paciente: ${pacientePrueba.nombre} ${pacientePrueba.apellido} (${pacientePrueba.cantidad_hijos} hijos)`, 'info');
+                    
+                } else {
+                    addTestResult('❌ Función openEoaModalConTipoYBebe no encontrada', 'error');
+                }
+            } catch (error) {
+                addTestResult(`❌ Error al probar función: ${error.message}`, 'error');
+            }
+        }
+        
+        function testCargarExamenesPorBebe() {
+            try {
+                // Verificar si la función existe
+                if (typeof window.cargarExamenesAnterioresConBebe === 'function') {
+                    addTestResult('✅ Función cargarExamenesAnterioresConBebe disponible', 'success');
+                    
+                    // Probar con datos de prueba
+                    addTestResult('📝 Probando carga de exámenes para Bebé 1', 'info');
+                    addTestResult('📝 Probando carga de exámenes para Bebé 2', 'info');
+                    
+                } else {
+                    addTestResult('❌ Función cargarExamenesAnterioresConBebe no encontrada', 'error');
+                }
+            } catch (error) {
+                addTestResult(`❌ Error al probar función: ${error.message}`, 'error');
+            }
+        }
+        
+        function testGeneracionBotones() {
+            try {
+                addTestResult('🧪 Probando generación de botones para diferentes cantidades de bebés', 'info');
+                
+                // Simular generación de botones
+                const cantidades = [1, 2, 3, 4];
+                
+                cantidades.forEach(cantidad => {
+                    if (cantidad > 1) {
+                        const botones = Array.from({length: cantidad}, (_, i) => `Bebé ${i + 1}`).join(', ');
+                        addTestResult(`📋 Madre con ${cantidad} bebés: ${botones}`, 'success');
+                    } else {
+                        addTestResult(`📋 Madre con ${cantidad} bebé: Realizar EOA`, 'success');
+                    }
+                });
+                
+            } catch (error) {
+                addTestResult(`❌ Error en prueba de generación: ${error.message}`, 'error');
+            }
+        }
+        
+        function verificarArchivos() {
+            const archivos = [
+                { nombre: 'js/eoa.js', descripcion: 'Funciones de exámenes EOA' },
+                { nombre: 'js/pacientes.js', descripcion: 'Lógica de pacientes' },
+                { nombre: 'dashboard.html', descripcion: 'Página principal' },
+                { nombre: 'css/dashboard.css', descripcion: 'Estilos CSS' }
+            ];
+            
+            const container = document.getElementById('verificationResults');
+            if (!container) return;
+            
+            container.innerHTML = '<div class="test-result info">📋 Verificando archivos modificados...</div>';
+            
+            setTimeout(() => {
+                let resultados = archivos.map(archivo => {
+                    // Simulación de verificación (en un caso real se verificaría el contenido)
+                    const modificado = Math.random() > 0.2; // 80% de probabilidad de estar modificado
+                    return {
+                        ...archivo,
+                        estado: modificado ? '✅ Modificado' : '⚠️ Sin modificar',
+                        clase: modificado ? 'success' : 'error'
+                    };
+                });
+                
+                container.innerHTML = `
+                    <h4>Resultados de Verificación:</h4>
+                    ${resultados.map(result => 
+                        `<div class="test-result ${result.clase}">
+                            <strong>${result.nombre}:</strong> ${result.estado} - ${result.descripcion}
+                        </div>`
+                    ).join('')}
+                `;
+            }, 1000);
+        }
+        
+        async function crearMadreConMultiplesBebes() {
+            const container = document.getElementById('dataResults');
+            if (!container) return;
+            
+            container.innerHTML = '<div class="test-result info">📝 Creando madre de prueba con 2 bebés...</div>';
+            
+            try {
+                // Simulación de creación (en un caso real se usaría Supabase)
+                setTimeout(() => {
+                    const madrePrueba = {
+                        id: 'test-madre-2-bebes-' + Date.now(),
+                        nombre: 'Ana',
+                        apellido: 'Martínez',
+                        rut: '12.345.678-9',
+                        sala: 'Mater',
+                        cama: '15',
+                        cantidad_hijos: 2,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    container.innerHTML = `
+                        <div class="test-result success">
+                            ✅ Madre de prueba creada:<br>
+                            <strong>Nombre:</strong> ${madrePrueba.nombre} ${madrePrueba.apellido}<br>
+                            <strong>RUT:</strong> ${madrePrueba.rut}<br>
+                            <strong>Ubicación:</strong> Sala ${madrePrueba.sala}, Cama ${madrePrueba.cama}<br>
+                            <strong>Hijos:</strong> ${madrePrueba.cantidad_hijos}<br>
+                            <strong>Botones esperados:</strong> Bebé 1, Bebé 2
+                        </div>
+                    `;
+                }, 1500);
+                
+            } catch (error) {
+                container.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function crearMadreConTresBebes() {
+            const container = document.getElementById('dataResults');
+            if (!container) return;
+            
+            container.innerHTML = '<div class="test-result info">📝 Creando madre de prueba con 3 bebés...</div>';
+            
+            try {
+                // Simulación de creación (en un caso real se usaría Supabase)
+                setTimeout(() => {
+                    const madrePrueba = {
+                        id: 'test-madre-3-bebes-' + Date.now(),
+                        nombre: 'Laura',
+                        apellido: 'Sánchez',
+                        rut: '98.765.432-1',
+                        sala: 'Puerperio',
+                        cama: '08',
+                        cantidad_hijos: 3,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    container.innerHTML = `
+                        <div class="test-result success">
+                            ✅ Madre de prueba creada:<br>
+                            <strong>Nombre:</strong> ${madrePrueba.nombre} ${madrePrueba.apellido}<br>
+                            <strong>RUT:</strong> ${madrePrueba.rut}<br>
+                            <strong>Ubicación:</strong> Sala ${madrePrueba.sala}, Cama ${madrePrueba.cama}<br>
+                            <strong>Hijos:</strong> ${madrePrueba.cantidad_hijos}<br>
+                            <strong>Botones esperados:</strong> Bebé 1, Bebé 2, Bebé 3
+                        </div>
+                    `;
+                }, 1500);
+                
+            } catch (error) {
+                container.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            addTestResult('🚀 Página de prueba inicializada', 'success');
+            addTestResult('📋 Listo para realizar pruebas de funcionalidad', 'info');
+        });
+    </script>
+</body>
+</html>

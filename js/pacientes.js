@@ -415,6 +415,18 @@ function crearFilaPaciente(paciente) {
             </td>
             <td class="observaciones-col">${utils.escapeHTML(observaciones)}</td>
             <td class="table-actions">
+                <div class="examenes-actions">
+                    ${paciente.tipo_paciente === 'MADRE' && paciente.cantidad_hijos > 1
+                        ? Array.from({length: paciente.cantidad_hijos}, (_, i) => `
+                            <button class="btn btn-primary btn-sm" data-action="abrir-eoa-bebe" data-madre-id="${paciente.id}" data-bebe-numero="${i + 1}">
+                                Bebé ${i + 1}
+                            </button>
+                        `).join('')
+                        : `<button class="btn btn-primary btn-sm" data-action="abrir-eoa" data-madre-id="${paciente.id}">
+                            Realizar EOA
+                        </button>`
+                    }
+                </div>
                 <button type="button" class="table-actions-btn" aria-label="Acciones" data-madre-id="${paciente.id}">
                     &#8942;
                 </button>
@@ -547,6 +559,29 @@ function bindTablaEventos(container) {
                 abrirModalEdicion(madreId);
             } else if (action === 'eliminar') {
                 solicitarEliminarPaciente(madreId, nombre);
+            }
+        });
+    });
+
+    // Manejar clics en botones de examen por bebé
+    container.querySelectorAll('[data-action="abrir-eoa-bebe"]').forEach(btn => {
+        btn.addEventListener('click', function(event) {
+            event.stopPropagation();
+            const madreId = this.dataset.madreId;
+            const bebeNumero = parseInt(this.dataset.bebeNumero, 10);
+            if (madreId && bebeNumero) {
+                abrirEoaParaBebe(madreId, bebeNumero);
+            }
+        });
+    });
+
+    // Manejar clics en botones de examen normales
+    container.querySelectorAll('[data-action="abrir-eoa"]').forEach(btn => {
+        btn.addEventListener('click', function(event) {
+            event.stopPropagation();
+            const madreId = this.dataset.madreId;
+            if (madreId) {
+                abrirEoaParaPaciente(madreId);
             }
         });
     });
@@ -850,6 +885,27 @@ async function abrirEoaParaPaciente(pacienteId) {
     } catch (error) {
         console.error('Error al abrir EOA para paciente:', error);
         utils?.showNotification('No se pudo abrir el formulario EOA', 'error');
+    }
+}
+
+async function abrirEoaParaBebe(madreId, bebeNumero) {
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('pacientes')
+            .select('*')
+            .eq('id', madreId)
+            .single();
+        if (error) throw error;
+        
+        // Usar la función del eoa.js para abrir el modal con el bebé específico
+        if (window.openEoaModalConTipoYBebe) {
+            window.openEoaModalConTipoYBebe(data, 'EOA', bebeNumero);
+        } else {
+            utils?.showNotification('Función no disponible para abrir examen por bebé', 'error');
+        }
+    } catch (error) {
+        console.error('Error al abrir EOA para bebé:', error);
+        utils?.showNotification('No se pudo abrir el formulario EOA para el bebé', 'error');
     }
 }
 

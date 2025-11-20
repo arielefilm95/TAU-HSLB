@@ -6,6 +6,7 @@ let currentExamenEOA = null;
 let currentPacienteExamenes = [];
 let currentPacienteExamenCount = 0;
 let eoaFormPristine = true;
+let currentBebeNumero = null;
 const EOA_FORM_STORAGE_PREFIX = 'tau_eoa_form_state_';
 const FACTOR_OBSERVACIONES_MARKER = '\n[[DETALLE_FACTORES]]';
 const FACTOR_OBSERVACIONES_LABELS = {
@@ -274,6 +275,62 @@ function openEoaModalConTipo(paciente, tipoExamen) {
     }
 }
 
+// Función para abrir modal de EOA con tipo específico y número de bebé
+function openEoaModalConTipoYBebe(paciente, tipoExamen, bebeNumero = null) {
+    currentPacienteEOA = paciente;
+    currentPacienteExamenes = [];
+    currentPacienteExamenCount = 0;
+    eoaFormPristine = true;
+    
+    const modal = document.getElementById('eoaModal');
+    if (modal) {
+        // Actualizar información del paciente en el modal
+        const pacienteInfo = document.getElementById('madreInfo');
+        if (pacienteInfo) {
+            const tipoPaciente = paciente.tipo_paciente || 'MADRE';
+            const etiquetaTipo = tipoPaciente === 'MADRE' ? 'Madre' : (tipoPaciente === 'BEBE' ? 'Bebé' : 'Neo');
+            
+            // Si es una madre con múltiples hijos y tenemos el número de bebé, mostrarlo específicamente
+            let tituloPaciente = `${etiquetaTipo}: ${utils.escapeHTML([paciente.nombre, paciente.apellido].filter(Boolean).join(' ') || 'Sin nombre registrado')}`;
+            if (tipoPaciente === 'MADRE' && bebeNumero && paciente.cantidad_hijos > 1) {
+                tituloPaciente += ` - Bebé ${bebeNumero}`;
+            }
+            
+            pacienteInfo.innerHTML = `
+                <strong>${tituloPaciente}</strong> |
+                <strong>RUT:</strong> ${utils.escapeHTML(utils.formatearRUT(paciente.rut))} |
+                <strong>Ficha:</strong> ${utils.escapeHTML(paciente.numero_ficha)} |
+                <strong>Sala:</strong> ${utils.escapeHTML(paciente.sala)} |
+                <strong>Cama:</strong> ${utils.escapeHTML(paciente.cama)}
+                ${paciente.tipo_paciente === 'MADRE' && paciente.cantidad_hijos ? ` | <strong>Hijos:</strong> ${paciente.cantidad_hijos}` : ''}
+            `;
+        }
+        
+        // Limpiar formulario
+        limpiarFormularioEOA();
+
+        // Cargar exámenes anteriores si existen
+        cargarExamenesAnterioresConBebe(paciente.id, bebeNumero).then(() => {
+            // Determinar el número de examen según el tipo seleccionado
+            if (tipoExamen === 'primero') {
+                // Si es primer examen, siempre usar número 1
+                currentPacienteExamenCount = 0; // Se incrementará al guardar
+                currentExamenEOA = null; // No hay examen anterior
+            } else if (tipoExamen === 'repetición') {
+                // Si es repetición, usar el conteo actual
+                // currentPacienteExamenCount ya tiene el valor correcto
+                // currentExamenEOA ya tiene el último examen
+            }
+            
+            // Mostrar modal
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+        });
+    }
+}
+
 // Función para cerrar modal de EOA
 function closeEoaModal() {
     const modal = document.getElementById('eoaModal');
@@ -305,6 +362,56 @@ async function cargarExamenesAnteriores(pacienteId) {
             .eq('paciente_id', pacienteId)
             .order('fecha_examen', { ascending: false })
             .limit(5);
+        
+        if (error) {
+            throw error;
+        }
+
+        const examenesDesc = data || [];
+        const examenesAsc = examenesDesc.slice().sort((a, b) => new Date(a.fecha_examen) - new Date(b.fecha_examen));
+        currentPacienteExamenes = examenesAsc;
+        currentPacienteExamenCount = typeof count === 'number' ? count : examenesAsc.length;
+        
+        // Mostrar exámenes anteriores si existen
+        if (examenesDesc.length > 0) {
+            mostrarExamenesAnteriores(examenesDesc);
+            
+            // Mantener referencia al último examen
+            currentExamenEOA = examenesDesc[0];
+            prefillFormularioEOA(examenesDesc[0]);
+            guardarEstadoFormularioEOA(examenesDesc[0].paciente_id, examenesDesc[0]);
+        }
+        
+        return Promise.resolve();
+        
+    } catch (error) {
+        console.error('Error al cargar exámenes anteriores:', error);
+        return Promise.reject(error);
+    }
+}
+
+// Función para cargar exámenes anteriores de un paciente considerando el número de bebé
+async function cargarExamenesAnterioresConBebe(pacienteId, bebeNumero = null) {
+    try {
+        if (!window.supabaseClient) {
+            console.error('Supabase no está inicializado');
+            return Promise.resolve();
+        }
+        
+        // Si tenemos número de bebé, filtrar por ese identificador
+        let query = window.supabaseClient
+            .from('examenes_eoa')
+            .select('*', { count: 'exact' })
+            .eq('paciente_id', pacienteId)
+            .order('fecha_examen', { ascending: false })
+            .limit(5);
+        
+        // Si es madre con múltiples hijos y tenemos el número de bebé, filtrar por bebe_identificador
+        if (bebeNumero) {
+            query = query.eq('bebe_identificador', bebeNumero);
+        }
+        
+        const { data, error, count } = await query;
         
         if (error) {
             throw error;
@@ -424,7 +531,9 @@ async function registrarExamenEOA(examenData) {
             madre_alcohol: examenData.madre_alcohol,
             madre_drogas: examenData.madre_drogas,
             observaciones: examenData.observaciones,
-            fecha_examen: new Date().toISOString()
+            fecha_examen: new Date().toISOString(),
+            // Agregar identificador del bebé si está disponible
+            bebe_identificador: examenData.bebe_identificador || null
         };
         
         if (!window.supabaseClient) {
@@ -835,6 +944,9 @@ function construirPayloadExamenDesdeFormulario() {
         madre_drogas: (document.getElementById('madreDrogasDetalle') || {}).value
     });
 
+    // Obtener el número de bebé del contexto global si está disponible
+    const bebeIdentificador = (typeof currentBebeNumero !== 'undefined' && currentBebeNumero) ? currentBebeNumero : null;
+    
     return {
         paciente_id: currentPacienteEOA ? currentPacienteEOA.id : null,
         paciente_nombre: currentPacienteEOA ? currentPacienteEOA.nombre : null,
@@ -851,7 +963,9 @@ function construirPayloadExamenDesdeFormulario() {
         madre_fumo: madreFumoInput.value === 'true',
         madre_alcohol: madreAlcoholInput.value === 'true',
         madre_drogas: madreDrogasInput.value === 'true',
-        observaciones: observacionesDetalladas
+        observaciones: observacionesDetalladas,
+        // Agregar identificador del bebé si está disponible
+        bebe_identificador: bebeIdentificador
     };
 }
 
@@ -1327,6 +1441,7 @@ if (document.readyState === 'loading') {
 window.eoa = {
     openEoaModal,
     openEoaModalConTipo,
+    openEoaModalConTipoYBebe,
     closeEoaModal,
     registrarExamenEOA,
     obtenerExamenesPaciente,

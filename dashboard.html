@@ -1504,9 +1504,16 @@
                             ${window.utils ? window.utils.formatearFecha(paciente.created_at) : new Date(paciente.created_at).toLocaleDateString()}
                         </div>
                         <div class="recent-item-actions">
-                            <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${paciente.id}">
-                                Realizar EOA
-                            </button>
+                            ${paciente.tipo_paciente === 'MADRE' && paciente.cantidad_hijos > 1
+                                ? Array.from({length: paciente.cantidad_hijos}, (_, i) => `
+                                    <button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${paciente.id}" data-bebe-numero="${i + 1}">
+                                        Bebé ${i + 1}
+                                    </button>
+                                `).join('')
+                                : `<button class="btn btn-secondary btn-sm btn-small" data-action="abrir-eoa" data-madre-id="${paciente.id}">
+                                    Realizar EOA
+                                </button>`
+                            }
                         </div>
                     </div>
                 `).join('');
@@ -1520,13 +1527,14 @@
                     button.addEventListener('click', function(e) {
                         e.stopPropagation();
                         const madreId = this.getAttribute('data-madre-id');
+                        const bebeNumero = this.getAttribute('data-bebe-numero');
                         
                         // Buscar los datos del paciente
                         const paciente = data.find(p => p.id == madreId);
                         
                         if (paciente) {
-                            // Abrir modal de selección de tipo de examen
-                            abrirTipoExamenModal(paciente);
+                            // Abrir modal de selección de tipo de examen con información del bebé
+                            abrirTipoExamenModal(paciente, bebeNumero);
                         } else if (madreId && typeof selectMadre === 'function') {
                             // Fallback al comportamiento anterior
                             selectMadre(madreId);
@@ -1548,10 +1556,12 @@
         // Variables globales para el manejo del tipo de examen
         let currentPacienteParaEOA = null;
         let tipoExamenSeleccionado = null;
+        let currentBebeNumero = null;
         
         // Función para abrir el modal de selección de tipo de examen
-        function abrirTipoExamenModal(paciente) {
+        function abrirTipoExamenModal(paciente, bebeNumero = null) {
             currentPacienteParaEOA = paciente;
+            currentBebeNumero = bebeNumero;
             tipoExamenSeleccionado = null;
             
             // Limpiar selección anterior
@@ -1595,11 +1605,14 @@
             // Cerrar modal de selección
             closeTipoExamenModal();
             
-            // Abrir modal de EOA con el tipo seleccionado
-            if (currentPacienteParaEOA && typeof eoa !== 'undefined' && eoa.openEoaModalConTipo) {
+            // Abrir modal de EOA con el tipo seleccionado y número de bebé
+            if (currentPacienteParaEOA && typeof eoa !== 'undefined' && eoa.openEoaModalConTipoYBebe) {
+                eoa.openEoaModalConTipoYBebe(currentPacienteParaEOA, tipoExamenSeleccionado, currentBebeNumero);
+            } else if (currentPacienteParaEOA && typeof eoa !== 'undefined' && eoa.openEoaModalConTipo) {
+                // Fallback si la nueva función no está disponible
                 eoa.openEoaModalConTipo(currentPacienteParaEOA, tipoExamenSeleccionado);
             } else if (currentPacienteParaEOA && typeof openEoaModal === 'function') {
-                // Fallback si la nueva función no está disponible
+                // Fallback si las nuevas funciones no están disponibles
                 openEoaModal(currentPacienteParaEOA);
             }
         };
