@@ -289,21 +289,16 @@ async function actualizarMadre(madreId, updates) {
 
 // Función para eliminar un paciente
 async function eliminarPaciente(pacienteId) {
-    console.log('eliminarPaciente llamado con ID:', pacienteId);
-    
     try {
         // Validar que se proporcionó un ID válido
         if (!pacienteId) {
-            console.error('ID de paciente no proporcionado');
             throw new Error('ID de paciente no proporcionado');
         }
         
         if (!window.supabaseClient) {
-            console.error('Supabase no está inicializado');
             throw new Error('Supabase no está inicializado');
         }
         
-        console.log('Eliminando exámenes asociados al paciente:', pacienteId);
         // Primero eliminar todos los exámenes asociados (eliminación en cascada manual)
         const { error: examenesError } = await window.supabaseClient
             .from('examenes_eoa')
@@ -315,7 +310,6 @@ async function eliminarPaciente(pacienteId) {
             throw examenesError;
         }
         
-        console.log('Eliminando paciente:', pacienteId);
         // Luego eliminar el paciente
         const { error } = await window.supabaseClient
             .from('pacientes')
@@ -327,74 +321,38 @@ async function eliminarPaciente(pacienteId) {
             throw error;
         }
         
-        const successResult = { success: true, message: 'Paciente eliminado correctamente' };
-        console.log('Paciente eliminado exitosamente, devolviendo:', successResult);
-        return successResult;
+        return { success: true, message: 'Paciente eliminado correctamente' };
         
     } catch (error) {
         console.error('Error al eliminar paciente:', error);
-        const errorResult = {
+        return {
             success: false,
             error: error.message || 'Error al eliminar paciente'
         };
-        console.log('Devolviendo resultado de error:', errorResult);
-        return errorResult;
     }
-    
-    // Esta línea nunca debería alcanzarse, pero es una seguridad adicional
-    const unexpectedResult = {
-        success: false,
-        error: 'Error inesperado al eliminar paciente'
-    };
-    console.log('Devolviendo resultado inesperado:', unexpectedResult);
-    return unexpectedResult;
 }
 
 // Función para eliminar una madre (mantener compatibilidad)
 async function eliminarMadre(madreId) {
-    console.log('eliminarMadre llamado con ID:', madreId);
-    console.log('eliminarPaciente es una función:', typeof eliminarPaciente);
-    
     try {
-        console.log('Llamando a eliminarPaciente...');
         const result = await eliminarPaciente(madreId);
-        console.log('eliminarPaciente devolvió:', result);
-        console.log('Tipo de resultado:', typeof result);
         
-        // Asegurarse de que result sea un objeto válido
         if (!result || typeof result !== 'object') {
             console.error('eliminarPaciente devolvió un resultado inválido:', result);
-            console.error('Tipo:', typeof result);
-            console.error('Es null:', result === null);
-            console.error('Es undefined:', result === undefined);
-            
-            const fallbackResult = {
+            return {
                 success: false,
                 error: 'Respuesta inválida al eliminar paciente'
             };
-            console.log('Devolviendo fallback:', fallbackResult);
-            return fallbackResult;
         }
         
-        console.log('Devolviendo resultado válido:', result);
         return result;
     } catch (error) {
         console.error('Error en eliminarMadre:', error);
-        const errorResult = {
+        return {
             success: false,
             error: error.message || 'Error al eliminar madre'
         };
-        console.log('Devolviendo resultado de error:', errorResult);
-        return errorResult;
     }
-    
-    // Esta línea nunca debería alcanzarse, pero es una seguridad adicional
-    const unexpectedResult = {
-        success: false,
-        error: 'Error inesperado al eliminar madre'
-    };
-    console.log('Devolviendo resultado inesperado:', unexpectedResult);
-    return unexpectedResult;
 }
 
 // Función para obtener estadísticas de pacientes

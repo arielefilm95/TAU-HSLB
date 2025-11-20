@@ -991,79 +991,18 @@ async function solicitarEliminarPaciente(madreId, nombreMadre = '') {
     if (!confirmado) return;
 
     try {
-        // Esperar un momento para asegurar que todos los módulos estén cargados
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Verificar que window.madres existe y tiene el método eliminarMadre
-        if (!window.madres) {
-            console.error('window.madres no existe:', window.madres);
-            console.error('Objetos disponibles en window:', Object.keys(window).filter(k => typeof window[k] === 'object'));
-            
-            // Intentar usar window.pacientes directamente si está disponible
-            if (window.pacientes && typeof window.pacientes.eliminarPaciente === 'function') {
-                console.log('Usando window.pacientes.eliminarPaciente como alternativa...');
-                const result = await window.pacientes.eliminarPaciente(madreId);
-                if (result && result.success) {
-                    utils?.showNotification('Paciente eliminado correctamente', 'success');
-                    const searchValue = document.getElementById('pacientesSearch')?.value.trim() || '';
-                    await loadPacientes(searchValue);
-                    return;
-                }
-                throw new Error(result.error || 'No se pudo eliminar el paciente');
-            }
-            
-            throw new Error('Módulo de madres no disponible');
+        // Se asume que window.madres.eliminarMadre está disponible y funciona.
+        // La corrección anterior resolvió el problema de la función incorrecta.
+        if (!window.madres || typeof window.madres.eliminarMadre !== 'function') {
+             throw new Error('La función para eliminar no está disponible.');
         }
-        
-        if (typeof window.madres.eliminarMadre !== 'function') {
-            console.error('eliminarMadre no es una función:', typeof window.madres.eliminarMadre);
-            console.error('window.madres:', window.madres);
-            console.error('Propiedades de window.madres:', Object.keys(window.madres || {}));
-            
-            // Intentar usar eliminarPaciente directamente si está disponible
-            if (typeof window.madres.eliminarPaciente === 'function') {
-                console.log('Usando window.madres.eliminarPaciente como alternativa...');
-                const result = await window.madres.eliminarPaciente(madreId);
-                if (result && result.success) {
-                    utils?.showNotification('Paciente eliminado correctamente', 'success');
-                    const searchValue = document.getElementById('pacientesSearch')?.value.trim() || '';
-                    await loadPacientes(searchValue);
-                    return;
-                }
-                throw new Error(result.error || 'No se pudo eliminar el paciente');
-            }
-            
-            throw new Error('Función de eliminación no disponible');
-        }
-        
-        console.log('Intentando eliminar paciente con ID:', madreId);
+
         const result = await window.madres.eliminarMadre(madreId);
-        console.log('Resultado de eliminarMadre:', result);
         
-        // Verificar que result existe y es un objeto válido
-        if (!result || typeof result !== 'object') {
-            console.error('Respuesta inválida recibida:', result);
-            console.error('Tipo de resultado:', typeof result);
-            console.error('window.madres.eliminarMadre:', typeof window.madres.eliminarMadre);
-            
-            // Intentar llamar directamente a eliminarPaciente si eliminarMadre falla
-            if (window.madres && window.madres.eliminarPaciente) {
-                console.log('Intentando usar eliminarPaciente directamente...');
-                const resultDirecto = await window.madres.eliminarPaciente(madreId);
-                if (resultDirecto && typeof resultDirecto === 'object' && resultDirecto.success) {
-                    utils?.showNotification('Paciente eliminado correctamente', 'success');
-                    const searchValue = document.getElementById('pacientesSearch')?.value.trim() || '';
-                    await loadPacientes(searchValue);
-                    return;
-                }
-            }
-            
-            throw new Error('Respuesta inválida al eliminar paciente');
-        }
-        
-        if (!result.success) {
+        if (!result || !result.success) {
             throw new Error(result.error || 'No se pudo eliminar el paciente');
         }
+
         utils?.showNotification('Paciente eliminado correctamente', 'success');
         const searchValue = document.getElementById('pacientesSearch')?.value.trim() || '';
         await loadPacientes(searchValue);
