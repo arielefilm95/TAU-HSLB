@@ -19,8 +19,8 @@ async function registrarPaciente(pacienteData) {
         }
         
         // Validar tipo de paciente
-        if (!['MADRE', 'BEBE', 'NEO'].includes(pacienteData.tipo_paciente.toUpperCase())) {
-            throw new Error('Tipo de paciente inválido. Debe ser MADRE, BEBE o NEO');
+        if (!['MADRE', 'BEBE'].includes(pacienteData.tipo_paciente.toUpperCase())) {
+            throw new Error('Tipo de paciente inválido. Debe ser MADRE o BEBE');
         }
 
         // Preparar datos para inserción
@@ -223,8 +223,8 @@ async function actualizarPaciente(pacienteId, updates) {
         }
         
         // Si se actualiza el tipo de paciente, validarlo
-        if (updates.tipo_paciente && !['MADRE', 'BEBE', 'NEO'].includes(updates.tipo_paciente.toUpperCase())) {
-            throw new Error('Tipo de paciente inválido. Debe ser MADRE, BEBE o NEO');
+        if (updates.tipo_paciente && !['MADRE', 'BEBE'].includes(updates.tipo_paciente.toUpperCase())) {
+            throw new Error('Tipo de paciente inválido. Debe ser MADRE o BEBE');
         }
         
         // Preparar datos para actualización

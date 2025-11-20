@@ -390,8 +390,7 @@ function crearFilaPaciente(paciente) {
     
     // Determinar clase CSS para el tipo de paciente
     const tipoClase = paciente.tipo_paciente === 'MADRE' ? 'tipo-madre' :
-                     paciente.tipo_paciente === 'BEBE' ? 'tipo-bebe' :
-                     paciente.tipo_paciente === 'NEO' ? 'tipo-neo' : 'tipo-desconocido';
+                     paciente.tipo_paciente === 'BEBE' ? 'tipo-bebe' : 'tipo-desconocido';
 
     return `
         <tr data-madre-id="${paciente.id}">

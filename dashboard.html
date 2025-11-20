@@ -138,11 +138,6 @@
                                 <span class="radio-custom"></span>
                                 Madre
                             </label>
-                            <label class="radio-label">
-                                <input type="radio" name="tipoRegistro" value="bebe" required>
-                                <span class="radio-custom"></span>
-                                Bebé (NEO)
-                            </label>
                         </div>
                     </div>
 
@@ -300,17 +295,17 @@
                             </div>
                             
                             <div class="form-section">
-                                <h4>Ubicación en NEO</h4>
+                                <h4>Ubicación</h4>
                                 <div class="form-group">
-                                    <label for="salaNeo">Sala NEO</label>
-                                    <input type="text" id="salaNeo" name="salaNeo" required placeholder="Ej: NEO 1">
-                                    <span class="error-message" id="salaNeoError"></span>
+                                    <label for="salaBebe">Sala</label>
+                                    <input type="text" id="salaBebe" name="salaBebe" required placeholder="Ej: Mater">
+                                    <span class="error-message" id="salaBebeError"></span>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="cunaNeo">Cuna/Incubadora</label>
-                                    <input type="text" id="cunaNeo" name="cunaNeo" required placeholder="Ej: Cuna 5">
-                                    <span class="error-message" id="cunaNeoError"></span>
+                                    <label for="camaBebe">Cama</label>
+                                    <input type="text" id="camaBebe" name="camaBebe" required placeholder="Ej: 15">
+                                    <span class="error-message" id="camaBebeError"></span>
                                 </div>
                             </div>
                             
@@ -1127,11 +1122,10 @@
                         apellido: apellidoBebe,
                         rut: rutNormalizado || null,
                         numero_ficha: document.getElementById('numeroFichaBebe').value.trim() || null,
-                        sala: document.getElementById('salaNeo').value.trim(),
-                        cama: document.getElementById('cunaNeo').value.trim(),
+                        sala: document.getElementById('salaBebe').value.trim(),
+                        cama: document.getElementById('camaBebe').value.trim(),
                         tipo_paciente: 'BEBE', // Especificar que es un bebé
-                        cantidad_hijos: 1, // Para bebés siempre es 1
-                        origen_registro: 'NEO' // Marcar como registro NEO
+                        cantidad_hijos: 1 // Para bebés siempre es 1
                     };
                     
                     // Preparar datos del examen que se guardarán en examenes_eoa
@@ -1149,7 +1143,7 @@
                         madre_fumo: false,
                         madre_alcohol: false,
                         madre_drogas: false,
-                        observaciones: 'Registro automático al crear bebé NEO'
+                        observaciones: 'Registro automático al crear bebé'
                     };
                     
                     // Mostrar loader
@@ -1336,7 +1330,7 @@
                 // Mostrar formulario bebé
                 document.getElementById('bebeFormContainer').style.display = 'block';
                 document.getElementById('madreFormContainer').style.display = 'none';
-                document.getElementById('modalTitle').textContent = 'Registrar Bebé (NEO)';
+                document.getElementById('modalTitle').textContent = 'Registrar Bebé';
                 
                 // Enfocar primer campo
                 setTimeout(() => {
